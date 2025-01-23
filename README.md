@@ -9,11 +9,11 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
 
 ### **Frontend**  
 
-**CUSTOM REEM Stack **
-R: React Native with Expo (Frontend development and cross-platform support)
-E: Express.js (Backend framework for RESTful APIs)
-E: EAS (Expo Application Services for deployment pipeline)
-M: MySQL (Relational database for structured data)
+#### **CUSTOM REEM Stack**
+- R: React Native with Expo (Frontend development and cross-platform support)
+- E: Express.js (Backend framework for RESTful APIs)
+- E: EAS (Expo Application Services for deployment pipeline)
+- M: MySQL (Relational database for structured data)
 
 
 - **React Native with Expo**:  
