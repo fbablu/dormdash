@@ -15,7 +15,7 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
 - E: EAS (Expo Application Services for deployment pipeline)
 - M: MySQL (Relational database for structured data)
 
-
+##### More Info:
 - **React Native with Expo**:  
   - Provides a cross-platform codebase for iOS and Android, reducing development time and complexity.  
   - Simplified testing and deployment pipeline through Expo EAS.  
