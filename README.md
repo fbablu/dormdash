@@ -8,6 +8,14 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
 ## Tech Stack  
 
 ### **Frontend**  
+
+**CUSTOM REEM Stack **
+R: React Native with Expo (Frontend development and cross-platform support)
+E: Express.js (Backend framework for RESTful APIs)
+E: EAS (Expo Application Services for deployment pipeline)
+M: MySQL (Relational database for structured data)
+
+
 - **React Native with Expo**:  
   - Provides a cross-platform codebase for iOS and Android, reducing development time and complexity.  
   - Simplified testing and deployment pipeline through Expo EAS.  
