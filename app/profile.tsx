@@ -1,13 +1,13 @@
-// app/index.tsx
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function Page() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home</Text>
+      <Text style={styles.text}>Profile</Text>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

@@ -1,10 +1,10 @@
-// app/index.tsx
+// app/deliver.tsx
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function Page() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home</Text>
+      <Text style={styles.text}>Deliver</Text>
     </View>
   );
 }
