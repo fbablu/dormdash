@@ -1,16 +1,10 @@
 // app/(tabs)/index.tsx
-import { View, Text, StyleSheet } from "react-native";
-import { router } from "expo-router";
-import { useEffect } from "react";
+import { View, Text, StyleSheet } from 'react-native';
 
 export default function Page() {
-  useEffect(() => {
-    router.replace("/onboarding");
-  }, []);
-
   return (
     <View style={styles.container}>
-      <Text>Redirecting...</Text>
+      <Text style={styles.text}>Welcome to DormDash</Text>
     </View>
   );
 }
@@ -18,7 +12,12 @@ export default function Page() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  text: {
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });
