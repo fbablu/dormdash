@@ -7,7 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
-    router.replace('/onboarding');
+    router.replace("/onboarding");
   }, []);
 
   return (

@@ -1,7 +1,7 @@
 // app/onboarding.tsx
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Onboarding from 'react-native-onboarding-swiper';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import Onboarding from "react-native-onboarding-swiper";
+import { router } from "expo-router";
 
 const NextButton = ({ ...props }) => (
   <TouchableOpacity style={styles.button} {...props}>
@@ -18,28 +18,28 @@ const DoneButton = ({ ...props }) => (
 const OnboardingScreen = () => {
   return (
     <Onboarding
-      onDone={() => router.replace('/(tabs)')}
-      onSkip={() => router.replace('/(tabs)')}
+      onDone={() => router.replace("/(tabs)")}
+      onSkip={() => router.replace("/(tabs)")}
       NextButtonComponent={NextButton}
       DoneButtonComponent={DoneButton}
       pages={[
         {
-          backgroundColor: '#fff',
+          backgroundColor: "#fff",
           image: <View />,
-          title: 'Welcome',
-          subtitle: 'Text 1',
+          title: "Welcome",
+          subtitle: "Text 1",
         },
         {
-          backgroundColor: '#fff',
+          backgroundColor: "#fff",
           image: <View />,
-          title: 'Features',
-          subtitle: 'Text 2',
+          title: "Features",
+          subtitle: "Text 2",
         },
         {
-          backgroundColor: '#fff',
+          backgroundColor: "#fff",
           image: <View />,
-          title: 'Get Started',
-          subtitle: 'Text 3',
+          title: "Get Started",
+          subtitle: "Text 3",
         },
       ]}
     />
@@ -48,18 +48,18 @@ const OnboardingScreen = () => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     padding: 16,
     borderRadius: 8,
     marginHorizontal: 8,
   },
   googleButton: {
-    backgroundColor: '#4285f4',
+    backgroundColor: "#4285f4",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 
