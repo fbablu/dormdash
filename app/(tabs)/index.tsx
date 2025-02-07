@@ -1,10 +1,16 @@
-// app/index.tsx
-import { View, Text, StyleSheet } from 'react-native';
+// app/(tabs)/index.tsx
+import { View, Text, StyleSheet } from "react-native";
+import { router } from "expo-router";
+import { useEffect } from "react";
 
 export default function Page() {
+  useEffect(() => {
+    router.replace("/onboarding");
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home</Text>
+      <Text>Redirecting...</Text>
     </View>
   );
 }
@@ -12,12 +18,7 @@ export default function Page() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
