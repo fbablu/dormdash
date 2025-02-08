@@ -4,272 +4,274 @@
     "location": "HILLSBORO VILLAGE",
     "address": "1808 20th Ave S #101, Nashville, TN 37212",
     "website": "https://banhmiandrollplus.com/",
-    "cuisine": ["Vietnamese", "Asian",
-  {
-    "name": "Chuy's Tex Mex",
-    "location": "MIDTOWN",
-    "address": "1901 Broadway, Nashville, TN 37203",
-    "website": "https://www.chuys.com/",
-    "cuisine": ["Mexican", "Tex-Mex"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Donatos Pizza",
-    "location": "MIDTOWN",
-    "address": "1915 Broadway, Nashville, TN 37203",
-    "website": "https://www.donatos.com/",
-    "cuisine": ["Pizza", "Italian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Helen's Hot Chicken",
-    "location": "MIDTOWN",
-    "address": "2010 Scarritt Pl, Nashville, TN 37203",
-    "website": "https://www.helenshotchicken.com/",
-    "cuisine": ["Southern", "Chicken"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Two Boots Pizza",
-    "location": "MIDTOWN",
-    "address": "1925 Broadway, Nashville, TN 37203",
-    "website": "https://www.twoboots.com/nashville",
-    "cuisine": ["Pizza", "Italian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "The Poki",
-    "location": "MIDTOWN",
-    "address": "2057 Scarritt Pl, Nashville, TN 37203",
-    "website": "https://thepoki.com/brentwood-the-poki-locations",
-    "cuisine": ["Hawaiian", "Asian", "Poke"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Sarabha's Creamery",
-    "location": "MIDTOWN",
-    "address": "400 21st Ave S #201, Nashville, TN 37203",
-    "website": "https://sarabhascreamery.com/",
-    "cuisine": ["Ice Cream", "Desserts", "Indian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "The Slider House",
-    "location": "MIDTOWN",
-    "address": "1907 Division St, Nashville, TN 37203",
-    "website": "https://sliderhousensh.com/",
-    "cuisine": ["American", "Burgers"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Urban Cookhouse",
-    "location": "MIDTOWN",
-    "address": "1907 Broadway, Nashville, TN 37203",
-    "website": "https://www.urbancookhouse.com/location/",
-    "cuisine": ["American", "Sandwiches"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "8th and Roast",
-    "location": "MIDTOWN",
-    "address": "2108 8th Ave S, Nashville, TN 37204",
-    "website": "https://www.8thandroast.com/",
-    "cuisine": ["Coffee", "Cafe"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Bombay Palace",
-    "location": "WEST END AVENUE",
-    "address": "2912 West End Ave, Nashville, TN 37203",
-    "website": "https://bobmaypalacenashville.com/",
-    "cuisine": ["Indian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Chili's",
-    "location": "WEST END AVENUE",
-    "address": "2322 West End Ave, Nashville, TN 37203",
-    "website": "https://www.chilis.com/locations/us/tennessee/nashville/vanderbilt",
-    "cuisine": ["American", "Tex-Mex"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Crab Fever",
-    "location": "WEST END AVENUE",
-    "address": "1907 West End Ave, Nashville, TN 37203",
-    "website": "https://www.crabfever.com/crab-fever-nashville",
-    "cuisine": ["Seafood"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Hyderabad House",
-    "location": "WEST END AVENUE",
-    "address": "106 29th Ave N, Nashville, TN 37203",
-    "website": "https://hyderabadhousenashville.com/",
-    "cuisine": ["Indian", "South Indian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Wendy's",
-    "location": "WEST END AVENUE",
-    "address": "2603 West End Ave, Nashville, TN 37203",
-    "website": "https://locations.wendys.com/united-states/tn/nashville/2603-west-end-ave",
-    "cuisine": ["Fast Food", "American", "Burgers"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Inchin's Bamboo Garden",
-    "location": "WEST END AVENUE",
-    "address": "1800 West End Ave, Nashville, TN 37203",
-    "website": "https://bamboo-gardens.com/nashville-tn/",
-    "cuisine": ["Chinese", "Asian Fusion"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Papa John's Pizza",
-    "location": "WEST END AVENUE",
-    "address": "2316 West End Ave, Nashville, TN 37203",
-    "website": "https://locations.papajohns.com/united-states/tn/37203/nashville/2316-west-end-avenue",
-    "cuisine": ["Pizza", "Italian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Sitar",
-    "location": "WEST END AVENUE",
-    "address": "116 21st Ave N, Nashville, TN 37203",
-    "website": "https://sitarnashville.com/",
-    "cuisine": ["Indian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Sun & Fork",
-    "location": "WEST END AVENUE",
-    "address": "2507 West End Ave, Nashville, TN 37203",
-    "website": "https://sunandfork.com/",
-    "cuisine": ["Healthy", "American", "Breakfast"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Yaki House",
-    "location": "ELLISTON PLACE",
-    "address": "2422 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.yakihousenashville.com/en/",
-    "cuisine": ["Japanese", "Asian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Elliston Place Soda Shop",
-    "location": "ELLISTON PLACE",
-    "address": "2105 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.ellistonplacesodashop.com/",
-    "cuisine": ["American", "Diner", "Ice Cream"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Frutta Bowls",
-    "location": "ELLISTON PLACE",
-    "address": "2424 Elliston Pl, Nashville, TN 37203",
-    "website": "https://restaurants.fruttabowls.com/tn/nashville/2424-elliston-place/",
-    "cuisine": ["Healthy", "Bowls", "Smoothies"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "I Love Sushi",
-    "location": "ELLISTON PLACE",
-    "address": "2300 Elliston Pl, Nashville, TN 37203",
-    "website": "https://ilovesushinashville.com/",
-    "cuisine": ["Japanese", "Sushi", "Asian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Roma Pizza & Pasta",
-    "location": "ELLISTON PLACE",
-    "address": "2418 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.romapizzapastaellistonpl.com/",
-    "cuisine": ["Italian", "Pizza", "Pasta"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Jet's Pizza",
-    "location": "ELLISTON PLACE",
-    "address": "214 25th Ave N, Nashville, TN 37203",
-    "website": "https://www.jetspizza.com/stores/tennessee/nashville/214-25th-ave-n/",
-    "cuisine": ["Pizza", "Italian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Michaelangelo's Pizza",
-    "location": "ELLISTON PLACE",
-    "address": "205 22nd Ave N, Nashville, TN 37203",
-    "website": "https://www.michaelangelosmenu.com/",
-    "cuisine": ["Pizza", "Italian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Oscar's Taco Shop",
-    "location": "ELLISTON PLACE",
-    "address": "2323 Elliston Pl, Nashville, TN 37203",
-    "website": "https://oscarstacoshop.com/locations/vandy-2323-elliston-plave-nashville-tn/",
-    "cuisine": ["Mexican", "Tacos"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Poke Bros.",
-    "location": "ELLISTON PLACE",
-    "address": "2414 Elliston Pl, Nashville, TN 37203",
-    "website": "https://eatpokebros.com/location/nashville/",
-    "cuisine": ["Hawaiian", "Asian", "Poke"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Satay Thai Grill",
-    "location": "ELLISTON PLACE",
-    "address": "2412 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.thaisataynashville.com/",
-    "cuisine": ["Thai", "Asian"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Sweet Dots Bubble Tea",
-    "location": "ELLISTON PLACE",
-    "address": "2217 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.sweetdots.com/",
-    "cuisine": ["Bubble Tea", "Asian", "Beverages"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Wild Berry",
-    "location": "ELLISTON PLACE",
-    "address": "2424 Elliston Pl, Nashville, TN 37203",
-    "website": "https://www.wildberryacai.com/",
-    "cuisine": ["Healthy", "Bowls", "Smoothies"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Holy Smokes",
-    "location": "ON-CAMPUS",
-    "address": "300 24th Ave S, Nashville, TN 37212",
-    "website": "https://holysmokeskosher.org/",
-    "cuisine": ["BBQ", "Kosher"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Red Bicycle",
-    "location": "ON-CAMPUS",
-    "address": "1210 21st Ave S, Nashville, TN 37203",
-    "website": "https://redbicyclecoffee.com/",
-    "cuisine": ["Coffee", "Cafe", "Breakfast"],
-    "acceptsCommodoreCash": true
-  },
-  {
-    "name": "Woodlands",
-    "location": "KOSHER/OUT OF CAMPUS RADIUS",
-    "address": "3415 West End Ave. Nashville, TN 37203",
-    "website": "https://woodlandstennessee.com/",
-    "cuisine": ["Indian", "Vegetarian", "Kosher"],
-    "acceptsCommodoreCash": true
-  }
-],
+    "cuisine": [
+      "Vietnamese",
+      "Asian",
+      {
+        "name": "Chuy's Tex Mex",
+        "location": "MIDTOWN",
+        "address": "1901 Broadway, Nashville, TN 37203",
+        "website": "https://www.chuys.com/",
+        "cuisine": ["Mexican", "Tex-Mex"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Donatos Pizza",
+        "location": "MIDTOWN",
+        "address": "1915 Broadway, Nashville, TN 37203",
+        "website": "https://www.donatos.com/",
+        "cuisine": ["Pizza", "Italian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Helen's Hot Chicken",
+        "location": "MIDTOWN",
+        "address": "2010 Scarritt Pl, Nashville, TN 37203",
+        "website": "https://www.helenshotchicken.com/",
+        "cuisine": ["Southern", "Chicken"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Two Boots Pizza",
+        "location": "MIDTOWN",
+        "address": "1925 Broadway, Nashville, TN 37203",
+        "website": "https://www.twoboots.com/nashville",
+        "cuisine": ["Pizza", "Italian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "The Poki",
+        "location": "MIDTOWN",
+        "address": "2057 Scarritt Pl, Nashville, TN 37203",
+        "website": "https://thepoki.com/brentwood-the-poki-locations",
+        "cuisine": ["Hawaiian", "Asian", "Poke"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Sarabha's Creamery",
+        "location": "MIDTOWN",
+        "address": "400 21st Ave S #201, Nashville, TN 37203",
+        "website": "https://sarabhascreamery.com/",
+        "cuisine": ["Ice Cream", "Desserts", "Indian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "The Slider House",
+        "location": "MIDTOWN",
+        "address": "1907 Division St, Nashville, TN 37203",
+        "website": "https://sliderhousensh.com/",
+        "cuisine": ["American", "Burgers"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Urban Cookhouse",
+        "location": "MIDTOWN",
+        "address": "1907 Broadway, Nashville, TN 37203",
+        "website": "https://www.urbancookhouse.com/location/",
+        "cuisine": ["American", "Sandwiches"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "8th and Roast",
+        "location": "MIDTOWN",
+        "address": "2108 8th Ave S, Nashville, TN 37204",
+        "website": "https://www.8thandroast.com/",
+        "cuisine": ["Coffee", "Cafe"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Bombay Palace",
+        "location": "WEST END AVENUE",
+        "address": "2912 West End Ave, Nashville, TN 37203",
+        "website": "https://bobmaypalacenashville.com/",
+        "cuisine": ["Indian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Chili's",
+        "location": "WEST END AVENUE",
+        "address": "2322 West End Ave, Nashville, TN 37203",
+        "website": "https://www.chilis.com/locations/us/tennessee/nashville/vanderbilt",
+        "cuisine": ["American", "Tex-Mex"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Crab Fever",
+        "location": "WEST END AVENUE",
+        "address": "1907 West End Ave, Nashville, TN 37203",
+        "website": "https://www.crabfever.com/crab-fever-nashville",
+        "cuisine": ["Seafood"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Hyderabad House",
+        "location": "WEST END AVENUE",
+        "address": "106 29th Ave N, Nashville, TN 37203",
+        "website": "https://hyderabadhousenashville.com/",
+        "cuisine": ["Indian", "South Indian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Wendy's",
+        "location": "WEST END AVENUE",
+        "address": "2603 West End Ave, Nashville, TN 37203",
+        "website": "https://locations.wendys.com/united-states/tn/nashville/2603-west-end-ave",
+        "cuisine": ["Fast Food", "American", "Burgers"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Inchin's Bamboo Garden",
+        "location": "WEST END AVENUE",
+        "address": "1800 West End Ave, Nashville, TN 37203",
+        "website": "https://bamboo-gardens.com/nashville-tn/",
+        "cuisine": ["Chinese", "Asian Fusion"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Papa John's Pizza",
+        "location": "WEST END AVENUE",
+        "address": "2316 West End Ave, Nashville, TN 37203",
+        "website": "https://locations.papajohns.com/united-states/tn/37203/nashville/2316-west-end-avenue",
+        "cuisine": ["Pizza", "Italian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Sitar",
+        "location": "WEST END AVENUE",
+        "address": "116 21st Ave N, Nashville, TN 37203",
+        "website": "https://sitarnashville.com/",
+        "cuisine": ["Indian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Sun & Fork",
+        "location": "WEST END AVENUE",
+        "address": "2507 West End Ave, Nashville, TN 37203",
+        "website": "https://sunandfork.com/",
+        "cuisine": ["Healthy", "American", "Breakfast"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Yaki House",
+        "location": "ELLISTON PLACE",
+        "address": "2422 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.yakihousenashville.com/en/",
+        "cuisine": ["Japanese", "Asian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Elliston Place Soda Shop",
+        "location": "ELLISTON PLACE",
+        "address": "2105 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.ellistonplacesodashop.com/",
+        "cuisine": ["American", "Diner", "Ice Cream"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Frutta Bowls",
+        "location": "ELLISTON PLACE",
+        "address": "2424 Elliston Pl, Nashville, TN 37203",
+        "website": "https://restaurants.fruttabowls.com/tn/nashville/2424-elliston-place/",
+        "cuisine": ["Healthy", "Bowls", "Smoothies"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "I Love Sushi",
+        "location": "ELLISTON PLACE",
+        "address": "2300 Elliston Pl, Nashville, TN 37203",
+        "website": "https://ilovesushinashville.com/",
+        "cuisine": ["Japanese", "Sushi", "Asian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Roma Pizza & Pasta",
+        "location": "ELLISTON PLACE",
+        "address": "2418 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.romapizzapastaellistonpl.com/",
+        "cuisine": ["Italian", "Pizza", "Pasta"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Jet's Pizza",
+        "location": "ELLISTON PLACE",
+        "address": "214 25th Ave N, Nashville, TN 37203",
+        "website": "https://www.jetspizza.com/stores/tennessee/nashville/214-25th-ave-n/",
+        "cuisine": ["Pizza", "Italian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Michaelangelo's Pizza",
+        "location": "ELLISTON PLACE",
+        "address": "205 22nd Ave N, Nashville, TN 37203",
+        "website": "https://www.michaelangelosmenu.com/",
+        "cuisine": ["Pizza", "Italian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Oscar's Taco Shop",
+        "location": "ELLISTON PLACE",
+        "address": "2323 Elliston Pl, Nashville, TN 37203",
+        "website": "https://oscarstacoshop.com/locations/vandy-2323-elliston-plave-nashville-tn/",
+        "cuisine": ["Mexican", "Tacos"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Poke Bros.",
+        "location": "ELLISTON PLACE",
+        "address": "2414 Elliston Pl, Nashville, TN 37203",
+        "website": "https://eatpokebros.com/location/nashville/",
+        "cuisine": ["Hawaiian", "Asian", "Poke"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Satay Thai Grill",
+        "location": "ELLISTON PLACE",
+        "address": "2412 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.thaisataynashville.com/",
+        "cuisine": ["Thai", "Asian"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Sweet Dots Bubble Tea",
+        "location": "ELLISTON PLACE",
+        "address": "2217 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.sweetdots.com/",
+        "cuisine": ["Bubble Tea", "Asian", "Beverages"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Wild Berry",
+        "location": "ELLISTON PLACE",
+        "address": "2424 Elliston Pl, Nashville, TN 37203",
+        "website": "https://www.wildberryacai.com/",
+        "cuisine": ["Healthy", "Bowls", "Smoothies"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Holy Smokes",
+        "location": "ON-CAMPUS",
+        "address": "300 24th Ave S, Nashville, TN 37212",
+        "website": "https://holysmokeskosher.org/",
+        "cuisine": ["BBQ", "Kosher"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Red Bicycle",
+        "location": "ON-CAMPUS",
+        "address": "1210 21st Ave S, Nashville, TN 37203",
+        "website": "https://redbicyclecoffee.com/",
+        "cuisine": ["Coffee", "Cafe", "Breakfast"],
+        "acceptsCommodoreCash": true
+      },
+      {
+        "name": "Woodlands",
+        "location": "KOSHER/OUT OF CAMPUS RADIUS",
+        "address": "3415 West End Ave. Nashville, TN 37203",
+        "website": "https://woodlandstennessee.com/",
+        "cuisine": ["Indian", "Vegetarian", "Kosher"],
+        "acceptsCommodoreCash": true
+      }
+    ],
     "acceptsCommodoreCash": true
   },
   {
