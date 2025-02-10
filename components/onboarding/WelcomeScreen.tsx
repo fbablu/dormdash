@@ -8,7 +8,6 @@ const { width, height } = Dimensions.get("window");
 const WelcomeScreen = () => {
   return (
     <CustomSafeAreaView style={styles.container}>
-
       <View style={styles.header}>
         <Image
           style={styles.dormdashIcon}
@@ -18,10 +17,8 @@ const WelcomeScreen = () => {
       </View>
 
       {/* Grid Layout Container */}
-      
-      
+
       <View style={styles.gridContainer}>
-      
         {/* Row 1: Commodore Cash (2-column span) */}
         <View style={[styles.gridItem, styles.colSpan2]}>
           <Image
@@ -33,7 +30,6 @@ const WelcomeScreen = () => {
 
         {/* Row 2: ToN and Barista (2 equal columns) */}
 
-
         <View style={[styles.gridItem, styles.normalGridItem]}>
           <Image
             style={styles.image}
@@ -41,7 +37,6 @@ const WelcomeScreen = () => {
             source={require("../../assets/welcome-restaraunts/satay.png")}
           />
         </View>
-
 
         {/* BARISTA PARLOR  */}
         <View style={[styles.gridItem, styles.normalGridItem]}>
@@ -73,7 +68,8 @@ const WelcomeScreen = () => {
         {/* Text Container (2-column span) */}
         <View style={[styles.textContainer, styles.colSpan2]}>
           <Text style={styles.deliveryText}>
-            Delivery for ALL Taste of Nashville Restaurants straight to your dorm.
+            Delivery for ALL Taste of Nashville Restaurants straight to your
+            dorm.
           </Text>
         </View>
 
@@ -90,18 +86,13 @@ const WelcomeScreen = () => {
   );
 };
 
-
-
-
-
-
 const styles = StyleSheet.create({
   container: {
     width: width,
     height: height * 0.8,
     backgroundColor: "#cfae70",
   },
-  
+
   header: {
     height: 130,
     backgroundColor: "#cfae70",
@@ -115,28 +106,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: 100,
     height: 100,
-    bottom: -25
+    bottom: -25,
   },
 
   gridContainer: {
     flex: 1,
     padding: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
-    alignContent: 'flex-start'
+    alignContent: "flex-start",
   },
 
   gridItem: {
     borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: 'white',
+    overflow: "hidden",
+    backgroundColor: "white",
     height: 100,
     borderWidth: 5,
-    borderColor: 'black',
+    borderColor: "black",
   },
-
-
 
   normalGridItem: {
     flex: 1,
@@ -144,26 +133,26 @@ const styles = StyleSheet.create({
   },
 
   colSpan2: {
-    width: '100%',
+    width: "100%",
   },
 
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
 
   bubbleContainer: {
     flex: 1,
     borderRadius: 25,
     padding: 4,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
 
   textContainer: {
     backgroundColor: "#cfae70",
     borderRadius: 25,
     borderWidth: 5,
-    borderColor: 'black',
+    borderColor: "black",
     padding: 10,
     marginVertical: 8,
   },
