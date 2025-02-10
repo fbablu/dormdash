@@ -8,161 +8,168 @@ const { width, height } = Dimensions.get("window");
 const WelcomeScreen = () => {
   return (
     <CustomSafeAreaView style={styles.container}>
+
       <View style={styles.header}>
-        <Text style={styles.dormdash}>DormDash</Text>
+        <Image
+          style={styles.dormdashIcon}
+          resizeMode="contain"
+          source={require("../../assets/icons/splash-icon-light.png")}
+        />
       </View>
 
-      <View style={styles.imagesContainer}>
-        <Image
-          style={styles.tonIcon}
-          resizeMode="cover"
-          source={require("../../assets/welcome-restaraunts/ton.png")}
-        />
-
-        <Image
-          style={styles.commodoreCashIcon}
-          resizeMode="cover"
-          source={require("../../assets/welcome-restaraunts/commodore-cash.png")}
-        />
-
-        <Image
-          style={styles.baristaParlorIcon}
-          resizeMode="cover"
-          source={require("../../assets/welcome-restaraunts/barista-parlor.png")}
-        />
-
-        <View style={styles.sarabasBubble}>
-          <View style={styles.bubble} />
+      {/* Grid Layout Container */}
+      
+      
+      <View style={styles.gridContainer}>
+      
+        {/* Row 1: Commodore Cash (2-column span) */}
+        <View style={[styles.gridItem, styles.colSpan2]}>
           <Image
-            style={styles.sarabasIcon}
-            resizeMode="cover"
-            source={require("../../assets/welcome-restaraunts/sarabas.png")}
+            style={styles.image}
+            resizeMode="contain"
+            source={require("../../assets/welcome-restaraunts/ton.png")}
           />
         </View>
 
-        <Image
-          style={styles.grilledCheeserieIcon}
-          resizeMode="cover"
-          source={require("../../assets/welcome-restaraunts/grilled-cheeserie.png")}
-        />
+        {/* Row 2: ToN and Barista (2 equal columns) */}
 
-        <Image
-          style={styles.hyderabadHouseIcon}
-          resizeMode="cover"
-          source={require("../../assets/welcome-restaraunts/hyderabad-house.png")}
-        />
-      </View>
 
-      <View style={styles.welcomeTextContainer}>
-        <Text style={styles.deliveryForAll}>
-          Delivery for ALL Taste of Nashville Restaurants straight to your dorm.
-        </Text>
+        <View style={[styles.gridItem, styles.normalGridItem]}>
+          <Image
+            style={styles.image}
+            resizeMode="contain"
+            source={require("../../assets/welcome-restaraunts/satay.png")}
+          />
+        </View>
+
+
+        {/* BARISTA PARLOR  */}
+        <View style={[styles.gridItem, styles.normalGridItem]}>
+          <Image
+            style={styles.image}
+            resizeMode="contain"
+            source={require("../../assets/welcome-restaraunts/barista-parlor.png")}
+          />
+        </View>
+
+        {/* Row 3: Indian and Cheeserie (2 equal columns) */}
+        <View style={[styles.gridItem, styles.normalGridItem]}>
+          <View style={styles.bubbleContainer}>
+            <Image
+              style={styles.image}
+              resizeMode="contain"
+              source={require("../../assets/welcome-restaraunts/sarabas.png")}
+            />
+          </View>
+        </View>
+        <View style={[styles.gridItem, styles.normalGridItem]}>
+          <Image
+            style={styles.image}
+            resizeMode="contain"
+            source={require("../../assets/welcome-restaraunts/oscars.png")}
+          />
+        </View>
+
+        {/* Text Container (2-column span) */}
+        <View style={[styles.textContainer, styles.colSpan2]}>
+          <Text style={styles.deliveryText}>
+            Delivery for ALL Taste of Nashville Restaurants straight to your dorm.
+          </Text>
+        </View>
+
+        {/* Row 4: Hyderabad House (2-column span) */}
+        <View style={[styles.gridItem, styles.colSpan2]}>
+          <Image
+            style={styles.image}
+            resizeMode="contain"
+            source={require("../../assets/welcome-restaraunts/hyderabad-house.png")}
+          />
+        </View>
       </View>
     </CustomSafeAreaView>
   );
 };
 
+
+
+
+
+
 const styles = StyleSheet.create({
   container: {
     width: width,
     height: height * 0.8,
-    backgroundColor: "#fff",
+    backgroundColor: "#cfae70",
   },
+  
   header: {
-    height: 120,
+    height: 130,
     backgroundColor: "#cfae70",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: -100,
+    marginTop: -120,
   },
-  dormdash: {
-    fontSize: 40,
-    fontWeight: "600",
-    fontStyle: "italic",
-    color: "#000",
-    marginTop: 20,
-  },
-  imagesContainer: {
-    flex: 1,
+
+  dormdashIcon: {
     position: "relative",
-  },
-  tonIcon: {
-    position: "absolute",
-    top: 28,
-    right: 20,
-    width: 191,
+    marginTop: 10,
+    width: 100,
     height: 100,
-    borderRadius: 31,
+    bottom: -25
   },
-  commodoreCashIcon: {
-    position: "absolute",
-    top: 39,
-    left: 15,
-    width: 164,
-    height: 198,
-    borderRadius: 36,
+
+  gridContainer: {
+    flex: 1,
+    padding: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignContent: 'flex-start'
   },
-  baristaParlorIcon: {
-    position: "absolute",
-    top: 139,
-    right: 40,
-    width: 150,
-    height: 163,
-    borderRadius: 52,
-  },
-  sarabasBubble: {
-    position: "absolute",
-    top: 249,
-    left: 19,
-    width: 164,
-    height: 161,
-  },
-  bubble: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    borderRadius: 45,
-    borderWidth: 4,
-    borderColor: "#000",
-    backgroundColor: "#fff",
-  },
-  sarabasIcon: {
-    position: "absolute",
-    top: 3,
-    left: 3,
-    width: 158,
-    height: 150,
-    borderRadius: 161,
-  },
-  grilledCheeserieIcon: {
-    position: "absolute",
-    top: 313,
-    right: 20,
-    width: 177,
-    height: 88,
-    borderRadius: 22,
-  },
-  hyderabadHouseIcon: {
-    position: "absolute",
-    top: 449,
-    left: 26,
-    width: 341,
-    height: 109,
-    borderRadius: 30,
-  },
-  welcomeTextContainer: {
-    position: "absolute",
-    bottom: 100,
-    left: 19,
-    right: 19,
-    backgroundColor: "#cfae70",
-    borderRadius: 24,
+
+  gridItem: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    height: 100,
     borderWidth: 5,
-    borderColor: "#000",
-    padding: 15,
+    borderColor: 'black',
   },
-  deliveryForAll: {
-    fontSize: 25,
+
+
+
+  normalGridItem: {
+    flex: 1,
+    minWidth: width * 0.42,
+  },
+
+  colSpan2: {
+    width: '100%',
+  },
+
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+
+  bubbleContainer: {
+    flex: 1,
+    borderRadius: 25,
+    padding: 4,
+    backgroundColor: 'white',
+  },
+
+  textContainer: {
+    backgroundColor: "#cfae70",
+    borderRadius: 25,
+    borderWidth: 5,
+    borderColor: 'black',
+    padding: 10,
+    marginVertical: 8,
+  },
+
+  deliveryText: {
+    fontSize: 22,
     fontWeight: "600",
     textAlign: "center",
     color: "#000",
