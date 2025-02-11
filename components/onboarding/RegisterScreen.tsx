@@ -61,6 +61,15 @@ const RegisterScreen = () => {
         </View>
 
         <View style={styles.bottomButtons}>
+
+        <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => router.replace("/(tabs)")}
+          >
+            <AntDesign name="google" size={24} color="black" />
+            <Text style={styles.googleText}>Sign in with Vandy Email</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.tosButton}
             onPress={() =>
@@ -71,10 +80,7 @@ const RegisterScreen = () => {
           >
             <Text style={styles.tosText}>Questions? View Terms of Service</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.tosButton}>
-            <Text style={styles.tosText}>Questions? View Terms of Service</Text>
-          </TouchableOpacity>
+          
         </View>
       </View>
     </CustomSafeAreaView>
