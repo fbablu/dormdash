@@ -21,10 +21,11 @@ const FeaturesScreen = () => {
         {/* Row 1: Order */}
         <View style={styles.row}>
           <View style={styles.leftContent}>
-            <View style={styles.stepIconContainer}>
-              <Text style={styles.stepNumber}>1</Text>
-              <Feather name="menu" size={32} color="black" />
-            </View>
+            <Image
+              style={styles.stepIcons}
+              resizeMode="contain"
+              source={require("../../assets/feature-onboarding/step-1.png")}
+            />
           </View>
           <View style={styles.rightContent}>
             <Text style={styles.stepTitle}>Order from your faves</Text>
@@ -43,9 +44,12 @@ const FeaturesScreen = () => {
             </Text>
           </View>
           <View style={styles.rightContent}>
-            <View style={[styles.stepIconContainer, styles.trackingContainer]}>
-              <Text style={styles.stepNumber}>2</Text>
-              <Feather name="map-pin" size={32} color="black" />
+            <View style={styles.rightContent}>
+              <Image
+                style={styles.stepIcons}
+                resizeMode="contain"
+                source={require("../../assets/feature-onboarding/step-2.png")}
+              />
             </View>
           </View>
         </View>
@@ -53,11 +57,15 @@ const FeaturesScreen = () => {
         {/* Row 3: Enjoy */}
         <View style={styles.row}>
           <View style={styles.leftContent}>
-            <View style={styles.stepIconContainer}>
-              <Text style={styles.stepNumber}>3</Text>
-              <Feather name="users" size={32} color="black" />
+            <View style={styles.leftContent}>
+              <Image
+                style={styles.stepIcons}
+                resizeMode="contain"
+                source={require("../../assets/feature-onboarding/step-3.png")}
+              />
             </View>
           </View>
+
           <View style={styles.rightContent}>
             <Text style={styles.stepTitle}>Enjoy direct room service</Text>
             <Text style={styles.stepDescription}>
@@ -90,10 +98,20 @@ const styles = StyleSheet.create({
     height: 100,
     bottom: -25,
   },
+
+  stepIcons: {
+    position: "relative",
+    marginTop: -40,
+    marginLeft: -30,
+    width: 200,
+    height: 200,
+    bottom: -25,
+  },
+
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: height * 0.05,
+    paddingHorizontal: 25,
+    paddingTop: height * 0.01,
     justifyContent: "space-evenly",
   },
   row: {
@@ -110,49 +128,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 10,
   },
-  stepIconContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: "#ffffff",
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#000000",
-  },
+
   trackingContainer: {
     backgroundColor: "#cfae70",
   },
-  stepNumber: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-    backgroundColor: "#ffffff",
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    textAlign: "center",
-    lineHeight: 30,
-    fontSize: 16,
-    fontWeight: "bold",
-    borderWidth: 2,
-    borderColor: "#000000",
-  },
+
   stepTitle: {
-    fontSize: 24,
+    fontSize: 29,
     fontWeight: "600",
     marginBottom: 8,
   },
+
   stepDescription: {
-    fontSize: 16,
-    color: "#666666",
+    fontSize: 20,
+    color: "#fff",
     lineHeight: 22,
-  },
-  dotsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    paddingBottom: 40,
   },
 });
 
