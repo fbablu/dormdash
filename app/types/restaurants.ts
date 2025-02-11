@@ -55,4 +55,5 @@ export interface Restaurant {
   acceptsCommodoreCash: boolean;
 }
 
-export type Restaurants = Restaurant[];
+type Restaurants = Restaurant[];
+export default Restaurants;

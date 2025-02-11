@@ -11,14 +11,9 @@ import { router } from "expo-router";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";
 import FeaturesScreen from "@/components/onboarding/FeaturesScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
+import RegisterScreen from "@/components/onboarding/RegisterScreen";
 
 const { width, height } = Dimensions.get("window");
-
-const NextButton = ({ ...props }) => (
-  <TouchableOpacity style={styles.button} {...props}>
-    <Text style={styles.buttonText}>Next</Text>
-  </TouchableOpacity>
-);
 
 const DoneButton = ({ ...props }) => (
   <TouchableOpacity style={[styles.button, styles.googleButton]} {...props}>
@@ -31,10 +26,9 @@ const OnboardingScreen = () => {
     <SafeAreaView edges={["left", "right"]} style={styles.container}>
       <View style={styles.onboardingWrapper}>
         <Onboarding
-          onDone={() => router.replace("/(tabs)")}
           showSkip={false}
           showNext={false}
-          DoneButtonComponent={DoneButton}
+          showDone={false}
           containerStyles={styles.onboardingContainer}
           imageContainerStyles={{ paddingBottom: 0 }}
           bottomBarColor="#cfae70"
@@ -55,9 +49,9 @@ const OnboardingScreen = () => {
             },
             {
               backgroundColor: "#fff",
-              image: <View style={styles.finalImage} />,
-              title: "Ready to Start?",
-              subtitle: "Sign in with your Vanderbilt email to begin ordering",
+              image: <RegisterScreen />,
+              title: "",
+              subtitle: "",
             },
           ]}
         />
