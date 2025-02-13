@@ -29,7 +29,6 @@ const WelcomeScreen = () => {
         </View>
 
         {/* Row 2: ToN and Barista (2 equal columns) */}
-
         <View style={[styles.gridItem, styles.normalGridItem]}>
           <Image
             style={styles.image}
@@ -37,8 +36,6 @@ const WelcomeScreen = () => {
             source={require("../../assets/welcome-restaraunts/satay.png")}
           />
         </View>
-
-        {/* BARISTA PARLOR  */}
         <View style={[styles.gridItem, styles.normalGridItem]}>
           <Image
             style={styles.image}
@@ -72,7 +69,6 @@ const WelcomeScreen = () => {
             dorm.
           </Text>
         </View>
-
         {/* Row 4: Hyderabad House (2-column span) */}
         <View style={[styles.gridItem, styles.colSpan2]}>
           <Image

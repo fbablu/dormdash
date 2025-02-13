@@ -1,3 +1,5 @@
+// app/components/onboarding/RegisterScreen.tsx
+
 import * as React from "react";
 import {
   StyleSheet,
@@ -13,7 +15,6 @@ import { Feather, AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
-
 const RegisterScreen = () => {
   return (
     <CustomSafeAreaView style={styles.container}>
@@ -61,8 +62,7 @@ const RegisterScreen = () => {
         </View>
 
         <View style={styles.bottomButtons}>
-
-        <TouchableOpacity
+          <TouchableOpacity
             style={styles.googleButton}
             onPress={() => router.replace("/(tabs)")}
           >
@@ -80,13 +80,11 @@ const RegisterScreen = () => {
           >
             <Text style={styles.tosText}>Questions? View Terms of Service</Text>
           </TouchableOpacity>
-          
         </View>
       </View>
     </CustomSafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     width: width,
