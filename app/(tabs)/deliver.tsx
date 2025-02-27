@@ -26,7 +26,7 @@ interface DeliveryRequest {
   status?: string;
 }
 
-export default function DeliverPage() {
+export default function Deliver() {
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
