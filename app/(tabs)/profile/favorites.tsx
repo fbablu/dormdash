@@ -1,7 +1,7 @@
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { api } from '@/app/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet } from "react-native";
+import { api } from "@/app/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 export default function FavoritesScreen() {
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -14,24 +14,34 @@ export default function FavoritesScreen() {
 
   const loadFavorites = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
+      const userId = await AsyncStorage.getItem("userId");
       if (!userId) {
-        setError('User not found');
+        setError("User not found");
         return;
       }
 
       const response = await api.getUserFavorites(userId);
       setFavorites(response);
     } catch (err) {
-      console.error('Error loading favorites:', err);
-      setError('Failed to load favorites');
+      console.error("Error loading favorites:", err);
+      setError("Failed to load favorites");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <View style={styles.container}><Text>Loading favorites...</Text></View>;
-  if (error) return <View style={styles.container}><Text>Error: {error}</Text></View>;
+  if (loading)
+    return (
+      <View style={styles.container}>
+        <Text>Loading favorites...</Text>
+      </View>
+    );
+  if (error)
+    return (
+      <View style={styles.container}>
+        <Text>Error: {error}</Text>
+      </View>
+    );
 
   return (
     <View style={styles.container}>
@@ -43,7 +53,9 @@ export default function FavoritesScreen() {
           </View>
         )}
         keyExtractor={(item) => item}
-        ListEmptyComponent={<Text style={styles.emptyText}>No favorites yet</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No favorites yet</Text>
+        }
       />
     </View>
   );
@@ -53,16 +65,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   favoriteItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 20,
-    color: '#666',
+    color: "#666",
   },
-}); 
+});

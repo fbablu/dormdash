@@ -14,10 +14,10 @@ async function getAuthToken() {
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getAuthToken();
-  
+
   const headers = {
     "Content-Type": "application/json",
-    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
@@ -28,7 +28,9 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    throw new Error(
+      errorData.error || `HTTP error! status: ${response.status}`,
+    );
   }
 
   return response.json();
@@ -45,7 +47,11 @@ export const api = {
     return fetchWithAuth(`/users/${userId}/favorites`);
   },
 
-  toggleFavorite: async (userId: string, restaurantName: string, action: "add" | "remove") => {
+  toggleFavorite: async (
+    userId: string,
+    restaurantName: string,
+    action: "add" | "remove",
+  ) => {
     return fetchWithAuth("/users/favorites", {
       method: "POST",
       body: JSON.stringify({ userId, restaurantName, action }),

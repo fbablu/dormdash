@@ -46,9 +46,6 @@ export type Cuisine =
   | "Kosher"
   | "Vegetarian";
 
-
-
-
 export default interface Restaurant {
   name: string;
   location: Location;
@@ -59,4 +56,3 @@ export default interface Restaurant {
 }
 
 type Restaurants = Restaurant[];
-

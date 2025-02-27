@@ -1,5 +1,5 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -15,7 +15,7 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   connectTimeout: 10000,
-  debug: process.env.NODE_ENV !== 'production'
+  debug: process.env.NODE_ENV !== "production",
 });
 
-export default pool; 
+export default pool;

@@ -14,8 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import restaurants from "@/data/ton_restaurants.json";
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { API_BASE_URL } from '@/lib/api/config';
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { API_BASE_URL } from "@/lib/api/config";
 
 const { width } = Dimensions.get("window");
 
@@ -37,7 +37,13 @@ interface CategoryIconProps {
 }
 
 // LocationHeader Component
-const LocationHeader = ({ searchQuery, setSearchQuery }: { searchQuery: string; setSearchQuery: (query: string) => void }) => (
+const LocationHeader = ({
+  searchQuery,
+  setSearchQuery,
+}: {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}) => (
   <View style={styles.locationHeaderContainer}>
     <View style={styles.locationHeader}>
       <View style={styles.locationSelector}>
@@ -62,7 +68,12 @@ const LocationHeader = ({ searchQuery, setSearchQuery }: { searchQuery: string; 
 );
 
 // CategoryIcon Component
-const CategoryIcon: React.FC<CategoryIconProps> = ({ name, color, iconName, onPress }) => (
+const CategoryIcon: React.FC<CategoryIconProps> = ({
+  name,
+  color,
+  iconName,
+  onPress,
+}) => (
   <TouchableOpacity style={styles.categoryContainer} onPress={onPress}>
     <View style={[styles.categoryCircle, { backgroundColor: color }]}>
       <Feather name={iconName} size={24} color="black" />
@@ -84,28 +95,36 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) return;
 
-      console.log('Checking favorites for:', currentUser.user.id);
-      console.log('Request URL:', `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`, {
-        headers: {
-          'Authorization': `Bearer ${currentUser.idToken}`
-        }
-      });
-      
-      console.log('Response status:', response.status);
+      console.log("Checking favorites for:", currentUser.user.id);
+      console.log(
+        "Request URL:",
+        `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
+      );
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
+        {
+          headers: {
+            Authorization: `Bearer ${currentUser.idToken}`,
+          },
+        },
+      );
+
+      console.log("Response status:", response.status);
       const responseText = await response.text();
-      console.log('Response body:', responseText);
-      
+      console.log("Response body:", responseText);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status} body: ${responseText}`);
+        throw new Error(
+          `HTTP error! status: ${response.status} body: ${responseText}`,
+        );
       }
-      
+
       const favorites = JSON.parse(responseText);
       setIsFavorite(favorites.includes(restaurant.name));
     } catch (error) {
-      console.error('Error checking favorite status:', error);
-      console.error('Full error object:', JSON.stringify(error, null, 2));
+      console.error("Error checking favorite status:", error);
+      console.error("Full error object:", JSON.stringify(error, null, 2));
     }
   };
 
@@ -113,44 +132,44 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     try {
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) {
-        Alert.alert('Error', 'Please sign in to save favorites');
+        Alert.alert("Error", "Please sign in to save favorites");
         return;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/users/favorites`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentUser.idToken}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentUser.idToken}`,
         },
         body: JSON.stringify({
           userId: currentUser.user.id,
           restaurantName: restaurant.name,
-          action: isFavorite ? 'remove' : 'add',
+          action: isFavorite ? "remove" : "add",
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update favorite');
+      if (!response.ok) throw new Error("Failed to update favorite");
       setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-      Alert.alert('Error', 'Failed to update favorites');
+      console.error("Error toggling favorite:", error);
+      Alert.alert("Error", "Failed to update favorites");
     }
   };
 
   return (
     <TouchableOpacity style={styles.restaurantCard}>
-      <Image 
-        source={{ uri: 'https://via.placeholder.com/400x320' }} 
-        style={styles.restaurantImage} 
+      <Image
+        source={{ uri: "https://via.placeholder.com/400x320" }}
+        style={styles.restaurantImage}
       />
       <View style={styles.restaurantInfo}>
         <View style={styles.restaurantHeader}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
           <TouchableOpacity onPress={toggleFavorite}>
-            <Feather 
+            <Feather
               name={isFavorite ? "heart" : "heart"}
-              size={20} 
+              size={20}
               color={isFavorite ? "#ff0000" : "#ddd"}
             />
           </TouchableOpacity>
@@ -178,15 +197,20 @@ export default function Page() {
     let filtered = restaurants;
 
     if (searchQuery) {
-      filtered = filtered.filter(restaurant => 
-        restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        restaurant.cuisine.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
+      filtered = filtered.filter(
+        (restaurant) =>
+          restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          restaurant.cuisine.some((c) =>
+            c.toLowerCase().includes(searchQuery.toLowerCase()),
+          ),
       );
     }
 
     if (selectedCategory) {
-      filtered = filtered.filter(restaurant =>
-        restaurant.cuisine.some(c => c.toLowerCase() === selectedCategory.toLowerCase())
+      filtered = filtered.filter((restaurant) =>
+        restaurant.cuisine.some(
+          (c) => c.toLowerCase() === selectedCategory.toLowerCase(),
+        ),
       );
     }
 
@@ -196,30 +220,41 @@ export default function Page() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <LocationHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        
+        <LocationHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+
         <View style={styles.categoriesContainer}>
-          <CategoryIcon 
-            name="Pizza" 
-            color="#FFE55C" 
+          <CategoryIcon
+            name="Pizza"
+            color="#FFE55C"
             iconName="pie-chart"
-            onPress={() => setSelectedCategory(selectedCategory === "Pizza" ? null : "Pizza")}
+            onPress={() =>
+              setSelectedCategory(selectedCategory === "Pizza" ? null : "Pizza")
+            }
           />
-          <CategoryIcon 
-            name="Asian" 
-            color="#FF5C5C" 
+          <CategoryIcon
+            name="Asian"
+            color="#FF5C5C"
             iconName="box"
-            onPress={() => setSelectedCategory(selectedCategory === "Asian" ? null : "Asian")}
+            onPress={() =>
+              setSelectedCategory(selectedCategory === "Asian" ? null : "Asian")
+            }
           />
-          <CategoryIcon 
-            name="Coffee" 
-            color="#CFAE70" 
+          <CategoryIcon
+            name="Coffee"
+            color="#CFAE70"
             iconName="coffee"
-            onPress={() => setSelectedCategory(selectedCategory === "Coffee" ? null : "Coffee")}
+            onPress={() =>
+              setSelectedCategory(
+                selectedCategory === "Coffee" ? null : "Coffee",
+              )
+            }
           />
-          <CategoryIcon 
-            name="All" 
-            color="#D9D9D9" 
+          <CategoryIcon
+            name="All"
+            color="#D9D9D9"
             iconName="grid"
             onPress={() => setSelectedCategory(null)}
           />

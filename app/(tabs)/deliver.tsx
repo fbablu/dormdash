@@ -1,5 +1,5 @@
 // app/(tabs)/deliver.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
-import {
-  getDeliveryRequests,
-  acceptDeliveryRequest,
-  updateOrderStatus,
-} from "../services/api";
+import { Feather } from "@expo/vector-icons";
+
+import api from "../services/api";
+const { getDeliveryRequests, acceptDeliveryRequest, updateOrderStatus } = api;
 
 // Define DeliveryRequest type
 interface DeliveryRequest {
@@ -69,7 +69,6 @@ export default function Deliver() {
       const requests = await getDeliveryRequests();
       setDeliveryRequests(requests);
     } catch (error) {
-      console.error("Error fetching delivery requests:", error);
       Alert.alert(
         "Error",
         "Failed to load delivery requests. Please try again.",
@@ -103,7 +102,6 @@ export default function Deliver() {
 
       Alert.alert("Success", "Delivery request accepted!");
     } catch (error) {
-      console.error("Error accepting delivery request:", error);
       Alert.alert("Error", "Failed to accept delivery. Please try again.");
     } finally {
       setLoading(false);
@@ -134,7 +132,6 @@ export default function Deliver() {
         Alert.alert("Success", `Delivery status updated to ${newStatus}!`);
       }
     } catch (error) {
-      console.error("Error updating delivery status:", error);
       Alert.alert(
         "Error",
         "Failed to update delivery status. Please try again.",
@@ -221,12 +218,74 @@ export default function Deliver() {
     </View>
   );
 
+  const DeliveryHeader = ({ isOnline, onToggle }: { isOnline: boolean; onToggle: () => void }) => {
+    const switchAnimation = useRef(new Animated.Value(isOnline ? 1 : 0)).current;
+
+    useEffect(() => {
+      Animated.spring(switchAnimation, {
+        toValue: isOnline ? 1 : 0,
+        useNativeDriver: true,
+        tension: 30,
+        friction: 7,
+      }).start();
+    }, [isOnline]);
+
+    return (
+      <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          onPress={onToggle}
+          activeOpacity={0.8}
+          style={styles.switchContainer}
+        >
+          <Animated.View
+            style={[
+              styles.switchTrack,
+              {
+                backgroundColor: isOnline ? '#4CAF50' : '#ddd',
+              },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.switchKnob,
+                {
+                  transform: [
+                    {
+                      translateX: switchAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 40],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Feather
+                name={isOnline ? "truck" : "moon"}
+                size={24}
+                color={isOnline ? "#4CAF50" : "#666"}
+              />
+            </Animated.View>
+          </Animated.View>
+        </TouchableOpacity>
+        <Text style={styles.switchText}>
+          {isOnline ? "Ready to Deliver!" : "Offline"}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Image
-        style={styles.dormdashIcon}
-        resizeMode="contain"
-        source={require("../../assets/deliver-page/TopBar.png")}
+      <DeliveryHeader 
+        isOnline={isOnline} 
+        onToggle={() => {
+          if (isOnline) {
+            toggleOffline();
+          } else {
+            toggleOnline();
+          }
+        }} 
       />
 
       {/* Status indicator */}
@@ -343,10 +402,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-  dormdashIcon: {
-    marginTop: 10,
-    width: 393,
-    height: 66,
+  headerContainer: {
+    height: 120,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  switchTrack: {
+    width: 80,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    padding: 4,
+    borderWidth: 2,
+    borderColor: '#eee',
+  },
+  switchKnob: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  switchText: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
   statusIndicator: {
     flexDirection: "row",
@@ -541,5 +631,9 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  switchContainer: {
+    padding: 10,  // Add touch area
+    borderRadius: 25,
   },
 });

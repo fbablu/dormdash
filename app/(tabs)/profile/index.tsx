@@ -15,7 +15,6 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { api } from '@/app/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserProfile {
   name: string;
@@ -54,16 +53,12 @@ export default function ProfileScreen() {
 
   const fetchUserProfile = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      const authToken = await AsyncStorage.getItem('authToken');
-
-      if (!userId || !authToken) {
-        console.log('No user ID or auth token found');
+      const currentUser = await GoogleSignin.getCurrentUser();
+      if (!currentUser) {
         router.replace('/');
         return;
       }
-
-      const data = await api.getUserProfile(userId);
+      const data = await api.getUserProfile(currentUser.user.id);
       setUserProfile(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);

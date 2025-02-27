@@ -6,8 +6,8 @@ import { OAuth2Client } from "google-auth-library";
 import jsonwebtoken from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
-import userRoutes from './routes/users';
-import initDatabase from './config/initDb';
+import userRoutes from "./routes/users";
+import initDatabase from "./config/initDb";
 
 dotenv.config();
 
@@ -37,14 +37,15 @@ const GOOGLE_CLIENT_ID =
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Middleware
-app.use(cors({
-  origin: '*', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
-
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
@@ -65,7 +66,7 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0,
   // Add these options for better error handling
   connectTimeout: 10000,
-  debug: process.env.NODE_ENV !== 'production'
+  debug: process.env.NODE_ENV !== "production",
 });
 
 // Verify Google token
@@ -159,7 +160,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       const token = jsonwebtoken.sign(
         { id: userId, email, name },
         process.env.JWT_SECRET!,
-        { expiresIn: "7d" }
+        { expiresIn: "7d" },
       );
 
       res.status(200).json({
@@ -487,18 +488,18 @@ app.put(
 );
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use("/api/users", userRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Start server with database check and initialization
 const startServer = async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('Database connected successfully');
+    console.log("Database connected successfully");
     connection.release();
 
     // Initialize database tables
@@ -508,7 +509,7 @@ const startServer = async () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to connect to database:', error);
+    console.error("Failed to connect to database:", error);
     process.exit(1);
   }
 };

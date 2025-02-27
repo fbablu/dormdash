@@ -1,4 +1,4 @@
-import pool from './db';
+import pool from "./db";
 
 async function initDatabase() {
   try {
@@ -26,14 +26,14 @@ async function initDatabase() {
         )
       `);
 
-      console.log('Database tables verified/created');
+      console.log("Database tables verified/created");
     } finally {
       connection.release();
     }
   } catch (error) {
-    console.error('Database initialization failed:', error);
+    console.error("Database initialization failed:", error);
     throw error;
   }
 }
 
-export default initDatabase; 
+export default initDatabase;
