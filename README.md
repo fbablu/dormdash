@@ -102,3 +102,54 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+
+
+
+
+
+
+
+
+
+# DormDash Setup Instructions
+
+## iOS Development Setup
+1. Download Xcode and ensure you have the latest iOS simulator installed
+   - XCode > Settings > Components > *Ensure latest iOS version is installed*
+2. After installing, reload your developer window
+   - Shift + Cmd + P > Developer: Reload Window 
+3. In your terminal, run:
+   ```bash
+   npm i
+   npx expo prebuild --clean
+   npx expo run:ios  # May take a while for a cold start
+   ```
+4. XCode Simulator should pop up!
+
+## Android Development Setup (Work in Progress)
+1. Download Android Studio from: https://developer.android.com/studio
+   - Choose the standard installation option
+2. Configure environment variables by editing your profile:
+   ```bash
+   nano ~/.zshrc  # if using zsh
+   # or
+   nano ~/.bash_profile  # if using bash
+   ```
+3. Add these lines to the end of the file:
+   ```bash
+   export ANDROID_HOME=$HOME/Library/Android/sdk
+   export PATH=$PATH:$ANDROID_HOME/tools
+   export PATH=$PATH:$ANDROID_HOME/platform-tools
+   ```
+4. Save the file and reload your terminal or run:
+   ```bash
+   source ~/.zshrc  # or source ~/.bash_profile
+   ```
+5. Run the app using:
+   ```bash
+   npm i
+   npx expo prebuild --clean
+   npx expo run:android
+   ```

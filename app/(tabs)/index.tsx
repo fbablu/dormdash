@@ -19,6 +19,9 @@ import { API_BASE_URL } from "@/lib/api/config";
 
 const { width } = Dimensions.get("window");
 
+// Use a smaller resolution version of the image to prevent memory issues
+const FOOD_IMAGE_URL = "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop";
+
 // TypeScript Interfaces
 interface Restaurant {
   name: string;
@@ -60,6 +63,7 @@ const LocationHeader = ({
       <TextInput
         style={styles.searchInput}
         placeholder="Search Taste of Nashville"
+        placeholderTextColor="gray"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
@@ -160,8 +164,11 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   return (
     <TouchableOpacity style={styles.restaurantCard}>
       <Image
-        source={{ uri: "https://via.placeholder.com/400x320" }}
+        source={{ uri: FOOD_IMAGE_URL }}
         style={styles.restaurantImage}
+        // Improve image loading performance
+        resizeMode="cover"
+        defaultSource={require('../../assets/icons/splash-icon-light.png')}
       />
       <View style={styles.restaurantInfo}>
         <View style={styles.restaurantHeader}>
@@ -316,6 +323,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    color: "#000",
     fontSize: 16,
   },
   categoriesContainer: {
