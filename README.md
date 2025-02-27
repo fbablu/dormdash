@@ -6,7 +6,7 @@
 
 # DormDash
 
-DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For instance, a student living in the Village at Vanderbilt who wants to order from I Love Sushi on Elliston Place either has to walk a mile to pick up their food and pay with CC, or use a third-party app that doesn’t support CC or direct dorm delivery. DormDash solves this problem by enabling students to deliver food directly to dorm rooms, all while using CC, making the process faster, more convenient, and student-friendly.
+DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For instance, a student living in the Village at Vanderbilt who wants to order from I Love Sushi on Elliston Place either has to walk a mile to pick up their food and pay with CC, or use a third-party app that doesn't support CC or direct dorm delivery. DormDash solves this problem by enabling students to deliver food directly to dorm rooms, all while using CC, making the process faster, more convenient, and student-friendly.
 
 ## Project Scope
 
@@ -26,96 +26,30 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
 ##### More Info:
 
 - **React Native with Expo**:
-  - Provides a cross-platform codebase for iOS and Android, reducing development time and complexity.
-  - Simplified testing and deployment pipeline through Expo EAS.
+  - Provides a cross-platform codebase for iOS and Android
+  - Simplified testing and deployment pipeline through Expo EAS
 
 ### **Backend**
 
 - **TypeScript**:
-  - Ensures type safety and consistency across the full stack.
-  - Reduces runtime errors and integrates well with chosen frameworks.
+  - Ensures type safety and consistency across the full stack
+  - Reduces runtime errors and integrates well with chosen frameworks
 - **Express.js**:
-  - Lightweight and flexible framework for RESTful API development.
-  - Supported by robust middleware and extensive documentation.
+  - Lightweight and flexible framework for RESTful API development
+  - Supported by robust middleware and extensive documentation
 - **MySQL**:
-  - A relational database offering strong performance for handling DormDash's structured data needs.
+  - A relational database offering strong performance for handling DormDash's structured data needs
 
 ### **Development Tools**
 
 - **GitHub Actions**:
-  - Streamlines version control, collaborative development, and implements an automated CI/CD pipeline for testing and deployment.
+  - Streamlines version control, collaborative development, and implements an automated CI/CD pipeline for testing and deployment
 - **TestFlight and Google Play Console**:
-  - Enables testing and demoing on various iOS and Android devices before deployment.
+  - Enables testing and demoing on various iOS and Android devices before deployment
 
-### **Documentation**
+## Development Setup
 
-- **Docusaurus**:
-  - Provides clear, organized, and easily editable technical documentation.
-
-# Welcome to your Expo app 👋
-
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-
-
-
-
-
-
-
-
-
-
-
-# DormDash Setup Instructions
-
-## iOS Development Setup
+### iOS Development Setup
 1. Download Xcode and ensure you have the latest iOS simulator installed
    - XCode > Settings > Components > *Ensure latest iOS version is installed*
 2. After installing, reload your developer window
@@ -126,9 +60,13 @@ Join our community of developers creating universal apps.
    npx expo prebuild --clean
    npx expo run:ios  # May take a while for a cold start
    ```
-4. XCode Simulator should pop up!
+4. XCode Simulator should pop up
 
-## Android Development Setup (Work in Progress)
+
+
+
+
+### Android Development Setup [WORK IN PROGRESS]
 1. Download Android Studio from: https://developer.android.com/studio
    - Choose the standard installation option
 2. Configure environment variables by editing your profile:
@@ -153,3 +91,4 @@ Join our community of developers creating universal apps.
    npx expo prebuild --clean
    npx expo run:android
    ```
+
