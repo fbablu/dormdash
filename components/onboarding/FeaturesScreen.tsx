@@ -1,3 +1,7 @@
+// app/components/onboarding/FeaturesScreen.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import React from "react";
 import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";

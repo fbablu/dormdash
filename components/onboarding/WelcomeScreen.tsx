@@ -1,8 +1,10 @@
 // app/components/onboarding/WelcomeScreen.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import * as React from "react";
 import { Image, StyleSheet, View, Text, Dimensions } from "react-native";
 import { CustomSafeAreaView } from "../CustomSafeAreaView";
-
 const { width, height } = Dimensions.get("window");
 
 const WelcomeScreen = () => {

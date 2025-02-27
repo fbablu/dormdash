@@ -15,7 +15,6 @@
         "tinted": "./assets/icons/ios-tinted.png"
       },
       "bundleIdentifier": "com.anonymous.dormdash"
-
     },
     "android": {
       "adaptiveIcon": {

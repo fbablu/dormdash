@@ -1,4 +1,7 @@
 // app/_layout.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 10 minutes
+
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { router } from "expo-router";
