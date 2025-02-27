@@ -1,3 +1,4 @@
+//Albert Castrejon - All code, 6 hours spent
 import { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList } from "react-native";
 
@@ -37,7 +38,7 @@ export default function Page() {
       </View>
 
       {/* Button is positioned at the bottom */}
-      <DoneButton toggleVisibility={toggleVisibilityOptions} isVisible={isVisible} isOnline={isOnline}/>
+      <VisibilityConfigButton toggleVisibility={toggleVisibilityOptions} isVisible={isVisible} isOnline={isOnline}/>
     </View>
   );
 }
@@ -55,9 +56,9 @@ const VisibilityItem = ({ title, toggleOnline}) => (
   </TouchableOpacity>
 );
 
-const DoneButton = ({ toggleVisibility, isVisible, isOnline }) => (
-  <TouchableOpacity style={styles.googleButton} onPress={toggleVisibility}>
-    <Text style={styles.buttonText}>{isOnline? "You are Online" : "Your are Offline"}</Text>
+const VisibilityConfigButton = ({ toggleVisibility, isVisible, isOnline }) => (
+  <TouchableOpacity style={styles.VisibilityConfigButton} onPress={toggleVisibility}>
+    <Text style={styles.buttonText}>{isOnline? "You are Online" : "You are Offline"}</Text>
     <Image
       style={styles.visibilityConfig}
       resizeMode="contain"
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
-  googleButton: {
+  VisibilityConfigButton: {
     position: "absolute",
     bottom: 20,
     backgroundColor: "#D9D9D9",
