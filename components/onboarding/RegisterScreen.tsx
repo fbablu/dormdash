@@ -19,12 +19,12 @@ import {
   statusCodes,
   isSuccessResponse,
   isErrorWithCode,
-} from '@react-native-google-signin/google-signin';
-
+} from "@react-native-google-signin/google-signin";
 
 // reference: https://react-native-google-signin.github.io/docs/original/
 GoogleSignin.configure({
-  iosClientId: "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
+  iosClientId:
+    "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
   // offlineAccess: true,
 });
 
@@ -32,15 +32,14 @@ GoogleSignin.configure({
 const handleClick = async () => {
   try {
     await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      if (isSuccessResponse(response)) {
-        console.log(response.data);
-        router.replace("/(tabs)");
-      } else {
-        // sign in was cancelled by user
-      }
+    const response = await GoogleSignin.signIn();
+    if (isSuccessResponse(response)) {
+      console.log(response.data);
+      router.replace("/(tabs)");
+    } else {
+      // sign in was cancelled by user
     }
-  catch (error) {
+  } catch (error) {
     if (isErrorWithCode(error)) {
       switch (error.code) {
         case statusCodes.IN_PROGRESS:
@@ -57,7 +56,6 @@ const handleClick = async () => {
     }
   }
 };
-
 
 const { width, height } = Dimensions.get("window");
 

@@ -26,7 +26,7 @@ export interface Order {
   customer_id: string;
   deliverer_id?: string;
   restaurant_id: number;
-  status: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
+  status: "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
   total_amount: number;
   delivery_fee: number;
   delivery_address: string;

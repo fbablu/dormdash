@@ -57,8 +57,3 @@ export interface Restaurant {
 
 type Restaurants = Restaurant[];
 export default Restaurants;
-
-
-
-
-

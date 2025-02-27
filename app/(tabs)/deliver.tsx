@@ -11,7 +11,11 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { getDeliveryRequests, acceptDeliveryRequest, updateOrderStatus } from "../services/api";
+import {
+  getDeliveryRequests,
+  acceptDeliveryRequest,
+  updateOrderStatus,
+} from "../services/api";
 
 // Define DeliveryRequest type
 interface DeliveryRequest {
@@ -31,8 +35,12 @@ export default function Deliver() {
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([]);
-  const [activeDeliveries, setActiveDeliveries] = useState<DeliveryRequest[]>([]);
+  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>(
+    [],
+  );
+  const [activeDeliveries, setActiveDeliveries] = useState<DeliveryRequest[]>(
+    [],
+  );
 
   // Toggle visibility options
   const toggleVisibilityOptions = () => {
@@ -55,14 +63,17 @@ export default function Deliver() {
   // Fetch delivery requests from the API
   const fetchDeliveryRequests = async () => {
     if (!isOnline) return;
-    
+
     setLoading(true);
     try {
       const requests = await getDeliveryRequests();
       setDeliveryRequests(requests);
     } catch (error) {
       console.error("Error fetching delivery requests:", error);
-      Alert.alert("Error", "Failed to load delivery requests. Please try again.");
+      Alert.alert(
+        "Error",
+        "Failed to load delivery requests. Please try again.",
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -74,18 +85,22 @@ export default function Deliver() {
     setLoading(true);
     try {
       await acceptDeliveryRequest(requestId);
-      
+
       // Find the accepted request
-      const acceptedRequest = deliveryRequests.find(req => req.id === requestId);
-      
+      const acceptedRequest = deliveryRequests.find(
+        (req) => req.id === requestId,
+      );
+
       if (acceptedRequest) {
         // Add to active deliveries
-        setActiveDeliveries(prev => [...prev, acceptedRequest]);
-        
+        setActiveDeliveries((prev) => [...prev, acceptedRequest]);
+
         // Remove from available requests
-        setDeliveryRequests(prev => prev.filter(req => req.id !== requestId));
+        setDeliveryRequests((prev) =>
+          prev.filter((req) => req.id !== requestId),
+        );
       }
-      
+
       Alert.alert("Success", "Delivery request accepted!");
     } catch (error) {
       console.error("Error accepting delivery request:", error);
@@ -100,23 +115,30 @@ export default function Deliver() {
     setLoading(true);
     try {
       await updateOrderStatus(orderId, newStatus);
-      
-      if (newStatus === 'delivered') {
+
+      if (newStatus === "delivered") {
         // Remove from active deliveries when completed
-        setActiveDeliveries(prev => prev.filter(delivery => delivery.id !== orderId));
+        setActiveDeliveries((prev) =>
+          prev.filter((delivery) => delivery.id !== orderId),
+        );
         Alert.alert("Success", "Delivery marked as completed!");
       } else {
         // Update the status in the active deliveries list
-        setActiveDeliveries(prev => 
-          prev.map(delivery => 
-            delivery.id === orderId ? { ...delivery, status: newStatus } : delivery
-          )
+        setActiveDeliveries((prev) =>
+          prev.map((delivery) =>
+            delivery.id === orderId
+              ? { ...delivery, status: newStatus }
+              : delivery,
+          ),
         );
         Alert.alert("Success", `Delivery status updated to ${newStatus}!`);
       }
     } catch (error) {
       console.error("Error updating delivery status:", error);
-      Alert.alert("Error", "Failed to update delivery status. Please try again.");
+      Alert.alert(
+        "Error",
+        "Failed to update delivery status. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -140,18 +162,22 @@ export default function Deliver() {
     <View style={styles.deliveryItem}>
       <View style={styles.deliveryHeader}>
         <Text style={styles.restaurantName}>{item.restaurant_name}</Text>
-        <Text style={styles.deliveryAmount}>${item.total_amount.toFixed(2)}</Text>
+        <Text style={styles.deliveryAmount}>
+          ${item.total_amount.toFixed(2)}
+        </Text>
       </View>
-      
+
       <Text style={styles.deliveryAddress}>To: {item.delivery_address}</Text>
-      
+
       {item.notes && (
         <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
       )}
-      
+
       <View style={styles.deliveryFooter}>
-        <Text style={styles.deliveryFee}>Delivery Fee: ${item.delivery_fee.toFixed(2)}</Text>
-        <TouchableOpacity 
+        <Text style={styles.deliveryFee}>
+          Delivery Fee: ${item.delivery_fee.toFixed(2)}
+        </Text>
+        <TouchableOpacity
           style={styles.acceptButton}
           onPress={() => handleAcceptDelivery(item.id)}
         >
@@ -166,26 +192,28 @@ export default function Deliver() {
     <View style={styles.activeDeliveryItem}>
       <View style={styles.deliveryHeader}>
         <Text style={styles.restaurantName}>{item.restaurant_name}</Text>
-        <Text style={styles.deliveryAmount}>${item.total_amount.toFixed(2)}</Text>
+        <Text style={styles.deliveryAmount}>
+          ${item.total_amount.toFixed(2)}
+        </Text>
       </View>
-      
+
       <Text style={styles.deliveryAddress}>To: {item.delivery_address}</Text>
-      
+
       {item.notes && (
         <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
       )}
-      
+
       <View style={styles.statusButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.statusButton}
-          onPress={() => handleUpdateStatus(item.id, 'picked_up')}
+          onPress={() => handleUpdateStatus(item.id, "picked_up")}
         >
           <Text style={styles.statusButtonText}>Picked Up</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.statusButton, styles.deliveredButton]}
-          onPress={() => handleUpdateStatus(item.id, 'delivered')}
+          onPress={() => handleUpdateStatus(item.id, "delivered")}
         >
           <Text style={styles.statusButtonText}>Delivered</Text>
         </TouchableOpacity>
@@ -206,13 +234,22 @@ export default function Deliver() {
         <Text style={styles.statusText}>
           Status: {isOnline ? "Online" : "Offline"}
         </Text>
-        <View style={[styles.statusDot, isOnline ? styles.onlineDot : styles.offlineDot]} />
+        <View
+          style={[
+            styles.statusDot,
+            isOnline ? styles.onlineDot : styles.offlineDot,
+          ]}
+        />
       </View>
 
       {isOnline ? (
         <View style={styles.contentContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#cfae70" style={styles.loader} />
+            <ActivityIndicator
+              size="large"
+              color="#cfae70"
+              style={styles.loader}
+            />
           ) : (
             <>
               {/* Active Deliveries Section */}
@@ -238,13 +275,21 @@ export default function Deliver() {
                     renderItem={renderAvailableDeliveryItem}
                     contentContainerStyle={styles.listContent}
                     refreshControl={
-                      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                      />
                     }
                   />
                 ) : (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No delivery requests available</Text>
-                    <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+                    <Text style={styles.emptyStateText}>
+                      No delivery requests available
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.refreshButton}
+                      onPress={onRefresh}
+                    >
                       <Text style={styles.refreshButtonText}>Refresh</Text>
                     </TouchableOpacity>
                   </View>
@@ -256,7 +301,9 @@ export default function Deliver() {
       ) : (
         <View style={styles.offlineMessage}>
           <Text style={styles.offlineText}>You are currently offline</Text>
-          <Text style={styles.offlineSubtext}>Go online to view and accept delivery requests</Text>
+          <Text style={styles.offlineSubtext}>
+            Go online to view and accept delivery requests
+          </Text>
         </View>
       )}
 
@@ -273,8 +320,13 @@ export default function Deliver() {
       )}
 
       {/* Bottom button */}
-      <TouchableOpacity style={styles.VisibilityConfigButton} onPress={toggleVisibilityOptions}>
-        <Text style={styles.buttonText}>{isOnline ? "You are Online" : "You are Offline"}</Text>
+      <TouchableOpacity
+        style={styles.VisibilityConfigButton}
+        onPress={toggleVisibilityOptions}
+      >
+        <Text style={styles.buttonText}>
+          {isOnline ? "You are Online" : "You are Offline"}
+        </Text>
         <Image
           style={styles.visibilityConfig}
           resizeMode="contain"

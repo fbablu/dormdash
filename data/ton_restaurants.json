@@ -313,7 +313,7 @@
   },
   {
     "name": "Hopdoddy Burger Bar",
-    "location": "HILLSBORO VILLAGE", 
+    "location": "HILLSBORO VILLAGE",
     "address": "1805 21st Ave S, Nashville, TN 37212",
     "website": "https://www.hopdoddy.com/",
     "cuisine": ["Burgers", "American"],
@@ -322,7 +322,7 @@
   {
     "name": "Jeni's Splendid Ice Creams",
     "location": "HILLSBORO VILLAGE",
-    "address": "1819 21st Ave S, Nashville, TN 37212", 
+    "address": "1819 21st Ave S, Nashville, TN 37212",
     "website": "https://jenis.com/",
     "cuisine": ["Ice Cream", "Desserts"],
     "acceptsCommodoreCash": true

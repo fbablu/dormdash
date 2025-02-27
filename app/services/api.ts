@@ -1,28 +1,28 @@
 // app/services/api.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = "http://localhost:3000/api";
 
 // Function to get the auth token
 const getToken = async () => {
-  return await AsyncStorage.getItem('authToken');
+  return await AsyncStorage.getItem("authToken");
 };
 
 // Function to set the auth token
 export const setToken = async (token: string) => {
-  await AsyncStorage.setItem('authToken', token);
+  await AsyncStorage.setItem("authToken", token);
 };
 
 // Function to clear the auth token (logout)
 export const clearToken = async () => {
-  await AsyncStorage.removeItem('authToken');
+  await AsyncStorage.removeItem("authToken");
 };
 
 // Default headers
 const headers = async () => {
   const token = await getToken();
   return {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
@@ -31,7 +31,7 @@ const headers = async () => {
 export const googleSignIn = async (idToken: string) => {
   try {
     const response = await fetch(`${API_URL}/auth/google`, {
-      method: 'POST',
+      method: "POST",
       headers: await headers(),
       body: JSON.stringify({ idToken }),
     });
@@ -39,7 +39,7 @@ export const googleSignIn = async (idToken: string) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to sign in with Google');
+      throw new Error(data.error || "Failed to sign in with Google");
     }
 
     // Store the token
@@ -47,7 +47,7 @@ export const googleSignIn = async (idToken: string) => {
 
     return data;
   } catch (error) {
-    console.error('Google sign in error:', error);
+    console.error("Google sign in error:", error);
     throw error;
   }
 };
@@ -56,19 +56,19 @@ export const googleSignIn = async (idToken: string) => {
 export const getUserProfile = async () => {
   try {
     const response = await fetch(`${API_URL}/user/profile`, {
-      method: 'GET',
+      method: "GET",
       headers: await headers(),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get user profile');
+      throw new Error(data.error || "Failed to get user profile");
     }
 
     return data.user;
   } catch (error) {
-    console.error('Get user profile error:', error);
+    console.error("Get user profile error:", error);
     throw error;
   }
 };
@@ -77,19 +77,19 @@ export const getUserProfile = async () => {
 export const getRestaurants = async () => {
   try {
     const response = await fetch(`${API_URL}/restaurants`, {
-      method: 'GET',
+      method: "GET",
       headers: await headers(),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get restaurants');
+      throw new Error(data.error || "Failed to get restaurants");
     }
 
     return data.restaurants;
   } catch (error) {
-    console.error('Get restaurants error:', error);
+    console.error("Get restaurants error:", error);
     throw error;
   }
 };
@@ -104,7 +104,7 @@ export const createOrder = async (orderData: {
 }) => {
   try {
     const response = await fetch(`${API_URL}/orders`, {
-      method: 'POST',
+      method: "POST",
       headers: await headers(),
       body: JSON.stringify(orderData),
     });
@@ -112,12 +112,12 @@ export const createOrder = async (orderData: {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to create order');
+      throw new Error(data.error || "Failed to create order");
     }
 
     return data;
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error("Create order error:", error);
     throw error;
   }
 };
@@ -126,19 +126,19 @@ export const createOrder = async (orderData: {
 export const getUserOrders = async () => {
   try {
     const response = await fetch(`${API_URL}/user/orders`, {
-      method: 'GET',
+      method: "GET",
       headers: await headers(),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get user orders');
+      throw new Error(data.error || "Failed to get user orders");
     }
 
     return data.orders;
   } catch (error) {
-    console.error('Get user orders error:', error);
+    console.error("Get user orders error:", error);
     throw error;
   }
 };
@@ -147,19 +147,19 @@ export const getUserOrders = async () => {
 export const getDeliveryRequests = async () => {
   try {
     const response = await fetch(`${API_URL}/delivery/requests`, {
-      method: 'GET',
+      method: "GET",
       headers: await headers(),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get delivery requests');
+      throw new Error(data.error || "Failed to get delivery requests");
     }
 
     return data.deliveryRequests;
   } catch (error) {
-    console.error('Get delivery requests error:', error);
+    console.error("Get delivery requests error:", error);
     throw error;
   }
 };
@@ -168,19 +168,19 @@ export const getDeliveryRequests = async () => {
 export const acceptDeliveryRequest = async (orderId: string) => {
   try {
     const response = await fetch(`${API_URL}/delivery/accept/${orderId}`, {
-      method: 'POST',
+      method: "POST",
       headers: await headers(),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to accept delivery request');
+      throw new Error(data.error || "Failed to accept delivery request");
     }
 
     return data;
   } catch (error) {
-    console.error('Accept delivery request error:', error);
+    console.error("Accept delivery request error:", error);
     throw error;
   }
 };
@@ -189,7 +189,7 @@ export const acceptDeliveryRequest = async (orderId: string) => {
 export const updateOrderStatus = async (orderId: string, status: string) => {
   try {
     const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
-      method: 'PUT',
+      method: "PUT",
       headers: await headers(),
       body: JSON.stringify({ status }),
     });
@@ -197,12 +197,12 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to update order status');
+      throw new Error(data.error || "Failed to update order status");
     }
 
     return data;
   } catch (error) {
-    console.error('Update order status error:', error);
+    console.error("Update order status error:", error);
     throw error;
   }
 };
