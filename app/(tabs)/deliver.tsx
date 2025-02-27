@@ -12,9 +12,14 @@ export default function Page() {
   const [isOnline, setOnline] = useState(false);
 
   const toggleOnline = () => {
-    setOnline((prev) => !prev);
+    setOnline(true)
     setIsVisible(false)
   };
+
+  const toggleOffline = () => {
+    setOnline(false)
+    setIsVisible(false)
+  }
 
   return (
     <View style={styles.container}>
@@ -32,7 +37,7 @@ export default function Page() {
           <FlatList
             data={DATA}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <VisibilityItem title={item.title} toggleOnline={toggleOnline}/>}
+            renderItem={({ item }) => <VisibilityItem title={item.title} id={item.id} toggleOnline={toggleOnline} toggleOffline={toggleOffline}/>}
           />
         )}
       </View>
@@ -50,8 +55,8 @@ const DATA = [
 
 type ItemProps = { title: string };
 
-const VisibilityItem = ({ title, toggleOnline}) => (
-  <TouchableOpacity style={styles.item} onPress={toggleOnline}>
+const VisibilityItem = ({ title, id, toggleOnline, toggleOffline}) => (
+  <TouchableOpacity style={styles.item} onPress={id == 1? toggleOnline : toggleOffline}>
     <Text style={styles.visibilityText}>{title}</Text>
   </TouchableOpacity>
 );
