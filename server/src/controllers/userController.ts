@@ -1,3 +1,7 @@
+// server/src/controllers/userController.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import { Request, Response } from "express";
 import pool from "../config/db";
 import { RowDataPacket } from "mysql2";

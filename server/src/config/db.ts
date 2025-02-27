@@ -1,3 +1,7 @@
+// server/src/config/db.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 30 minutes
+
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 

@@ -1,6 +1,6 @@
 // lib/api/config.ts
 // Contributors: @Fardeen Bablu
-// Time spent: 10 minutes 
+// Time spent: 10 minutes
 
 import { Platform } from "react-native";
 

@@ -221,8 +221,16 @@ export default function Deliver() {
     </View>
   );
 
-  const DeliveryHeader = ({ isOnline, onToggle }: { isOnline: boolean; onToggle: () => void }) => {
-    const switchAnimation = useRef(new Animated.Value(isOnline ? 1 : 0)).current;
+  const DeliveryHeader = ({
+    isOnline,
+    onToggle,
+  }: {
+    isOnline: boolean;
+    onToggle: () => void;
+  }) => {
+    const switchAnimation = useRef(
+      new Animated.Value(isOnline ? 1 : 0),
+    ).current;
 
     useEffect(() => {
       Animated.spring(switchAnimation, {
@@ -235,7 +243,7 @@ export default function Deliver() {
 
     return (
       <View style={styles.headerContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={onToggle}
           activeOpacity={0.8}
           style={styles.switchContainer}
@@ -244,7 +252,7 @@ export default function Deliver() {
             style={[
               styles.switchTrack,
               {
-                backgroundColor: isOnline ? '#4CAF50' : '#ddd',
+                backgroundColor: isOnline ? "#4CAF50" : "#ddd",
               },
             ]}
           >
@@ -280,15 +288,15 @@ export default function Deliver() {
 
   return (
     <View style={styles.container}>
-      <DeliveryHeader 
-        isOnline={isOnline} 
+      <DeliveryHeader
+        isOnline={isOnline}
         onToggle={() => {
           if (isOnline) {
             toggleOffline();
           } else {
             toggleOnline();
           }
-        }} 
+        }}
       />
 
       {/* Status indicator */}
@@ -407,29 +415,29 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     height: 120,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   switchTrack: {
     width: 80,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 4,
     borderWidth: 2,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   switchKnob: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -438,8 +446,8 @@ const styles = StyleSheet.create({
   switchText: {
     marginTop: 8,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   statusIndicator: {
     flexDirection: "row",
@@ -556,7 +564,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   listContent: {
-    paddingBottom: 100, // Add padding for the bottom button
+    paddingBottom: 100,
   },
   emptyState: {
     alignItems: "center",
@@ -636,7 +644,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   switchContainer: {
-    padding: 10,  // Add touch area
+    padding: 10,
     borderRadius: 25,
   },
 });

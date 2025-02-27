@@ -50,10 +50,11 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
 ## Development Setup
 
 ### iOS Development Setup
+
 1. Download Xcode and ensure you have the latest iOS simulator installed
-   - XCode > Settings > Components > *Ensure latest iOS version is installed*
+   - XCode > Settings > Components > _Ensure latest iOS version is installed_
 2. After installing, reload your developer window
-   - Shift + Cmd + P > Developer: Reload Window 
+   - Shift + Cmd + P > Developer: Reload Window
 3. In your terminal, run:
    ```bash
    npm i
@@ -62,11 +63,8 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
    ```
 4. XCode Simulator should pop up
 
-
-
-
-
 ### Android Development Setup [WORK IN PROGRESS]
+
 1. Download Android Studio from: https://developer.android.com/studio
    - Choose the standard installation option
 2. Configure environment variables by editing your profile:
@@ -91,4 +89,3 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
    npx expo prebuild --clean
    npx expo run:android
    ```
-

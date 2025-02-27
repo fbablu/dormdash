@@ -1,3 +1,7 @@
+// server/src/routes/users.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import { Router } from "express";
 import {
   getUserFavorites,

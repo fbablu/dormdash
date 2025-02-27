@@ -1,3 +1,7 @@
+// server/src/middleware/auth.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";

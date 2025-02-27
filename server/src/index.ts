@@ -1,4 +1,7 @@
 // server/src/index.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 2 hour
+
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import mysql from "mysql2/promise";

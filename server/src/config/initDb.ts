@@ -1,3 +1,7 @@
+// server/src/config/initDb.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import pool from "./db";
 
 async function initDatabase() {

@@ -2,7 +2,6 @@
 // Contributors: @Fardeen Bablu
 // Time spent: 10 minutes
 
-
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
