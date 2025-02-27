@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icons/ios-light.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -14,14 +13,17 @@
         "dark": "./assets/icons/ios-dark.png",
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
-      }
+      },
+      "bundleIdentifier": "com.anonymous.dormdash"
+
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "monochromeImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.dormdash"
     },
     "web": {
       "bundler": "metro",
@@ -41,6 +43,12 @@
             "image": "./assets/icons/splash-icon-light.png",
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.895573352563-bglvrv3e9visj279hc9g157787jd4on3"
         }
       ]
     ],

@@ -14,7 +14,54 @@ import { CustomSafeAreaView } from "../CustomSafeAreaView";
 import { Feather, AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 
+import {
+  GoogleSignin,
+  statusCodes,
+  isSuccessResponse,
+  isErrorWithCode,
+} from '@react-native-google-signin/google-signin';
+
+
+// reference: https://react-native-google-signin.github.io/docs/original/
+GoogleSignin.configure({
+  iosClientId: "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
+  // offlineAccess: true,
+});
+
+// code copied from: https://react-native-google-signin.github.io/docs/original
+const handleClick = async () => {
+  try {
+    await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        console.log(response.data);
+        alert("Sign in successful");
+        router.replace("/(tabs)");
+      } else {
+        // sign in was cancelled by user
+      }
+    }
+  catch (error) {
+    if (isErrorWithCode(error)) {
+      switch (error.code) {
+        case statusCodes.IN_PROGRESS:
+          // operation (eg. sign in) already in progress
+          break;
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          // Android only, play services not available or outdated
+          break;
+        default:
+        // some other error happened
+      }
+    } else {
+      // an error that's not related to google sign in occurred
+    }
+  }
+};
+
+
 const { width, height } = Dimensions.get("window");
+
 const RegisterScreen = () => {
   return (
     <CustomSafeAreaView style={styles.container}>
@@ -64,7 +111,8 @@ const RegisterScreen = () => {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={() => router.replace("/(tabs)")}
+            onPress={handleClick}
+            // onPress={() => router.replace("/(tabs)")} // TODO: add Google Auth
           >
             <AntDesign name="google" size={24} color="black" />
             <Text style={styles.googleText}>Sign in with Vandy Email</Text>

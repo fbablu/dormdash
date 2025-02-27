@@ -41,3 +41,9 @@ DormDash.session.sql
 *.tsbuildinfo
 
 app-example
+
+# ios
+ios/
+
+# android
+android/
