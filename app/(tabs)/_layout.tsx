@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.tsx
-import { Tabs } from "expo-router";
+import { Tabs, Stack } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
 export default function TabLayout() {
@@ -49,6 +49,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Feather name="user" size={24} color={color} />
           ),
+          headerShown: false,
         }}
       />
     </Tabs>

@@ -112,7 +112,7 @@ const RegisterScreen = () => {
             // onPress={() => router.replace("/(tabs)")} // TODO: add Google Auth
           >
             <AntDesign name="google" size={24} color="black" />
-            <Text style={styles.googleText}>Sign in with Vandy Email</Text>
+            <Text style={styles.googleText}>Sign in with Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -6,6 +6,8 @@ import { OAuth2Client } from "google-auth-library";
 import jsonwebtoken from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
+import userRoutes from './routes/users';
+import initDatabase from './config/initDb';
 
 dotenv.config();
 
@@ -51,13 +53,19 @@ app.use((req, res, next) => {
 
 // Database connection pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
+  host: process.env.DB_HOST || "127.0.0.1",
+  port: parseInt(process.env.DB_PORT || "3306"),
   user: process.env.DB_USER || "dormdash_user",
   password: process.env.DB_PASSWORD || "dormdash_VU",
   database: process.env.DB_NAME || "dormdash",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  // Add these options for better error handling
+  connectTimeout: 10000,
+  debug: process.env.NODE_ENV !== 'production'
 });
 
 // Verify Google token
@@ -147,10 +155,12 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
         );
       }
 
-      // Generate JWT token
-      const token = jsonwebtoken.sign({ id: userId, email, name }, JWT_SECRET, {
-        expiresIn: "7d",
-      });
+      // Generate JWT token with proper secret
+      const token = jsonwebtoken.sign(
+        { id: userId, email, name },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+      );
 
       res.status(200).json({
         token,
@@ -476,90 +486,33 @@ app.put(
   },
 );
 
-// Get user favorites
-app.get('/api/users/:userId/favorites', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.params.userId;
-    const connection = await pool.getConnection();
-    try {
-      const [favorites] = await connection.execute<mysql.RowDataPacket[]>(
-        'SELECT restaurant_name FROM user_favorites WHERE user_id = ?',
-        [userId]
-      );
-      res.json(favorites.map(f => f.restaurant_name));
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    console.error('Error fetching favorites:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// Routes
+app.use('/api/users', userRoutes);
 
-// Toggle favorite
-app.post('/api/users/favorites', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { userId, restaurantName, action } = req.body;
-    const connection = await pool.getConnection();
-    try {
-      if (action === 'add') {
-        await connection.execute(
-          'INSERT INTO user_favorites (user_id, restaurant_name) VALUES (?, ?)',
-          [userId, restaurantName]
-        );
-      } else {
-        await connection.execute(
-          'DELETE FROM user_favorites WHERE user_id = ? AND restaurant_name = ?',
-          [userId, restaurantName]
-        );
-      }
-      res.json({ success: true });
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    console.error('Error updating favorites:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add a test endpoint
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Add after pool creation
-pool.query('SELECT 1')
-  .then(() => console.log('Database connected successfully'))
-  .catch(err => console.error('Database connection failed:', err));
-
-// Also add table check/creation
-async function initDatabase() {
+// Start server with database check and initialization
+const startServer = async () => {
   try {
     const connection = await pool.getConnection();
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS user_favorites (
-          user_id VARCHAR(255) NOT NULL,
-          restaurant_name VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (user_id, restaurant_name)
-        )
-      `);
-      console.log('Database tables verified/created');
-    } finally {
-      connection.release();
-    }
+    console.log('Database connected successfully');
+    connection.release();
+
+    // Initialize database tables
+    await initDatabase();
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   } catch (error) {
-    console.error('Database initialization failed:', error);
+    console.error('Failed to connect to database:', error);
+    process.exit(1);
   }
-}
+};
 
-initDatabase();
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+startServer();
 
 export default app;

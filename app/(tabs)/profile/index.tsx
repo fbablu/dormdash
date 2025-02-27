@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { api } from '@/app/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserProfile {
   name: string;
@@ -25,7 +27,15 @@ interface UserProfile {
   notificationsEnabled: boolean;
 }
 
-export default function Page() {
+const MenuItem = ({ icon, title, onPress }: { icon: any, title: string, onPress: () => void }) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <Feather name={icon} size={24} color="#000" />
+    <Text style={styles.menuItemText}>{title}</Text>
+    <Feather name="chevron-right" size={24} color="#666" />
+  </TouchableOpacity>
+);
+
+export default function ProfileScreen() {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: '',
     email: '',
@@ -37,9 +47,6 @@ export default function Page() {
   });
 
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
-  const [showAddressModal, setShowAddressModal] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -47,15 +54,16 @@ export default function Page() {
 
   const fetchUserProfile = async () => {
     try {
-      const currentUser = await GoogleSignin.getCurrentUser();
-      if (!currentUser) {
+      const userId = await AsyncStorage.getItem('userId');
+      const authToken = await AsyncStorage.getItem('authToken');
+
+      if (!userId || !authToken) {
+        console.log('No user ID or auth token found');
         router.replace('/');
         return;
       }
 
-      // TODO: Replace with your actual API endpoint
-      const response = await fetch(`/api/users/${currentUser.user.id}`);
-      const data = await response.json();
+      const data = await api.getUserProfile(userId);
       setUserProfile(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -69,25 +77,6 @@ export default function Page() {
       router.replace('/');
     } catch (error) {
       console.error('Error signing out:', error);
-    }
-  };
-
-  const updateUserInfo = async (name: string, phoneNumber: string) => {
-    try {
-      // TODO: Replace with your actual API endpoint
-      await fetch('/api/users/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, phoneNumber }),
-      });
-      
-      setUserProfile(prev => ({ ...prev, name, phoneNumber }));
-      setShowInfoModal(false);
-    } catch (error) {
-      console.error('Error updating user info:', error);
-      Alert.alert('Error', 'Failed to update information');
     }
   };
 
@@ -110,21 +99,23 @@ export default function Page() {
             style={styles.input}
             placeholder="Phone Number"
             value={userProfile.phoneNumber}
-            keyboardType="phone-pad"
             onChangeText={(text) => setUserProfile(prev => ({ ...prev, phoneNumber: text }))}
           />
           <View style={styles.modalButtons}>
             <TouchableOpacity 
-              style={styles.modalButton}
-              onPress={() => updateUserInfo(userProfile.name, userProfile.phoneNumber)}
-            >
-              <Text>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.modalButton, styles.cancelButton]}
+              style={[styles.modalButton, styles.cancelButton]} 
               onPress={() => setShowInfoModal(false)}
             >
               <Text>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => {
+                // Handle save
+                setShowInfoModal(false);
+              }}
+            >
+              <Text>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -132,18 +123,10 @@ export default function Page() {
     </Modal>
   );
 
-  const MenuItem = ({ icon, title, onPress }: { icon: keyof typeof Feather.glyphMap, title: string, onPress: () => void }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Feather name={icon} size={24} color="black" />
-      <Text style={styles.menuItemText}>{title}</Text>
-      <Feather name="chevron-right" size={24} color="black" />
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <Text style={styles.heading}>Profile</Text>
+        <Text style={styles.heading}>My Account</Text>
         
         <View style={styles.section}>
           <MenuItem 
@@ -152,14 +135,9 @@ export default function Page() {
             onPress={() => setShowInfoModal(true)} 
           />
           <MenuItem 
-            icon="credit-card" 
-            title="Payment" 
-            onPress={() => setShowPaymentModal(true)} 
-          />
-          <MenuItem 
             icon="heart" 
             title="Favorites" 
-            onPress={() => router.push('/favorites')} 
+            onPress={() => router.push('/profile/favorites')} 
           />
           <MenuItem 
             icon="help-circle" 
@@ -172,16 +150,6 @@ export default function Page() {
         
         <View style={styles.section}>
           <MenuItem 
-            icon="bell" 
-            title="Notifications" 
-            onPress={() => setShowNotificationsModal(true)} 
-          />
-          <MenuItem 
-            icon="map-pin" 
-            title="Address" 
-            onPress={() => setShowAddressModal(true)} 
-          />
-          <MenuItem 
             icon="log-out" 
             title="Sign Out" 
             onPress={handleSignOut} 
@@ -190,7 +158,6 @@ export default function Page() {
       </ScrollView>
 
       <InfoModal />
-      {/* Add other modals here */}
     </SafeAreaView>
   );
 }
@@ -261,4 +228,4 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: '#ddd',
   },
-});
+}); 
