@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icons/ios-light.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -16,6 +15,7 @@
         "tinted": "./assets/icons/ios-tinted.png"
       },
       "bundleIdentifier": "com.anonymous.dormdash"
+
     },
     "android": {
       "adaptiveIcon": {
