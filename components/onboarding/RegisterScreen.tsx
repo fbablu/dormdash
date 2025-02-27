@@ -35,7 +35,6 @@ const handleClick = async () => {
       const response = await GoogleSignin.signIn();
       if (isSuccessResponse(response)) {
         console.log(response.data);
-        alert("Sign in successful");
         router.replace("/(tabs)");
       } else {
         // sign in was cancelled by user
