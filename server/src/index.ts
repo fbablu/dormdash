@@ -35,8 +35,19 @@ const GOOGLE_CLIENT_ID =
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(express.json());
+
+
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
 
 // Database connection pool
 const pool = mysql.createPool({
@@ -464,6 +475,87 @@ app.put(
     }
   },
 );
+
+// Get user favorites
+app.get('/api/users/:userId/favorites', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const connection = await pool.getConnection();
+    try {
+      const [favorites] = await connection.execute<mysql.RowDataPacket[]>(
+        'SELECT restaurant_name FROM user_favorites WHERE user_id = ?',
+        [userId]
+      );
+      res.json(favorites.map(f => f.restaurant_name));
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error fetching favorites:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Toggle favorite
+app.post('/api/users/favorites', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, restaurantName, action } = req.body;
+    const connection = await pool.getConnection();
+    try {
+      if (action === 'add') {
+        await connection.execute(
+          'INSERT INTO user_favorites (user_id, restaurant_name) VALUES (?, ?)',
+          [userId, restaurantName]
+        );
+      } else {
+        await connection.execute(
+          'DELETE FROM user_favorites WHERE user_id = ? AND restaurant_name = ?',
+          [userId, restaurantName]
+        );
+      }
+      res.json({ success: true });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Error updating favorites:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add a test endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Add after pool creation
+pool.query('SELECT 1')
+  .then(() => console.log('Database connected successfully'))
+  .catch(err => console.error('Database connection failed:', err));
+
+// Also add table check/creation
+async function initDatabase() {
+  try {
+    const connection = await pool.getConnection();
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS user_favorites (
+          user_id VARCHAR(255) NOT NULL,
+          restaurant_name VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (user_id, restaurant_name)
+        )
+      `);
+      console.log('Database tables verified/created');
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+  }
+}
+
+initDatabase();
 
 // Start the server
 app.listen(PORT, () => {

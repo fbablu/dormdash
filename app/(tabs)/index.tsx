@@ -9,10 +9,13 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import restaurants from "@/data/ton_restaurants.json";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { API_BASE_URL } from '@/lib/api/config';
 
 const { width } = Dimensions.get("window");
 
@@ -69,26 +72,97 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({ name, color, iconName, onPr
 );
 
 // RestaurantCard Component
-const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => (
-  <TouchableOpacity style={styles.restaurantCard}>
-    <Image 
-      source={{ uri: 'https://via.placeholder.com/400x320' }} 
-      style={styles.restaurantImage} 
-    />
-    <View style={styles.restaurantInfo}>
-      <View style={styles.restaurantHeader}>
-        <Text style={styles.restaurantName}>{restaurant.name}</Text>
-        <TouchableOpacity>
-          <Feather name="heart" size={20} color="black" />
-        </TouchableOpacity>
+const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    checkIfFavorite();
+  }, []);
+
+  const checkIfFavorite = async () => {
+    try {
+      const currentUser = await GoogleSignin.getCurrentUser();
+      if (!currentUser) return;
+
+      console.log('Checking favorites for:', currentUser.user.id);
+      console.log('Request URL:', `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.idToken}`
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response body:', responseText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} body: ${responseText}`);
+      }
+      
+      const favorites = JSON.parse(responseText);
+      setIsFavorite(favorites.includes(restaurant.name));
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const currentUser = await GoogleSignin.getCurrentUser();
+      if (!currentUser) {
+        Alert.alert('Error', 'Please sign in to save favorites');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.idToken}`
+        },
+        body: JSON.stringify({
+          userId: currentUser.user.id,
+          restaurantName: restaurant.name,
+          action: isFavorite ? 'remove' : 'add',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update favorite');
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Alert.alert('Error', 'Failed to update favorites');
+    }
+  };
+
+  return (
+    <TouchableOpacity style={styles.restaurantCard}>
+      <Image 
+        source={{ uri: 'https://via.placeholder.com/400x320' }} 
+        style={styles.restaurantImage} 
+      />
+      <View style={styles.restaurantInfo}>
+        <View style={styles.restaurantHeader}>
+          <Text style={styles.restaurantName}>{restaurant.name}</Text>
+          <TouchableOpacity onPress={toggleFavorite}>
+            <Feather 
+              name={isFavorite ? "heart" : "heart"}
+              size={20} 
+              color={isFavorite ? "#ff0000" : "#ddd"}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.restaurantDetails}>
+          {restaurant.location} • {restaurant.cuisine.join(", ")}
+        </Text>
+        <Text style={styles.deliveryFee}>Accepts Commodore Cash</Text>
       </View>
-      <Text style={styles.restaurantDetails}>
-        {restaurant.location} • {restaurant.cuisine.join(", ")}
-      </Text>
-      <Text style={styles.deliveryFee}>Accepts Commodore Cash</Text>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 // Main Component
 export default function Page() {
