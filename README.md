@@ -1,9 +1,3 @@
-# Resources to get started with here:
-
-- [Expo Documentation](https://docs.expo.dev/)
-- [Creating first app / starting project](https://docs.expo.dev/tutorial/create-your-first-app/)
-  - ie `npx expo start`
-
 # DormDash
 
 DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For instance, a student living in the Village at Vanderbilt who wants to order from I Love Sushi on Elliston Place either has to walk a mile to pick up their food and pay with CC, or use a third-party app that doesn't support CC or direct dorm delivery. DormDash solves this problem by enabling students to deliver food directly to dorm rooms, all while using CC, making the process faster, more convenient, and student-friendly.
