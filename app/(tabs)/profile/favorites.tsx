@@ -1,3 +1,7 @@
+// app/(tabs)/profile/favorites.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 10 minutes
+
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { api } from "@/app/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";

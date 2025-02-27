@@ -1,4 +1,7 @@
 // app/(tabs)/deliver.tsx
+// Contributors: @Albert Castrejon, @Fardeen Bablu
+// Time spent: 4 hours
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,

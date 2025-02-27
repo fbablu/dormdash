@@ -1,4 +1,7 @@
 // app/components/CustomSafeAreaView.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 30 minutes
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleProp, ViewStyle } from "react-native";
 

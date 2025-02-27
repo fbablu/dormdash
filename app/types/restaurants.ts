@@ -1,3 +1,7 @@
+// app/types/restaurants.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 20 minutes
+
 export type Location =
   | "HILLSBORO VILLAGE"
   | "MIDTOWN"

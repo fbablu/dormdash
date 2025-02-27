@@ -1,3 +1,7 @@
+// app/data/orders.ts
+// Contributors: @Rushi Patel
+// Time spent: 30 minutes
+
 export interface OrderItem {
   name: string;
   quantity: number;

@@ -1,4 +1,6 @@
 // app/components/onboarding/RegisterScreen.tsx
+// Contributors: @Fardeen Bablu, @Yuening Li
+// Time spent: 2 hour
 
 import * as React from "react";
 import {

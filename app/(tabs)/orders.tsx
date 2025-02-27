@@ -1,3 +1,7 @@
+// app/(tabs)/orders.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: @Rushi Patel
+
 import React, { useState, useEffect } from "react";
 import {
   View,

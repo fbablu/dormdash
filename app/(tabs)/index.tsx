@@ -1,4 +1,7 @@
 // app/(tabs)/index.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 3 hours
+
 import React, { useState, useEffect } from "react";
 import {
   View,

@@ -1,4 +1,7 @@
 // app/onboarding.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 1 hour
+
 import {
   View,
   Text,

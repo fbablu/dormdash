@@ -1,3 +1,7 @@
+// app/(tabs)/profile/index.tsx
+// Contributors: @Fardeen Bablu, @Yuening Li
+// Time spent: 1 hours
+
 import React, { useState, useEffect } from 'react';
 import {
   View,

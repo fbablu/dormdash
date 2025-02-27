@@ -1,4 +1,7 @@
 // app/services/api.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 3 hours
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const BASE_URL = "http://127.0.0.1:3000/api";
