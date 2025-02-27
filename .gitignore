@@ -42,5 +42,6 @@ DormDash.session.sql
 
 app-example
 
-# ios
+
 ios/
+android/
