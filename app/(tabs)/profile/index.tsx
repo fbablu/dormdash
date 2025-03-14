@@ -171,8 +171,7 @@ const ProfileScreen = () => {
           <MenuItem
             icon="bell"
             title="Notifications"
-            // onPress={() => router.push("/profile/notifications")}
-            onPress={() => console.log("Notifications")}
+            onPress={() => router.push("/profile/notifications")}
           />
           <MenuItem
             icon="help-circle"
