@@ -163,8 +163,8 @@ const ProfileScreen = () => {
         <View style={styles.profileSection}>
           <Image
             style={styles.profileImage}
-            source={require('@/assets/icons/splash-icon-light.png')}
-            defaultSource={require('@/assets/icons/splash-icon-light.png')}
+            source={require('@/assets/profile_picture.png')}
+            defaultSource={require('@/assets/profile_picture.png')}
           />
           <Text style={styles.profileName}>{userProfile.name}</Text>
         </View>
