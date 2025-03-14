@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-  ordersList: { 
-    padding: 16 
+  ordersList: {
+    padding: 16,
   },
   orderItem: {
     padding: 16,

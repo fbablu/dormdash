@@ -3,31 +3,28 @@
 // Time: 3 hours
 
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Alert
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePayment } from "@/app/context/PaymentContext";
 
-const PAYMENT_STORAGE_KEY = 'dormdash_payment_method';
+const PAYMENT_STORAGE_KEY = "dormdash_payment_method";
 
 const PaymentScreen = () => {
   const { setPaymentMethod } = usePayment();
-  const [selectedPayment, setSelectedPayment] = useState<string>("Commodore Cash");
-  
-  const paymentOptions = [
-    "Commodore Cash",
-    "PayPal",
-    "Stripe"
-  ];
+  const [selectedPayment, setSelectedPayment] =
+    useState<string>("Commodore Cash");
+
+  const paymentOptions = ["Commodore Cash", "PayPal", "Stripe"];
 
   // Load saved payment method on mount
   useEffect(() => {
@@ -41,7 +38,7 @@ const PaymentScreen = () => {
         console.error("Error loading payment method:", error);
       }
     };
-    
+
     loadSavedPayment();
   }, []);
 
@@ -52,15 +49,15 @@ const PaymentScreen = () => {
   const handleSaveChanges = async () => {
     try {
       await AsyncStorage.setItem(PAYMENT_STORAGE_KEY, selectedPayment);
-      
+
       // Update the context directly instead of using window events
       setPaymentMethod(selectedPayment);
-      
-      Alert.alert('Success', 'Payment method updated successfully');
+
+      Alert.alert("Success", "Payment method updated successfully");
       router.back();
     } catch (error) {
       console.error("Error saving payment method:", error);
-      Alert.alert('Error', 'Failed to save payment method');
+      Alert.alert("Error", "Failed to save payment method");
     }
   };
 
@@ -76,7 +73,7 @@ const PaymentScreen = () => {
 
       <ScrollView style={styles.content}>
         {paymentOptions.map((option) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={option}
             style={styles.paymentOption}
             onPress={() => setSelectedPayment(option)}
@@ -84,10 +81,10 @@ const PaymentScreen = () => {
             <View style={styles.optionRow}>
               <Text style={styles.paymentText}>{option}</Text>
               <View style={styles.radioContainer}>
-                <View 
+                <View
                   style={[
-                    styles.radioOuter, 
-                    selectedPayment === option && styles.radioOuterSelected
+                    styles.radioOuter,
+                    selectedPayment === option && styles.radioOuterSelected,
                   ]}
                 >
                   {selectedPayment === option && (
@@ -107,10 +104,7 @@ const PaymentScreen = () => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={handleSaveChanges}
-        >
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
           <Text style={styles.saveButtonText}>Save Changes</Text>
         </TouchableOpacity>
       </View>
@@ -215,7 +209,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-  }
+  },
 });
 
 export default PaymentScreen;

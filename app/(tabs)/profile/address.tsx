@@ -17,7 +17,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ADDRESS_STORAGE_KEY = 'dormdash_address';
+const ADDRESS_STORAGE_KEY = "dormdash_address";
 
 const AddressScreen = () => {
   const [addresses, setAddresses] = useState<string[]>([]);
@@ -73,8 +73,9 @@ const AddressScreen = () => {
   const handleSelectAddress = (address: string) => {
     setCurrentAddress(address);
     // Save current address preference
-    AsyncStorage.setItem('dormdash_current_address', address)
-      .catch(error => console.error("Error saving current address:", error));
+    AsyncStorage.setItem("dormdash_current_address", address).catch((error) =>
+      console.error("Error saving current address:", error),
+    );
   };
 
   const handleDeleteAddress = (addressToDelete: string) => {
@@ -84,28 +85,32 @@ const AddressScreen = () => {
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            const newAddresses = addresses.filter(address => address !== addressToDelete);
+            const newAddresses = addresses.filter(
+              (address) => address !== addressToDelete,
+            );
             setAddresses(newAddresses);
-            
+
             // If the deleted address was the current one, set a new current address
             if (currentAddress === addressToDelete && newAddresses.length > 0) {
               setCurrentAddress(newAddresses[0]);
             } else if (newAddresses.length === 0) {
               setCurrentAddress("");
             }
-            
+
             // Save to AsyncStorage
-            AsyncStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(newAddresses))
-              .catch(error => console.error("Error saving addresses:", error));
-          }
-        }
-      ]
+            AsyncStorage.setItem(
+              ADDRESS_STORAGE_KEY,
+              JSON.stringify(newAddresses),
+            ).catch((error) => console.error("Error saving addresses:", error));
+          },
+        },
+      ],
     );
   };
 
@@ -131,16 +136,13 @@ const AddressScreen = () => {
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={handleAddAddress}
-          >
+          <TouchableOpacity style={styles.addButton} onPress={handleAddAddress}>
             <Text style={styles.addButtonText}>Add</Text>
           </TouchableOpacity>
         </View>
 
         {/* Current Location Option */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={() => {
             // Would normally request location permissions and get current location
@@ -150,8 +152,12 @@ const AddressScreen = () => {
               handleSelectAddress(demoAddress);
               const newAddresses = [...addresses, demoAddress];
               setAddresses(newAddresses);
-              AsyncStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(newAddresses))
-                .catch(error => console.error("Error saving addresses:", error));
+              AsyncStorage.setItem(
+                ADDRESS_STORAGE_KEY,
+                JSON.stringify(newAddresses),
+              ).catch((error) =>
+                console.error("Error saving addresses:", error),
+              );
             } else {
               handleSelectAddress(demoAddress);
             }
@@ -165,26 +171,22 @@ const AddressScreen = () => {
 
         {/* Saved Addresses Section */}
         <Text style={styles.sectionTitle}>Saved Addresses</Text>
-        
+
         {addresses.length === 0 ? (
           <Text style={styles.emptyText}>No saved addresses</Text>
         ) : (
           addresses.map((address, index) => (
             <View key={index} style={styles.addressItem}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.addressContent}
                 onPress={() => handleSelectAddress(address)}
               >
                 <View style={styles.addressRow}>
-                  <Feather 
-                    name="map-pin" 
-                    size={20} 
-                    color="#cfae70" 
-                  />
-                  <Text 
+                  <Feather name="map-pin" size={20} color="#cfae70" />
+                  <Text
                     style={[
                       styles.addressText,
-                      currentAddress === address && styles.currentAddressText
+                      currentAddress === address && styles.currentAddressText,
                     ]}
                     numberOfLines={2}
                   >
@@ -195,7 +197,7 @@ const AddressScreen = () => {
                   <Text style={styles.currentLabel}>Current</Text>
                 )}
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDeleteAddress(address)}
               >

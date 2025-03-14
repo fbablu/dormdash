@@ -11,13 +11,13 @@ import {
   SafeAreaView,
   TextInput,
   Alert,
-  ScrollView
+  ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const USER_INFO_STORAGE_KEY = 'dormdash_user_info';
+const USER_INFO_STORAGE_KEY = "dormdash_user_info";
 
 interface UserInfo {
   name: string;
@@ -31,9 +31,9 @@ const MyInfoScreen = () => {
     name: "Lily Li",
     email: "yuening.li@vanderbilt.edu",
     password: "••••••••",
-    phone: "857-472-xxxx"
+    phone: "857-472-xxxx",
   });
-  
+
   const [editMode, setEditMode] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
@@ -54,7 +54,10 @@ const MyInfoScreen = () => {
 
   const saveUserInfo = async () => {
     try {
-      await AsyncStorage.setItem(USER_INFO_STORAGE_KEY, JSON.stringify(userInfo));
+      await AsyncStorage.setItem(
+        USER_INFO_STORAGE_KEY,
+        JSON.stringify(userInfo),
+      );
     } catch (error) {
       console.error("Error saving user info:", error);
       Alert.alert("Error", "Failed to save your information");
@@ -72,29 +75,29 @@ const MyInfoScreen = () => {
 
   const handleSave = () => {
     if (!editMode) return;
-    
+
     // Basic validation
-    if (editMode === 'email' && !editValue.includes('@')) {
+    if (editMode === "email" && !editValue.includes("@")) {
       Alert.alert("Invalid Email", "Please enter a valid email address");
       return;
     }
-    
-    if (editMode === 'phone' && editValue.length < 10) {
+
+    if (editMode === "phone" && editValue.length < 10) {
       Alert.alert("Invalid Phone", "Please enter a valid phone number");
       return;
     }
-    
+
     // Update user info
     const updatedInfo = { ...userInfo, [editMode]: editValue };
     setUserInfo(updatedInfo);
-    
+
     // Save to storage
     AsyncStorage.setItem(USER_INFO_STORAGE_KEY, JSON.stringify(updatedInfo))
       .then(() => {
         setEditMode(null);
         setEditValue("");
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error saving:", error);
         Alert.alert("Error", "Failed to save changes");
       });
@@ -112,7 +115,7 @@ const MyInfoScreen = () => {
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Delete",
@@ -124,13 +127,13 @@ const MyInfoScreen = () => {
               .then(() => {
                 router.replace("/onboarding");
               })
-              .catch(error => {
+              .catch((error) => {
                 console.error("Error clearing storage:", error);
                 Alert.alert("Error", "Failed to delete account");
               });
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -146,41 +149,41 @@ const MyInfoScreen = () => {
 
       <ScrollView style={styles.content}>
         {/* Name Field */}
-        <InfoField 
+        <InfoField
           label="Your Name"
           value={userInfo.name}
-          onEdit={() => handleEdit('name', userInfo.name)}
+          onEdit={() => handleEdit("name", userInfo.name)}
           editable={true}
-          isEditing={editMode === 'name'}
+          isEditing={editMode === "name"}
         />
-        
+
         {/* Email Field */}
-        <InfoField 
+        <InfoField
           label="Vanderbilt Email"
           value={userInfo.email}
-          onEdit={() => handleEdit('email', userInfo.email)}
+          onEdit={() => handleEdit("email", userInfo.email)}
           editable={true}
-          isEditing={editMode === 'email'}
+          isEditing={editMode === "email"}
         />
-        
+
         {/* Password Field */}
-        <InfoField 
+        <InfoField
           label="Password"
           value={userInfo.password}
-          onEdit={() => handleEdit('password', '')}
+          onEdit={() => handleEdit("password", "")}
           editable={true}
-          isEditing={editMode === 'password'}
+          isEditing={editMode === "password"}
         />
-        
+
         {/* Phone Field */}
-        <InfoField 
+        <InfoField
           label="Phone Number"
           value={userInfo.phone}
-          onEdit={() => handleEdit('phone', userInfo.phone)}
+          onEdit={() => handleEdit("phone", userInfo.phone)}
           editable={true}
-          isEditing={editMode === 'phone'}
+          isEditing={editMode === "phone"}
         />
-        
+
         {/* Edit Mode */}
         {editMode && (
           <View style={styles.editContainer}>
@@ -191,13 +194,22 @@ const MyInfoScreen = () => {
               style={styles.editInput}
               value={editValue}
               onChangeText={setEditValue}
-              secureTextEntry={editMode === 'password'}
-              autoCapitalize={editMode === 'email' ? 'none' : 'words'}
-              keyboardType={editMode === 'phone' ? 'phone-pad' : editMode === 'email' ? 'email-address' : 'default'}
+              secureTextEntry={editMode === "password"}
+              autoCapitalize={editMode === "email" ? "none" : "words"}
+              keyboardType={
+                editMode === "phone"
+                  ? "phone-pad"
+                  : editMode === "email"
+                    ? "email-address"
+                    : "default"
+              }
               autoFocus
             />
             <View style={styles.editButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancel}
+              >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -206,8 +218,8 @@ const MyInfoScreen = () => {
             </View>
           </View>
         )}
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDeleteAccount}
         >
@@ -226,7 +238,13 @@ interface InfoFieldProps {
   isEditing: boolean;
 }
 
-const InfoField = ({ label, value, onEdit, editable, isEditing }: InfoFieldProps) => (
+const InfoField = ({
+  label,
+  value,
+  onEdit,
+  editable,
+  isEditing,
+}: InfoFieldProps) => (
   <View style={styles.fieldContainer}>
     <Text style={styles.fieldLabel}>{label}</Text>
     <View style={styles.fieldValueContainer}>
@@ -352,7 +370,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#ff6b6b",
     textDecorationLine: "underline",
-  }
+  },
 });
 
 export default MyInfoScreen;

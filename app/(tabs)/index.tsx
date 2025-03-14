@@ -44,7 +44,7 @@ interface CategoryIconProps {
   onPress: () => void;
 }
 
-const FAVORITES_STORAGE_KEY = 'dormdash_favorites';
+const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 // Add this interface near the top with your other interfaces
 interface FavoriteRestaurant {
@@ -55,7 +55,6 @@ interface FavoriteRestaurant {
   deliveryFee: string;
   imageUrl: string;
 }
-
 
 // LocationHeader Component
 const LocationHeader = ({
@@ -104,11 +103,9 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({
   </TouchableOpacity>
 );
 
-
 // RestaurantCard Component
 const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   const [isFavorite, setIsFavorite] = useState(false);
-  
 
   useEffect(() => {
     checkIfFavorite();
@@ -135,16 +132,22 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           setIsFavorite(favorites.includes(restaurant.name));
           return;
         }
-        
+
         throw new Error("API request failed");
       } catch (apiError) {
-        console.log("API call failed for favorites check, using AsyncStorage fallback");
-        
+        console.log(
+          "API call failed for favorites check, using AsyncStorage fallback",
+        );
+
         // Fallback to AsyncStorage
-        const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+        const savedFavoritesJson = await AsyncStorage.getItem(
+          FAVORITES_STORAGE_KEY,
+        );
         if (savedFavoritesJson) {
           const savedFavorites = JSON.parse(savedFavoritesJson);
-          const isFav = savedFavorites.some((fav: FavoriteRestaurant) => fav.name === restaurant.name);
+          const isFav = savedFavorites.some(
+            (fav: FavoriteRestaurant) => fav.name === restaurant.name,
+          );
           setIsFavorite(isFav);
         }
       }
@@ -180,15 +183,19 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           setIsFavorite(!isFavorite);
           return;
         }
-        
+
         throw new Error("API request failed");
       } catch (apiError) {
-        console.log("API call failed for toggle favorite, using AsyncStorage fallback");
-        
+        console.log(
+          "API call failed for toggle favorite, using AsyncStorage fallback",
+        );
+
         // Fallback to AsyncStorage
         let savedFavorites = [];
         try {
-          const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+          const savedFavoritesJson = await AsyncStorage.getItem(
+            FAVORITES_STORAGE_KEY,
+          );
           if (savedFavoritesJson) {
             savedFavorites = JSON.parse(savedFavoritesJson);
           }
@@ -196,10 +203,12 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           console.error("Error reading favorites from storage:", storageError);
           savedFavorites = [];
         }
-        
+
         if (isFavorite) {
           // Remove from favorites
-          savedFavorites = savedFavorites.filter((item: FavoriteRestaurant) => item.name !== restaurant.name);
+          savedFavorites = savedFavorites.filter(
+            (item: FavoriteRestaurant) => item.name !== restaurant.name,
+          );
         } else {
           // Add to favorites with additional info
           const newFavorite = {
@@ -208,19 +217,24 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
             reviewCount: "100+", // Default
             deliveryTime: "15 min", // Default
             deliveryFee: "$3", // Default
-            imageUrl: FOOD_IMAGE_URL // Use the same food image URL
+            imageUrl: FOOD_IMAGE_URL, // Use the same food image URL
           };
-          
+
           // Check if it already exists
-          const existingIndex = savedFavorites.findIndex((item: FavoriteRestaurant) => item.name === restaurant.name);
+          const existingIndex = savedFavorites.findIndex(
+            (item: FavoriteRestaurant) => item.name === restaurant.name,
+          );
           if (existingIndex === -1) {
             savedFavorites.push(newFavorite);
           }
         }
-        
+
         // Save updated favorites
-        await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(savedFavorites));
-        
+        await AsyncStorage.setItem(
+          FAVORITES_STORAGE_KEY,
+          JSON.stringify(savedFavorites),
+        );
+
         // Update state
         setIsFavorite(!isFavorite);
       }
@@ -298,7 +312,7 @@ export default function Page() {
       <View style={styles.header}>
         <Text style={styles.heading}>Home</Text>
       </View>
-      
+
       <ScrollView>
         <LocationHeader
           searchQuery={searchQuery}

@@ -18,6 +18,7 @@ export default function ProfileLayout() {
         name="favorites"
         options={{
           title: "My Favorites",
+          headerShown: false,
           presentation: "card",
         }}
       />

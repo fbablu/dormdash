@@ -3,14 +3,14 @@
 // Time spent: 2 hours
 
 import React, { useState, useEffect, useCallback } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Image,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
@@ -21,7 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/app/services/api";
 import { usePayment } from "@/app/context/PaymentContext";
 
-const FAVORITES_STORAGE_KEY = 'dormdash_favorites';
+const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 const ProfileScreen = () => {
   const { paymentMethod, refreshPaymentMethod } = usePayment();
@@ -29,28 +29,28 @@ const ProfileScreen = () => {
     name: "Lily Li",
     email: "dormdash@gmail.com",
     phoneNumber: "",
-    defaultAddress: ""
+    defaultAddress: "",
   });
   const [defaultAddress, setDefaultAddress] = useState<string>("");
   const [favoriteCount, setFavoriteCount] = useState<number>(0);
   const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
-  
+
   useEffect(() => {
     fetchUserProfile();
     fetchDefaultAddress();
     fetchFavoriteCount();
-    
+
     // Refresh payment method when component mounts
     refreshPaymentMethod();
   }, []);
-  
+
   // Use useFocusEffect to refresh favorites count when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchFavoriteCount();
       // Return a cleanup function if needed
       return () => {};
-    }, [])
+    }, []),
   );
 
   const fetchUserProfile = async () => {
@@ -60,19 +60,19 @@ const ProfileScreen = () => {
         // If not logged in, we'll just use the default state
         return;
       }
-      
+
       // Try to get the profile from API
       try {
         // Comment out the API call temporarily to avoid the network error
         // const data = await api.getUserProfile(currentUser.user.id);
         // setUserProfile(data);
-        
+
         // Just use the static data for now
         setUserProfile({
           name: currentUser.user.name || "Lily Li",
           email: currentUser.user.email || "dormdash@gmail.com",
           phoneNumber: "",
-          defaultAddress: ""
+          defaultAddress: "",
         });
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -85,7 +85,9 @@ const ProfileScreen = () => {
   const fetchDefaultAddress = async () => {
     try {
       // Try to get the current address
-      const currentAddress = await AsyncStorage.getItem('dormdash_current_address');
+      const currentAddress = await AsyncStorage.getItem(
+        "dormdash_current_address",
+      );
       if (currentAddress) {
         setDefaultAddress(currentAddress);
       }
@@ -93,22 +95,25 @@ const ProfileScreen = () => {
       console.error("Error fetching address:", error);
     }
   };
-  
+
   const fetchFavoriteCount = async () => {
     setLoadingFavorites(true);
     try {
       // Try to get user ID first
       const userId = await AsyncStorage.getItem("userId");
-      
+
       // Try API first
       if (userId) {
         try {
-          const response = await fetch(`http://localhost:3000/api/users/${userId}/favorites`, {
-            headers: {
-              'Authorization': `Bearer ${await AsyncStorage.getItem("userToken")}`
-            }
-          });
-          
+          const response = await fetch(
+            `http://localhost:3000/api/users/${userId}/favorites`,
+            {
+              headers: {
+                Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
+              },
+            },
+          );
+
           if (response.ok) {
             const favorites = await response.json();
             setFavoriteCount(favorites.length);
@@ -119,7 +124,7 @@ const ProfileScreen = () => {
           console.log("API fetch failed, falling back to AsyncStorage", error);
         }
       }
-      
+
       // Fallback to AsyncStorage
       const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
       if (savedFavorites) {
@@ -152,7 +157,7 @@ const ProfileScreen = () => {
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.heading}>Profile</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => console.log("Settings")}
           >
@@ -163,8 +168,8 @@ const ProfileScreen = () => {
         <View style={styles.profileSection}>
           <Image
             style={styles.profileImage}
-            source={require('@/assets/profile_picture.png')}
-            defaultSource={require('@/assets/profile_picture.png')}
+            source={require("@/assets/profile_picture.png")}
+            defaultSource={require("@/assets/profile_picture.png")}
           />
           <Text style={styles.profileName}>{userProfile.name}</Text>
         </View>
@@ -177,17 +182,21 @@ const ProfileScreen = () => {
             title="My Information"
             onPress={() => router.push("/profile/myinfo")}
           />
-          
+
           {/* Enhanced Favorites MenuItem with count */}
-          <TouchableOpacity 
-            style={styles.menuItem} 
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => router.push("/profile/favorites")}
           >
             <Feather name="heart" size={24} color="#000" />
-            <View style={styles.menuTitleContainer}>
+            <View style={styles.menuItemTextContainer}>
               <Text style={styles.menuItemText}>Favorites</Text>
               {loadingFavorites ? (
-                <ActivityIndicator size="small" color="#cfae70" style={styles.favoriteIndicator} />
+                <ActivityIndicator
+                  size="small"
+                  color="#cfae70"
+                  style={styles.favoriteIndicator}
+                />
               ) : favoriteCount > 0 ? (
                 <View style={styles.favoriteCountBadge}>
                   <Text style={styles.favoriteCountText}>{favoriteCount}</Text>
@@ -196,7 +205,7 @@ const ProfileScreen = () => {
             </View>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
-          
+
           <MenuItem
             icon="mail"
             title={userProfile.email}
@@ -207,22 +216,30 @@ const ProfileScreen = () => {
         {/* Account Settings Section */}
         <Text style={styles.sectionHeading}>Account Settings</Text>
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/address")}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/profile/address")}
+          >
             <Feather name="map-pin" size={24} color="#000" />
             <View style={styles.addressContainer}>
               <Text style={styles.menuItemText}>Address</Text>
               {defaultAddress ? (
                 <View style={styles.currentAddress}>
                   <Text style={styles.currentAddressText} numberOfLines={1}>
-                    {defaultAddress.length > 30 ? defaultAddress.substring(0, 30) + "..." : defaultAddress}
+                    {defaultAddress.length > 30
+                      ? defaultAddress.substring(0, 30) + "..."
+                      : defaultAddress}
                   </Text>
                 </View>
               ) : null}
             </View>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/payment")}>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/profile/payment")}
+          >
             <Feather name="credit-card" size={24} color="#000" />
             <View style={styles.paymentMethodContainer}>
               <Text style={styles.menuItemText}>Payment Methods</Text>
@@ -251,11 +268,7 @@ const ProfileScreen = () => {
             title="Support"
             onPress={() => router.replace("https://dormdash.github.io/support")}
           />
-          <MenuItem
-            icon="log-out"
-            title="Sign Out"
-            onPress={handleSignOut}
-          />
+          <MenuItem icon="log-out" title="Sign Out" onPress={handleSignOut} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -282,9 +295,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 10,
   },
@@ -296,7 +309,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   profileSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
     marginBottom: 30,
   },
@@ -304,7 +317,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#cfae70',
+    backgroundColor: "#cfae70",
   },
   profileName: {
     fontSize: 24,
@@ -331,6 +344,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
+  menuItemTextContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
   menuItemText: {
     flex: 1,
     marginLeft: 16,
@@ -338,21 +356,21 @@ const styles = StyleSheet.create({
   },
   menuTitleContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginLeft: 16,
   },
   favoriteCountBadge: {
-    backgroundColor: '#cfae70',
-    borderRadius: 10,
+    backgroundColor: "#cfae70",
+    borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginLeft: 8,
   },
   favoriteCountText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   favoriteIndicator: {
     marginLeft: 8,
@@ -361,19 +379,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentPayment: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
   },
   currentPaymentText: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginLeft: 16,
   },
   paymentIcon: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#cfae70',
+    fontWeight: "bold",
+    color: "#cfae70",
   },
   addressContainer: {
     flex: 1,
@@ -383,9 +401,9 @@ const styles = StyleSheet.create({
   },
   currentAddressText: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginLeft: 16,
-  }
+  },
 });
 
 export default ProfileScreen;

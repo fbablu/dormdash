@@ -1,8 +1,8 @@
 // app/context/PaymentContext.tsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const PAYMENT_STORAGE_KEY = 'dormdash_payment_method';
+const PAYMENT_STORAGE_KEY = "dormdash_payment_method";
 
 type PaymentContextType = {
   paymentMethod: string;
@@ -11,7 +11,7 @@ type PaymentContextType = {
 };
 
 const defaultContext: PaymentContextType = {
-  paymentMethod: 'Commodore Cash',
+  paymentMethod: "Commodore Cash",
   setPaymentMethod: () => {},
   refreshPaymentMethod: async () => {},
 };
@@ -20,8 +20,10 @@ const PaymentContext = createContext<PaymentContextType>(defaultContext);
 
 export const usePayment = () => useContext(PaymentContext);
 
-export const PaymentProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [paymentMethod, setPaymentMethod] = useState('Commodore Cash');
+export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [paymentMethod, setPaymentMethod] = useState("Commodore Cash");
 
   const refreshPaymentMethod = async () => {
     try {
@@ -30,7 +32,7 @@ export const PaymentProvider: React.FC<{children: React.ReactNode}> = ({ childre
         setPaymentMethod(savedPayment);
       }
     } catch (error) {
-      console.error('Error loading payment method:', error);
+      console.error("Error loading payment method:", error);
     }
   };
 
@@ -39,11 +41,13 @@ export const PaymentProvider: React.FC<{children: React.ReactNode}> = ({ childre
   }, []);
 
   return (
-    <PaymentContext.Provider value={{ 
-      paymentMethod, 
-      setPaymentMethod,
-      refreshPaymentMethod 
-    }}>
+    <PaymentContext.Provider
+      value={{
+        paymentMethod,
+        setPaymentMethod,
+        refreshPaymentMethod,
+      }}
+    >
       {children}
     </PaymentContext.Provider>
   );
