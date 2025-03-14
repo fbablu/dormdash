@@ -19,6 +19,7 @@ import { Feather } from "@expo/vector-icons";
 import restaurants from "@/data/ton_restaurants.json";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { API_BASE_URL } from "@/lib/api/config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 
@@ -42,6 +43,19 @@ interface CategoryIconProps {
   iconName: keyof typeof Feather.glyphMap;
   onPress: () => void;
 }
+
+const FAVORITES_STORAGE_KEY = 'dormdash_favorites';
+
+// Add this interface near the top with your other interfaces
+interface FavoriteRestaurant {
+  name: string;
+  rating: string;
+  reviewCount: string;
+  deliveryTime: string;
+  deliveryFee: string;
+  imageUrl: string;
+}
+
 
 // LocationHeader Component
 const LocationHeader = ({
@@ -90,9 +104,11 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({
   </TouchableOpacity>
 );
 
+
 // RestaurantCard Component
 const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  
 
   useEffect(() => {
     checkIfFavorite();
@@ -100,39 +116,40 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const checkIfFavorite = async () => {
     try {
+      // Try API first
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) return;
 
-      console.log("Checking favorites for:", currentUser.user.id);
-      console.log(
-        "Request URL:",
-        `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
-      );
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
-        {
-          headers: {
-            Authorization: `Bearer ${currentUser.idToken}`,
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
+          {
+            headers: {
+              Authorization: `Bearer ${currentUser.idToken}`,
+            },
           },
-        },
-      );
-
-      console.log("Response status:", response.status);
-      const responseText = await response.text();
-      console.log("Response body:", responseText);
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP error! status: ${response.status} body: ${responseText}`,
         );
-      }
 
-      const favorites = JSON.parse(responseText);
-      setIsFavorite(favorites.includes(restaurant.name));
+        if (response.ok) {
+          const favorites = await response.json();
+          setIsFavorite(favorites.includes(restaurant.name));
+          return;
+        }
+        
+        throw new Error("API request failed");
+      } catch (apiError) {
+        console.log("API call failed for favorites check, using AsyncStorage fallback");
+        
+        // Fallback to AsyncStorage
+        const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (savedFavoritesJson) {
+          const savedFavorites = JSON.parse(savedFavoritesJson);
+          const isFav = savedFavorites.some((fav: FavoriteRestaurant) => fav.name === restaurant.name);
+          setIsFavorite(isFav);
+        }
+      }
     } catch (error) {
       console.error("Error checking favorite status:", error);
-      console.error("Full error object:", JSON.stringify(error, null, 2));
     }
   };
 
@@ -144,21 +161,69 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/users/favorites`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentUser.idToken}`,
-        },
-        body: JSON.stringify({
-          userId: currentUser.user.id,
-          restaurantName: restaurant.name,
-          action: isFavorite ? "remove" : "add",
-        }),
-      });
+      // Try API first
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentUser.idToken}`,
+          },
+          body: JSON.stringify({
+            userId: currentUser.user.id,
+            restaurantName: restaurant.name,
+            action: isFavorite ? "remove" : "add",
+          }),
+        });
 
-      if (!response.ok) throw new Error("Failed to update favorite");
-      setIsFavorite(!isFavorite);
+        if (response.ok) {
+          setIsFavorite(!isFavorite);
+          return;
+        }
+        
+        throw new Error("API request failed");
+      } catch (apiError) {
+        console.log("API call failed for toggle favorite, using AsyncStorage fallback");
+        
+        // Fallback to AsyncStorage
+        let savedFavorites = [];
+        try {
+          const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+          if (savedFavoritesJson) {
+            savedFavorites = JSON.parse(savedFavoritesJson);
+          }
+        } catch (storageError) {
+          console.error("Error reading favorites from storage:", storageError);
+          savedFavorites = [];
+        }
+        
+        if (isFavorite) {
+          // Remove from favorites
+          savedFavorites = savedFavorites.filter((item: FavoriteRestaurant) => item.name !== restaurant.name);
+        } else {
+          // Add to favorites with additional info
+          const newFavorite = {
+            name: restaurant.name,
+            rating: "4.5", // Default rating
+            reviewCount: "100+", // Default
+            deliveryTime: "15 min", // Default
+            deliveryFee: "$3", // Default
+            imageUrl: FOOD_IMAGE_URL // Use the same food image URL
+          };
+          
+          // Check if it already exists
+          const existingIndex = savedFavorites.findIndex((item: FavoriteRestaurant) => item.name === restaurant.name);
+          if (existingIndex === -1) {
+            savedFavorites.push(newFavorite);
+          }
+        }
+        
+        // Save updated favorites
+        await AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(savedFavorites));
+        
+        // Update state
+        setIsFavorite(!isFavorite);
+      }
     } catch (error) {
       console.error("Error toggling favorite:", error);
       Alert.alert("Error", "Failed to update favorites");
@@ -170,7 +235,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       <Image
         source={{ uri: FOOD_IMAGE_URL }}
         style={styles.restaurantImage}
-        // Improve image loading performance
         resizeMode="cover"
         defaultSource={require("../../assets/icons/splash-icon-light.png")}
       />
@@ -179,7 +243,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
           <TouchableOpacity onPress={toggleFavorite}>
             <Feather
-              name={isFavorite ? "heart" : "heart"}
+              name="heart"
               size={20}
               color={isFavorite ? "#ff0000" : "#ddd"}
             />

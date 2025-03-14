@@ -11,7 +11,7 @@ export default function ProfileLayout() {
         name="index"
         options={{
           title: "Profile",
-          headerShown: false
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -29,14 +29,27 @@ export default function ProfileLayout() {
           presentation: "modal",
         }}
       />
+      <Stack.Screen
+        name="address"
+        options={{
+          title: "Addresses",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="notifications"
+        options={{
+          title: "Notifications",
+          headerShown: false,
+        }}
+      />
 
       <Stack.Screen
-      name="address"
-      options={{
-        title: "Addresses",
-        headerShown: false,
-        // presentation:
-      }}
+        name="myinfo"
+        options={{
+          title: "My Information",
+          headerShown: false,
+        }}
       />
     </Stack>
   );

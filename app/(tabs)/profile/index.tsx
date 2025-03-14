@@ -2,22 +2,26 @@
 // Contributors: @Fardeen Bablu, @Yuening Li
 // Time spent: 2 hours
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   Image,
-  ScrollView
+  ScrollView,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/app/services/api";
 import { usePayment } from "@/app/context/PaymentContext";
+
+const FAVORITES_STORAGE_KEY = 'dormdash_favorites';
 
 const ProfileScreen = () => {
   const { paymentMethod, refreshPaymentMethod } = usePayment();
@@ -28,13 +32,26 @@ const ProfileScreen = () => {
     defaultAddress: ""
   });
   const [defaultAddress, setDefaultAddress] = useState<string>("");
+  const [favoriteCount, setFavoriteCount] = useState<number>(0);
+  const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
   
   useEffect(() => {
     fetchUserProfile();
     fetchDefaultAddress();
+    fetchFavoriteCount();
+    
     // Refresh payment method when component mounts
     refreshPaymentMethod();
   }, []);
+  
+  // Use useFocusEffect to refresh favorites count when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchFavoriteCount();
+      // Return a cleanup function if needed
+      return () => {};
+    }, [])
+  );
 
   const fetchUserProfile = async () => {
     try {
@@ -74,6 +91,48 @@ const ProfileScreen = () => {
       }
     } catch (error) {
       console.error("Error fetching address:", error);
+    }
+  };
+  
+  const fetchFavoriteCount = async () => {
+    setLoadingFavorites(true);
+    try {
+      // Try to get user ID first
+      const userId = await AsyncStorage.getItem("userId");
+      
+      // Try API first
+      if (userId) {
+        try {
+          const response = await fetch(`http://localhost:3000/api/users/${userId}/favorites`, {
+            headers: {
+              'Authorization': `Bearer ${await AsyncStorage.getItem("userToken")}`
+            }
+          });
+          
+          if (response.ok) {
+            const favorites = await response.json();
+            setFavoriteCount(favorites.length);
+            setLoadingFavorites(false);
+            return;
+          }
+        } catch (error) {
+          console.log("API fetch failed, falling back to AsyncStorage", error);
+        }
+      }
+      
+      // Fallback to AsyncStorage
+      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (savedFavorites) {
+        const favorites = JSON.parse(savedFavorites);
+        setFavoriteCount(favorites.length);
+      } else {
+        setFavoriteCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching favorite count:", error);
+      setFavoriteCount(0);
+    } finally {
+      setLoadingFavorites(false);
     }
   };
 
@@ -116,14 +175,28 @@ const ProfileScreen = () => {
           <MenuItem
             icon="user"
             title="My Information"
-            // onPress={() => router.push("/profile/myinfo")}
-            onPress={() => console.log("My Info")}
+            onPress={() => router.push("/profile/myinfo")}
           />
-          <MenuItem
-            icon="heart"
-            title="Favorites"
+          
+          {/* Enhanced Favorites MenuItem with count */}
+          <TouchableOpacity 
+            style={styles.menuItem} 
             onPress={() => router.push("/profile/favorites")}
-          />
+          >
+            <Feather name="heart" size={24} color="#000" />
+            <View style={styles.menuTitleContainer}>
+              <Text style={styles.menuItemText}>Favorites</Text>
+              {loadingFavorites ? (
+                <ActivityIndicator size="small" color="#cfae70" style={styles.favoriteIndicator} />
+              ) : favoriteCount > 0 ? (
+                <View style={styles.favoriteCountBadge}>
+                  <Text style={styles.favoriteCountText}>{favoriteCount}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
+          
           <MenuItem
             icon="mail"
             title={userProfile.email}
@@ -262,6 +335,27 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
     fontSize: 16,
+  },
+  menuTitleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 16,
+  },
+  favoriteCountBadge: {
+    backgroundColor: '#cfae70',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  favoriteCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  favoriteIndicator: {
+    marginLeft: 8,
   },
   paymentMethodContainer: {
     flex: 1,
