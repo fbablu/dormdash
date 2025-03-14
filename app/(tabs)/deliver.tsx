@@ -16,6 +16,7 @@ import {
   Animated,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import api from "../services/api";
 const { getDeliveryRequests, acceptDeliveryRequest, updateOrderStatus } = api;
@@ -221,7 +222,7 @@ export default function Deliver() {
     </View>
   );
 
-  const DeliveryHeader = ({
+  const DeliveryToggle = ({
     isOnline,
     onToggle,
   }: {
@@ -242,62 +243,68 @@ export default function Deliver() {
     }, [isOnline]);
 
     return (
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          onPress={onToggle}
-          activeOpacity={0.8}
-          style={styles.switchContainer}
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.8}
+        style={styles.switchContainer}
+      >
+        <Animated.View
+          style={[
+            styles.switchTrack,
+            {
+              backgroundColor: isOnline ? "#4CAF50" : "#ddd",
+            },
+          ]}
         >
           <Animated.View
             style={[
-              styles.switchTrack,
+              styles.switchKnob,
               {
-                backgroundColor: isOnline ? "#4CAF50" : "#ddd",
+                transform: [
+                  {
+                    translateX: switchAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 40],
+                    }),
+                  },
+                ],
               },
             ]}
           >
-            <Animated.View
-              style={[
-                styles.switchKnob,
-                {
-                  transform: [
-                    {
-                      translateX: switchAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 40],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <Feather
-                name={isOnline ? "truck" : "moon"}
-                size={24}
-                color={isOnline ? "#4CAF50" : "#666"}
-              />
-            </Animated.View>
+            <Feather
+              name={isOnline ? "truck" : "moon"}
+              size={24}
+              color={isOnline ? "#4CAF50" : "#666"}
+            />
           </Animated.View>
-        </TouchableOpacity>
-        <Text style={styles.switchText}>
-          {isOnline ? "Ready to Deliver!" : "Offline"}
-        </Text>
-      </View>
+        </Animated.View>
+      </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <DeliveryHeader
-        isOnline={isOnline}
-        onToggle={() => {
-          if (isOnline) {
-            toggleOffline();
-          } else {
-            toggleOnline();
-          }
-        }}
-      />
+    <SafeAreaView style={styles.container}>
+      {/* Page header */}
+      <View style={styles.header}>
+        <Text style={styles.heading}>Deliver</Text>
+      </View>
+
+      {/* Status indicator and toggle */}
+      <View style={styles.statusContainer}>
+        <DeliveryToggle
+          isOnline={isOnline}
+          onToggle={() => {
+            if (isOnline) {
+              toggleOffline();
+            } else {
+              toggleOnline();
+            }
+          }}
+        />
+        <Text style={styles.switchText}>
+          {isOnline ? "Ready to Deliver!" : "Offline"}
+        </Text>
+      </View>
 
       {/* Status indicator */}
       <View style={styles.statusIndicator}>
@@ -403,23 +410,33 @@ export default function Deliver() {
           source={require("../../assets/deliver-page/VisibilityConfig.png")}
         />
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
     backgroundColor: "#fff",
   },
-  headerContainer: {
-    height: 120,
-    backgroundColor: "#fff",
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    marginBottom: 10,
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  statusContainer: {
+    alignItems: "center",
+    marginVertical: 5,
+  },
+  switchContainer: {
+    padding: 8,
   },
   switchTrack: {
     width: 80,
@@ -452,6 +469,7 @@ const styles = StyleSheet.create({
   statusIndicator: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginVertical: 10,
   },
   statusText: {
@@ -642,9 +660,5 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 20,
     fontWeight: "bold",
-  },
-  switchContainer: {
-    padding: 10,
-    borderRadius: 25,
   },
 });

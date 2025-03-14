@@ -230,6 +230,11 @@ export default function Page() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Page Header */}
+      <View style={styles.header}>
+        <Text style={styles.heading}>Home</Text>
+      </View>
+      
       <ScrollView>
         <LocationHeader
           searchQuery={searchQuery}
@@ -290,6 +295,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    marginBottom: 5,
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
   locationHeaderContainer: {
     padding: 16,

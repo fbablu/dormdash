@@ -52,7 +52,7 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Orders</Text>
+        <Text style={styles.heading}>My Orders</Text>
       </View>
 
       {orders.length > 0 ? (
@@ -131,13 +131,19 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
-    padding: 16,
-    paddingTop: 50,
-    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 10,
   },
-  headerTitle: { fontSize: 22, fontWeight: "bold", color: "#000" },
-  ordersList: { padding: 16 },
+  heading: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  ordersList: { 
+    padding: 16 
+  },
   orderItem: {
     padding: 16,
     borderBottomWidth: 1,

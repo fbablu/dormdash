@@ -1,8 +1,8 @@
 // app/(tabs)/profile/index.tsx
-// Contributors: @Fardeen Bablu, @Yuening Li, @Lily Li
+// Contributors: @Fardeen Bablu, @Yuening Li
 // Time spent: 2 hours
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -12,22 +12,28 @@ import {
   ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/app/services/api";
+import { usePayment } from "@/app/context/PaymentContext";
 
 const ProfileScreen = () => {
-  const [userProfile, setUserProfile] = React.useState({
+  const { paymentMethod, refreshPaymentMethod } = usePayment();
+  const [userProfile, setUserProfile] = useState({
     name: "Lily Li",
     email: "dormdash@gmail.com",
     phoneNumber: "",
     defaultAddress: ""
   });
-
-  React.useEffect(() => {
+  const [defaultAddress, setDefaultAddress] = useState<string>("");
+  
+  useEffect(() => {
     fetchUserProfile();
+    fetchDefaultAddress();
+    // Refresh payment method when component mounts
+    refreshPaymentMethod();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -40,13 +46,34 @@ const ProfileScreen = () => {
       
       // Try to get the profile from API
       try {
-        const data = await api.getUserProfile(currentUser.user.id);
-        setUserProfile(data);
+        // Comment out the API call temporarily to avoid the network error
+        // const data = await api.getUserProfile(currentUser.user.id);
+        // setUserProfile(data);
+        
+        // Just use the static data for now
+        setUserProfile({
+          name: currentUser.user.name || "Lily Li",
+          email: currentUser.user.email || "dormdash@gmail.com",
+          phoneNumber: "",
+          defaultAddress: ""
+        });
       } catch (error) {
         console.error("Error fetching user profile:", error);
       }
     } catch (error) {
       console.error("Google sign-in check error:", error);
+    }
+  };
+
+  const fetchDefaultAddress = async () => {
+    try {
+      // Try to get the current address
+      const currentAddress = await AsyncStorage.getItem('dormdash_current_address');
+      if (currentAddress) {
+        setDefaultAddress(currentAddress);
+      }
+    } catch (error) {
+      console.error("Error fetching address:", error);
     }
   };
 
@@ -65,7 +92,7 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
-          <Text style={styles.heading}>My Account</Text>
+          <Text style={styles.heading}>Profile</Text>
           <TouchableOpacity 
             style={styles.settingsButton}
             onPress={() => console.log("Settings")}
@@ -84,12 +111,13 @@ const ProfileScreen = () => {
         </View>
 
         {/* My Information Section */}
-        <Text style={styles.sectionHeading}>Profile</Text>
+        <Text style={styles.sectionHeading}>My Account</Text>
         <View style={styles.section}>
           <MenuItem
             icon="user"
             title="My Information"
-            onPress={() => console.log("My Information")}
+            // onPress={() => router.push("/profile/myinfo")}
+            onPress={() => console.log("My Info")}
           />
           <MenuItem
             icon="heart"
@@ -106,19 +134,44 @@ const ProfileScreen = () => {
         {/* Account Settings Section */}
         <Text style={styles.sectionHeading}>Account Settings</Text>
         <View style={styles.section}>
-          <MenuItem
-            icon="map-pin"
-            title="Address"
-            onPress={() => console.log("Address")}
-          />
-          <MenuItem
-            icon="credit-card"
-            title="Payment Methods"
-            onPress={() => console.log("Payment")}
-          />
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/address")}>
+            <Feather name="map-pin" size={24} color="#000" />
+            <View style={styles.addressContainer}>
+              <Text style={styles.menuItemText}>Address</Text>
+              {defaultAddress ? (
+                <View style={styles.currentAddress}>
+                  <Text style={styles.currentAddressText} numberOfLines={1}>
+                    {defaultAddress.length > 30 ? defaultAddress.substring(0, 30) + "..." : defaultAddress}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/payment")}>
+            <Feather name="credit-card" size={24} color="#000" />
+            <View style={styles.paymentMethodContainer}>
+              <Text style={styles.menuItemText}>Payment Methods</Text>
+              <View style={styles.currentPayment}>
+                <Text style={styles.currentPaymentText}>Current: </Text>
+                {paymentMethod === "Commodore Cash" && (
+                  <Text style={styles.paymentIcon}>CC</Text>
+                )}
+                {paymentMethod === "PayPal" && (
+                  <FontAwesome5 name="paypal" size={16} color="#0070BA" />
+                )}
+                {paymentMethod === "Stripe" && (
+                  <FontAwesome5 name="stripe" size={16} color="#635BFF" />
+                )}
+              </View>
+            </View>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
           <MenuItem
             icon="bell"
             title="Notifications"
+            // onPress={() => router.push("/profile/notifications")}
             onPress={() => console.log("Notifications")}
           />
           <MenuItem
@@ -211,6 +264,35 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     fontSize: 16,
   },
+  paymentMethodContainer: {
+    flex: 1,
+  },
+  currentPayment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  currentPaymentText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 16,
+  },
+  paymentIcon: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#cfae70',
+  },
+  addressContainer: {
+    flex: 1,
+  },
+  currentAddress: {
+    marginTop: 4,
+  },
+  currentAddressText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 16,
+  }
 });
 
 export default ProfileScreen;

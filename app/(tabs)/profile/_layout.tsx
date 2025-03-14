@@ -11,6 +11,7 @@ export default function ProfileLayout() {
         name="index"
         options={{
           title: "Profile",
+          headerShown: false
         }}
       />
       <Stack.Screen
@@ -19,6 +20,23 @@ export default function ProfileLayout() {
           title: "My Favorites",
           presentation: "card",
         }}
+      />
+      <Stack.Screen
+        name="payment"
+        options={{
+          title: "Payment Methods",
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
+
+      <Stack.Screen
+      name="address"
+      options={{
+        title: "Addresses",
+        headerShown: false,
+        // presentation:
+      }}
       />
     </Stack>
   );

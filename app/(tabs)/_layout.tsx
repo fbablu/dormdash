@@ -22,6 +22,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Home",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={24} color={color} />
           ),
@@ -31,6 +32,7 @@ export default function TabsLayout() {
         name="deliver"
         options={{
           title: "Deliver",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Feather name="package" size={24} color={color} />
           ),
@@ -40,6 +42,7 @@ export default function TabsLayout() {
         name="orders"
         options={{
           title: "My Orders",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Feather name="list" size={24} color={color} />
           ),
@@ -49,6 +52,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Feather name="user" size={24} color={color} />
           ),
