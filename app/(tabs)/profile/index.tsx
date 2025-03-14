@@ -1,65 +1,32 @@
 // app/(tabs)/profile/index.tsx
-// Contributors: @Fardeen Bablu, @Yuening Li
-// Time spent: 1 hours
+// Contributors: @Fardeen Bablu, @Yuening Li, @Lily Li
+// Time spent: 2 hours
 
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  ScrollView,
-  Linking,
-  Alert,
+import React from "react";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Image,
+  ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/app/services/api";
 
-interface UserProfile {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  paymentMethods: string[];
-  favorites: string[];
-  defaultAddress: string;
-  notificationsEnabled: boolean;
-}
-
-const MenuItem = ({
-  icon,
-  title,
-  onPress,
-}: {
-  icon: any;
-  title: string;
-  onPress: () => void;
-}) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <Feather name={icon} size={24} color="#000" />
-    <Text style={styles.menuItemText}>{title}</Text>
-    <Feather name="chevron-right" size={24} color="#666" />
-  </TouchableOpacity>
-);
-
-export default function ProfileScreen() {
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: "",
-    email: "",
+const ProfileScreen = () => {
+  const [userProfile, setUserProfile] = React.useState({
+    name: "Lily Li",
+    email: "dormdash@gmail.com",
     phoneNumber: "",
-    paymentMethods: [],
-    favorites: [],
-    defaultAddress: "",
-    notificationsEnabled: true,
+    defaultAddress: ""
   });
 
-  const [showInfoModal, setShowInfoModal] = useState(false);
-
-  useEffect(() => {
+  React.useEffect(() => {
     fetchUserProfile();
   }, []);
 
@@ -67,79 +34,62 @@ export default function ProfileScreen() {
     try {
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) {
-        router.replace("/");
+        // If not logged in, we'll just use the default state
         return;
       }
-      const data = await api.getUserProfile(currentUser.user.id);
-      setUserProfile(data);
+      
+      // Try to get the profile from API
+      try {
+        const data = await api.getUserProfile(currentUser.user.id);
+        setUserProfile(data);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
-      Alert.alert("Error", "Failed to load profile information");
+      console.error("Google sign-in check error:", error);
     }
   };
 
   const handleSignOut = async () => {
     try {
       await GoogleSignin.signOut();
-      router.replace("/");
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userId");
+      router.replace("/onboarding");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  const InfoModal = () => (
-    <Modal visible={showInfoModal} animationType="slide" transparent={true}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>My Information</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            value={userProfile.name}
-            onChangeText={(text) =>
-              setUserProfile((prev) => ({ ...prev, name: text }))
-            }
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Phone Number"
-            value={userProfile.phoneNumber}
-            onChangeText={(text) =>
-              setUserProfile((prev) => ({ ...prev, phoneNumber: text }))
-            }
-          />
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowInfoModal(false)}
-            >
-              <Text>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                // Handle save
-                setShowInfoModal(false);
-              }}
-            >
-              <Text>Save</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <Text style={styles.heading}>My Account</Text>
+        <View style={styles.header}>
+          <Text style={styles.heading}>My Account</Text>
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => console.log("Settings")}
+          >
+            <Feather name="settings" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
 
+        <View style={styles.profileSection}>
+          <Image
+            style={styles.profileImage}
+            source={require('@/assets/icons/splash-icon-light.png')}
+            defaultSource={require('@/assets/icons/splash-icon-light.png')}
+          />
+          <Text style={styles.profileName}>{userProfile.name}</Text>
+        </View>
+
+        {/* My Information Section */}
+        <Text style={styles.sectionHeading}>Profile</Text>
         <View style={styles.section}>
           <MenuItem
             icon="user"
             title="My Information"
-            onPress={() => setShowInfoModal(true)}
+            onPress={() => console.log("My Information")}
           />
           <MenuItem
             icon="heart"
@@ -147,33 +97,100 @@ export default function ProfileScreen() {
             onPress={() => router.push("/profile/favorites")}
           />
           <MenuItem
-            icon="help-circle"
-            title="Support"
-            onPress={() => Linking.openURL("mailto:dormdash@gmail.com")}
+            icon="mail"
+            title={userProfile.email}
+            onPress={() => console.log("Email")}
           />
         </View>
 
-        <Text style={styles.heading}>Account Settings</Text>
-
+        {/* Account Settings Section */}
+        <Text style={styles.sectionHeading}>Account Settings</Text>
         <View style={styles.section}>
-          <MenuItem icon="log-out" title="Sign Out" onPress={handleSignOut} />
+          <MenuItem
+            icon="map-pin"
+            title="Address"
+            onPress={() => console.log("Address")}
+          />
+          <MenuItem
+            icon="credit-card"
+            title="Payment Methods"
+            onPress={() => console.log("Payment")}
+          />
+          <MenuItem
+            icon="bell"
+            title="Notifications"
+            onPress={() => console.log("Notifications")}
+          />
+          <MenuItem
+            icon="help-circle"
+            title="Support"
+            onPress={() => router.replace("https://dormdash.github.io/support")}
+          />
+          <MenuItem
+            icon="log-out"
+            title="Sign Out"
+            onPress={handleSignOut}
+          />
         </View>
       </ScrollView>
-
-      <InfoModal />
     </SafeAreaView>
   );
+};
+
+interface MenuItemProps {
+  icon: keyof typeof Feather.glyphMap;
+  title: string;
+  onPress: () => void;
 }
+
+const MenuItem = ({ icon, title, onPress }: MenuItemProps) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <Feather name={icon} size={24} color="#000" />
+    <Text style={styles.menuItemText}>{title}</Text>
+    <Feather name="chevron-right" size={24} color="#666" />
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
   heading: {
     fontSize: 24,
     fontWeight: "bold",
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#cfae70',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: "500",
+    marginTop: 10,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: "bold",
     padding: 16,
+    paddingBottom: 8,
   },
   section: {
     backgroundColor: "#fff",
@@ -194,41 +211,6 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     fontSize: 16,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 8,
-    width: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  modalButton: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#cfae70",
-  },
-  cancelButton: {
-    backgroundColor: "#ddd",
-  },
 });
+
+export default ProfileScreen;
