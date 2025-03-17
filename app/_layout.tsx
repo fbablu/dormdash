@@ -49,8 +49,8 @@ function RootLayoutNav() {
       <Stack.Screen
         name="restaurant/[id]"
         options={{
-          presentation: "card",
-          animation: "slide_from_right",
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
     </Stack>

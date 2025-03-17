@@ -117,10 +117,6 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.subtitle}>
-              Join DormDash to order and deliver food on campus
-            </Text>
-
             {/* Name Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Full Name</Text>

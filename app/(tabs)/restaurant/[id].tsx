@@ -1,4 +1,4 @@
-// app/(tabs)/restaurant/[id].tsx
+// app/restaurant/[id].tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -16,155 +17,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Color } from "@/GlobalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePayment } from "@/app/context/PaymentContext";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/app/config/firebase";
 
-// Sample menu items based on Taco Mama menu
-const MENU_CATEGORIES = [
-  {
-    id: "burritos",
-    name: "Burritos",
-    items: [
-      {
-        id: "yo-mama",
-        name: "Yo Mama",
-        description:
-          "Ground beef, shredded cheddar, lettuce, tomato, sour cream with side of queso",
-        price: 9.99,
-      },
-      {
-        id: "big-client",
-        name: "The Big Client",
-        description:
-          "Barbacoa (braised beef), refried beans, queso, shredded cheddar, tomatoes, mild salsa ranchera",
-        price: 10.99,
-      },
-      {
-        id: "judge",
-        name: "The Judge",
-        description:
-          "Marinated chicken, black beans, cilantro-lime rice, shredded cheddar, lettuce, mild salsa ranchera, creamy cilantro pesto",
-        price: 10.49,
-      },
-      {
-        id: "q-burrito",
-        name: "Q-Burrito",
-        description:
-          "Roasted pulled barbacoa, ancho chile slaw, pickles, homemade chipotle BBQ sauce",
-        price: 11.99,
-      },
-    ],
-  },
-  {
-    id: "tacos",
-    name: "Tacos",
-    items: [
-      {
-        id: "classico-beef",
-        name: "Classico Beef",
-        description:
-          "Ground beef, shredded cheddar, lettuce, tomato, sour cream",
-        price: 8.99,
-      },
-      {
-        id: "cheezy-beef",
-        name: "Cheezy Beef",
-        description:
-          "Barbacoa (braised beef), tomatoes, onions, cilantro, queso, lettuce, queso fresco, mild salsa ranchera",
-        price: 9.49,
-      },
-      {
-        id: "mayor",
-        name: "The Mayor",
-        description:
-          "Marinated chicken, lettuce, tomatoes, creamy-cilantro pesto, queso fresco",
-        price: 8.99,
-      },
-      {
-        id: "sizzler",
-        name: "The Sizzler",
-        description:
-          "Grilled steak tenderloin, grilled onions, avocado, lettuce, tomatoes, red chile butter sauce, queso fresco",
-        price: 10.99,
-      },
-    ],
-  },
-  {
-    id: "sides",
-    name: "Sides",
-    items: [
-      {
-        id: "street-corn",
-        name: "Street Corn",
-        description: "Grilled corn with chile, lime and queso fresco",
-        price: 4.99,
-      },
-      {
-        id: "ancho-slaw",
-        name: "Ancho Chile Slaw",
-        description: "Fresh cabbage with ancho chile dressing",
-        price: 3.99,
-      },
-      {
-        id: "rice",
-        name: "Cilantro-Lime Rice",
-        description: "Rice with fresh cilantro and lime",
-        price: 3.49,
-      },
-      {
-        id: "mac",
-        name: "Mexican Mac & Cheese",
-        description: "Macaroni with queso and mild spices",
-        price: 4.49,
-      },
-    ],
-  },
-  {
-    id: "drinks",
-    name: "Drinks",
-    items: [
-      {
-        id: "margarita",
-        name: "Mi Casa Margarita",
-        description: "House margarita with fresh lime",
-        price: 7.99,
-      },
-      {
-        id: "beer",
-        name: "Imported Beer",
-        description: "Selection of imported beers",
-        price: 5.99,
-      },
-      {
-        id: "soda",
-        name: "Fountain Drink",
-        description: "Assorted sodas",
-        price: 2.49,
-      },
-      {
-        id: "water",
-        name: "Bottled Water",
-        description: "Purified water",
-        price: 1.99,
-      },
-    ],
-  },
-];
-
-// Mock restaurant data
-const RESTAURANT_DATA = {
-  "taco-mama": {
-    id: "taco-mama",
-    name: "Taco Mama",
-    image:
-      "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-    location: "HILLSBORO VILLAGE",
-    address: "2119 Belcourt Ave. Nashville, TN 37212",
-    cuisines: ["Mexican", "Tacos"],
-    rating: 4.5,
-    reviewCount: "200+",
-    deliveryTime: "15-25 min",
-    deliveryFee: 3.99,
-  },
-};
+const { width } = Dimensions.get("window");
 
 interface CartItem {
   id: string;
@@ -173,18 +29,40 @@ interface CartItem {
   quantity: number;
 }
 
-// Helper function to get restaurant by ID (will be replaced with API call)
-const getRestaurantById = (id: string) => {
-  return RESTAURANT_DATA[id as keyof typeof RESTAURANT_DATA] || null;
-};
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
+
+interface MenuCategory {
+  id: string;
+  name: string;
+  items: MenuItem[];
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+  image: string;
+  location: string;
+  address: string;
+  cuisines: string[];
+  rating: number;
+  reviewCount: string;
+  deliveryTime: string;
+  deliveryFee: number;
+}
 
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
   const { paymentMethod } = usePayment();
-  const [restaurant, setRestaurant] = useState<any>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState("burritos");
+  const [activeCategory, setActiveCategory] = useState("");
 
   // Calculate total price
   const cartTotal = cart.reduce(
@@ -195,24 +73,58 @@ export default function RestaurantMenuScreen() {
   const orderTotal = cartTotal + deliveryFee;
 
   useEffect(() => {
-    // In a real app, this would be an API call
     const fetchRestaurant = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-          const data = getRestaurantById(id as string);
-          if (data) {
-            setRestaurant(data);
-          } else {
-            Alert.alert("Error", "Restaurant not found");
-            router.back();
+        
+        // Firebase query to get restaurant
+        const restaurantRef = doc(db, "restaurants", id as string);
+        const restaurantSnap = await getDoc(restaurantRef);
+        
+        if (restaurantSnap.exists()) {
+          const data = restaurantSnap.data();
+          setRestaurant({
+            id: restaurantSnap.id,
+            name: data.name || '',
+            image: data.image || '',
+            location: data.location || '',
+            address: data.address || '',
+            cuisines: data.cuisines || [],
+            rating: data.rating || 0,
+            reviewCount: data.reviewCount || '',
+            deliveryTime: data.deliveryTime || '',
+            deliveryFee: data.deliveryFee || 0
+          } as Restaurant);
+          
+          // Fetch menu categories
+          const menuRef = collection(db, "restaurants", id as string, "menu");
+          const menuSnap = await getDocs(menuRef);
+          
+          const categories: MenuCategory[] = [];
+          menuSnap.forEach((doc) => {
+            categories.push({
+              id: doc.id,
+              ...doc.data() as Omit<MenuCategory, 'id'>
+            });
+          });
+          
+          // Sort categories
+          const sortedCategories = categories.sort((a, b) => a.name.localeCompare(b.name));
+          setMenuCategories(sortedCategories);
+          
+          // Set initial active category
+          if (sortedCategories.length > 0) {
+            setActiveCategory(sortedCategories[0].id);
           }
-          setLoading(false);
-        }, 500);
+        } else {
+          console.error("Restaurant not found");
+          Alert.alert("Error", "Restaurant not found");
+          router.back();
+        }
       } catch (error) {
         console.error("Error fetching restaurant:", error);
         Alert.alert("Error", "Failed to load restaurant data");
+      } finally {
         setLoading(false);
       }
     };
@@ -234,7 +146,7 @@ export default function RestaurantMenuScreen() {
     loadCart();
   }, [id]);
 
-  const addToCart = (item: any) => {
+  const addToCart = (item: MenuItem) => {
     setCart((currentCart) => {
       const existingItem = currentCart.find(
         (cartItem) => cartItem.id === item.id,
@@ -296,7 +208,7 @@ export default function RestaurantMenuScreen() {
     }
 
     try {
-      // Save order to AsyncStorage (in a real app, this would be an API call)
+      // Save order to AsyncStorage (in a real app, this would be a Firebase call)
       const order = {
         id: `order-${Date.now()}`,
         restaurantId: id,
@@ -387,38 +299,40 @@ export default function RestaurantMenuScreen() {
       </View>
 
       {/* Category Selector */}
-      <ScrollView
-        horizontal
-        style={styles.categorySelector}
-        showsHorizontalScrollIndicator={false}
-      >
-        {MENU_CATEGORIES.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryButton,
-              activeCategory === category.id && styles.activeCategoryButton,
-            ]}
-            onPress={() => setActiveCategory(category.id)}
-          >
-            <Text
+      <View style={styles.categorySelectorContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScrollContent}
+        >
+          {menuCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
               style={[
-                styles.categoryText,
-                activeCategory === category.id && styles.activeCategoryText,
+                styles.categoryButton,
+                activeCategory === category.id && styles.activeCategoryButton,
               ]}
+              onPress={() => setActiveCategory(category.id)}
             >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.categoryText,
+                  activeCategory === category.id && styles.activeCategoryText,
+                ]}
+              >
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Menu Items */}
       <ScrollView style={styles.menuContainer}>
         <Text style={styles.sectionTitle}>
-          {MENU_CATEGORIES.find((c) => c.id === activeCategory)?.name}
+          {menuCategories.find((c) => c.id === activeCategory)?.name || "Menu"}
         </Text>
-        {MENU_CATEGORIES.find((c) => c.id === activeCategory)?.items.map(
+        {menuCategories.find((c) => c.id === activeCategory)?.items.map(
           (item) => (
             <View key={item.id} style={styles.menuItem}>
               <View style={styles.menuItemContent}>
@@ -432,7 +346,7 @@ export default function RestaurantMenuScreen() {
               </View>
               <View style={styles.quantityControls}>
                 {(cart.find((cartItem) => cartItem.id === item.id)?.quantity ??
-                0 > 0) ? (
+                0) > 0 ? (
                   <View style={styles.quantityControlsContainer}>
                     <TouchableOpacity
                       style={styles.quantityButton}
@@ -558,10 +472,13 @@ const styles = StyleSheet.create({
   deliveryTime: {
     color: "#666",
   },
-  categorySelector: {
+  categorySelectorContainer: {
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    padding: 10,
+    paddingVertical: 8,
+  },
+  categoryScrollContent: {
+    paddingHorizontal: 16,
   },
   categoryButton: {
     paddingHorizontal: 16,
@@ -575,6 +492,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontWeight: "500",
+    fontSize: 14,
   },
   activeCategoryText: {
     color: "#fff",
@@ -611,7 +529,7 @@ const styles = StyleSheet.create({
   },
   quantityControls: {
     justifyContent: "center",
-    minWidth: 90,
+    minWidth: 80,
   },
   quantityControlsContainer: {
     flexDirection: "row",

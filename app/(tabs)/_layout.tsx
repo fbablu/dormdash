@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx
 // Contributors: @Fardeen Bablu
 // Time spent: 10 minutes
-
+// app/(tabs)/_layout.tsx
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 

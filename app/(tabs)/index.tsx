@@ -114,7 +114,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const checkIfFavorite = async () => {
     try {
-      // Try API first
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) return;
 
@@ -158,6 +157,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   };
 
   const toggleFavorite = async () => {
+    event?.stopPropagation();
     try {
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) {
@@ -248,9 +248,14 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   return (
     <TouchableOpacity
       style={styles.restaurantCard}
-      // onPress={() => {
-      //   const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      //   router.push(`/restaurant/${id}`);    }}
+      onPress={() => {
+        const safeId = restaurant.name 
+          ? restaurant.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          : '';
+          if (safeId) {
+            router.push(`/restaurant/${safeId}`);
+          }
+      }}
     >
       <Image
         source={{ uri: FOOD_IMAGE_URL }}
@@ -277,7 +282,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     </TouchableOpacity>
   );
 };
-
 // Main Component
 export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
