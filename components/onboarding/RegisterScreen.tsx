@@ -11,57 +11,30 @@ import {
   TouchableOpacity,
   Image,
   Linking,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { CustomSafeAreaView } from "../CustomSafeAreaView";
 import { Feather, AntDesign } from "@expo/vector-icons";
-import { router } from "expo-router";
-
-import {
-  GoogleSignin,
-  statusCodes,
-  isSuccessResponse,
-  isErrorWithCode,
-} from "@react-native-google-signin/google-signin";
-
-// reference: https://react-native-google-signin.github.io/docs/original/
-GoogleSignin.configure({
-  iosClientId:
-    "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
-  // offlineAccess: true,
-});
-
-// code copied from: https://react-native-google-signin.github.io/docs/original
-const handleClick = async () => {
-  try {
-    await GoogleSignin.hasPlayServices();
-    const response = await GoogleSignin.signIn();
-    if (isSuccessResponse(response)) {
-      console.log(response.data);
-      router.replace("/(tabs)");
-    } else {
-      // sign in was cancelled by user
-    }
-  } catch (error) {
-    if (isErrorWithCode(error)) {
-      switch (error.code) {
-        case statusCodes.IN_PROGRESS:
-          // operation (eg. sign in) already in progress
-          break;
-        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-          // Android only, play services not available or outdated
-          break;
-        default:
-        // some other error happened
-      }
-    } else {
-      // an error that's not related to google sign in occurred
-    }
-  }
-};
+import { useAuth } from "@/app/context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
 const RegisterScreen = () => {
+  const { signIn, isLoading } = useAuth();
+  
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn();
+    } catch (error) {
+      Alert.alert(
+        "Sign In Error", 
+        "There was a problem signing in. Please make sure you're using your Vanderbilt email."
+      );
+      console.error("Error signing in:", error);
+    }
+  };
+
   return (
     <CustomSafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -110,18 +83,24 @@ const RegisterScreen = () => {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={handleClick}
-            // onPress={() => router.replace("/(tabs)")} // TODO: add Google Auth
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
           >
-            <AntDesign name="google" size={24} color="black" />
-            <Text style={styles.googleText}>Sign in with Google</Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <>
+                <AntDesign name="google" size={24} color="black" />
+                <Text style={styles.googleText}>Sign in with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.tosButton}
             onPress={() =>
               Linking.openURL(
-                "https://github.com/fbablu/dormdash/blob/main/TERMS_OF_SERVICE.md",
+                "https://github.com/fbablu/dormdash/blob/main/TERMS_OF_SERVICE.md"
               )
             }
           >
@@ -132,6 +111,7 @@ const RegisterScreen = () => {
     </CustomSafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     width: width,
@@ -200,9 +180,11 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     padding: 15,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: "black",
     alignSelf: "center",
+    minWidth: 220,
   },
   googleText: {
     fontSize: 16,

@@ -20,6 +20,7 @@ import restaurants from "@/data/ton_restaurants.json";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { API_BASE_URL } from "@/lib/api/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -245,7 +246,11 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   };
 
   return (
-    <TouchableOpacity style={styles.restaurantCard}>
+    <TouchableOpacity 
+    style={styles.restaurantCard}
+    onPress={() => {
+      const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      router.push(`/restaurant/${id}`);    }}>
       <Image
         source={{ uri: FOOD_IMAGE_URL }}
         style={styles.restaurantImage}
