@@ -57,16 +57,22 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
    ```
 4. XCode Simulator should pop up
 
-### Android Development Setup [WORK IN PROGRESS]
+
+
+### Android Development Setup
 
 1. Download Android Studio from: https://developer.android.com/studio
    - Choose the standard installation option
+
+
 2. Configure environment variables by editing your profile:
    ```bash
    nano ~/.zshrc  # if using zsh
    # or
    nano ~/.bash_profile  # if using bash
    ```
+
+
 3. Add these lines to the end of the file:
    ```bash
    export ANDROID_HOME=$HOME/Library/Android/sdk
@@ -81,5 +87,5 @@ The focus of this project is on direct delivery services, as navigating Vanderbi
    ```bash
    npm i
    npx expo prebuild --clean
-   npx expo run:android
+   npx expo run:android # This will take a while for cold start
    ```
