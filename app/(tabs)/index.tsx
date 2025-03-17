@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  GestureResponderEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { API_BASE_URL } from "@/lib/api/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { useAuth } from "../context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -107,6 +109,7 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({
 // RestaurantCard Component
 const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     checkIfFavorite();
@@ -114,18 +117,17 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const checkIfFavorite = async () => {
     try {
-      // Try API first
-      const currentUser = await GoogleSignin.getCurrentUser();
-      if (!currentUser) return;
+      // Use the user from context instead of GoogleSignin
+      if (!user) return;
 
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/users/${currentUser.user.id}/favorites`,
+          `${API_BASE_URL}/api/users/${user.id}/favorites`,
           {
             headers: {
-              Authorization: `Bearer ${currentUser.idToken}`,
+              Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
             },
-          },
+          }
         );
 
         if (response.ok) {
@@ -137,17 +139,17 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         throw new Error("API request failed");
       } catch (apiError) {
         console.log(
-          "API call failed for favorites check, using AsyncStorage fallback",
+          "API call failed for favorites check, using AsyncStorage fallback"
         );
 
         // Fallback to AsyncStorage
         const savedFavoritesJson = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY,
+          FAVORITES_STORAGE_KEY
         );
         if (savedFavoritesJson) {
           const savedFavorites = JSON.parse(savedFavoritesJson);
           const isFav = savedFavorites.some(
-            (fav: FavoriteRestaurant) => fav.name === restaurant.name,
+            (fav: FavoriteRestaurant) => fav.name === restaurant.name
           );
           setIsFavorite(isFav);
         }
@@ -157,10 +159,13 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     }
   };
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = async (event: GestureResponderEvent) => {
+    // Stop event propagation to prevent navigation when tapping heart icon
+    event.stopPropagation();
+    
     try {
-      const currentUser = await GoogleSignin.getCurrentUser();
-      if (!currentUser) {
+      // Use the user from context instead of GoogleSignin
+      if (!user) {
         Alert.alert("Error", "Please sign in to save favorites");
         return;
       }
@@ -171,10 +176,10 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${currentUser.idToken}`,
+            Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
           },
           body: JSON.stringify({
-            userId: currentUser.user.id,
+            userId: user.id,
             restaurantName: restaurant.name,
             action: isFavorite ? "remove" : "add",
           }),
@@ -188,14 +193,14 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         throw new Error("API request failed");
       } catch (apiError) {
         console.log(
-          "API call failed for toggle favorite, using AsyncStorage fallback",
+          "API call failed for toggle favorite, using AsyncStorage fallback"
         );
 
         // Fallback to AsyncStorage
         let savedFavorites = [];
         try {
           const savedFavoritesJson = await AsyncStorage.getItem(
-            FAVORITES_STORAGE_KEY,
+            FAVORITES_STORAGE_KEY
           );
           if (savedFavoritesJson) {
             savedFavorites = JSON.parse(savedFavoritesJson);
@@ -208,7 +213,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         if (isFavorite) {
           // Remove from favorites
           savedFavorites = savedFavorites.filter(
-            (item: FavoriteRestaurant) => item.name !== restaurant.name,
+            (item: FavoriteRestaurant) => item.name !== restaurant.name
           );
         } else {
           // Add to favorites with additional info
@@ -223,7 +228,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
           // Check if it already exists
           const existingIndex = savedFavorites.findIndex(
-            (item: FavoriteRestaurant) => item.name === restaurant.name,
+            (item: FavoriteRestaurant) => item.name === restaurant.name
           );
           if (existingIndex === -1) {
             savedFavorites.push(newFavorite);
@@ -233,7 +238,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         // Save updated favorites
         await AsyncStorage.setItem(
           FAVORITES_STORAGE_KEY,
-          JSON.stringify(savedFavorites),
+          JSON.stringify(savedFavorites)
         );
 
         // Update state
@@ -244,7 +249,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       Alert.alert("Error", "Failed to update favorites");
     }
   };
-
 
   return (
     <TouchableOpacity
@@ -265,7 +269,10 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       <View style={styles.restaurantInfo}>
         <View style={styles.restaurantHeader}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <TouchableOpacity onPress={toggleFavorite}>
+          <TouchableOpacity 
+            onPress={toggleFavorite}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Feather
               name="heart"
               size={20}
@@ -273,11 +280,14 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
             />
           </TouchableOpacity>
         </View>
-        </View>
+        <Text style={styles.restaurantDetails}>
+          {restaurant.location} • {restaurant.cuisine.join(", ")}
+        </Text>
+        <Text style={styles.deliveryFee}>Accepts Commodore Cash</Text>
+      </View>
     </TouchableOpacity>
   );
-}; 
-
+};
 
 
 // Main Component
