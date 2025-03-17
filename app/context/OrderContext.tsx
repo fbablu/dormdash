@@ -222,3 +222,6 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </OrderContext.Provider>
   );
 };
+
+// Export the provider as default
+export default OrderProvider;

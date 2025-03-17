@@ -1,15 +1,11 @@
 // app/_layout.tsx
-// Contributors: @Fardeen Bablu
-// Time spent: 10 minutes
-
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { PaymentProvider } from "./context/PaymentContext";
-import { AuthProvider } from "./context/AuthContext";
-import { OrderProvider } from "./context/OrderContext";
-import { useAuth } from "./context/AuthContext";
+import PaymentProvider from "./context/PaymentContext";
+import AuthProvider, { useAuth } from "./context/AuthContext";
+import OrderProvider from "./context/OrderContext";
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -47,6 +43,8 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="restaurant/[id]" 
         options={{

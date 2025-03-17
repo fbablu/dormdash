@@ -52,3 +52,6 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({
     </PaymentContext.Provider>
   );
 };
+
+// Export the provider as default
+export default PaymentProvider;

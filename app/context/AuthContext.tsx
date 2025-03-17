@@ -1,9 +1,30 @@
 // app/context/AuthContext.tsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import backendApi, { User } from '../services/backendApi';
 import { router } from 'expo-router';
+import { 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { setPersistence, browserLocalPersistence } from 'firebase/auth';
+
+// Define user type
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  isVerified?: boolean;
+  phone?: string;
+  dormLocation?: string;
+  createdAt: string;
+}
 
 interface AuthState {
   isLoading: boolean;
@@ -12,8 +33,10 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  signIn: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   verifyDorm: (dormCode: string) => Promise<boolean>;
@@ -24,7 +47,9 @@ const defaultAuthContext: AuthContextType = {
   isSignedIn: false,
   user: null,
   signIn: async () => {},
+  signUp: async () => {},
   signOut: async () => {},
+  resetPassword: async () => {},
   refreshUser: async () => {},
   updateUser: async () => {},
   verifyDorm: async () => false
@@ -41,95 +66,187 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: null
   });
 
+  // Enable persistence
   useEffect(() => {
-    // Configure Google Sign In
-    GoogleSignin.configure({
-      iosClientId: '895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com',
-      // webClientId: 'YOUR_WEB_CLIENT_ID', // Add this if you want to use web auth
-      offlineAccess: true
-    });
-
-    // Check if user is already signed in
-    const bootstrapAsync = async () => {
+    const setupPersistence = async () => {
       try {
-        const isAuthenticated = await backendApi.auth.checkAuth();
-        
-        if (isAuthenticated) {
-          const user = await backendApi.auth.getCurrentUser();
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (error) {
+        console.error("Error setting persistence:", error);
+      }
+    };
+    
+    setupPersistence();
+  }, []);
+
+  useEffect(() => {
+    // Check if we have a stored user first
+    const checkStoredAuth = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user_data');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setState({
+            isLoading: false,
+            isSignedIn: true,
+            user: parsedUser
+          });
+        }
+      } catch (error) {
+        console.error("Error checking stored auth:", error);
+      }
+    };
+    
+    checkStoredAuth();
+    
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const user = await getOrCreateUserProfile(firebaseUser);
+          
+          // Store user data for offline access
+          await AsyncStorage.setItem('user_data', JSON.stringify(user));
+          
           setState({
             isLoading: false,
             isSignedIn: true,
             user
           });
-        } else {
+        } catch (error) {
+          console.error("Error processing authenticated user:", error);
           setState({
             isLoading: false,
             isSignedIn: false,
             user: null
           });
         }
-      } catch (error) {
-        console.error('Error checking authentication state:', error);
+      } else {
+        // No user signed in via Firebase, clear any stored data
+        try {
+          await AsyncStorage.removeItem('user_data');
+        } catch (error) {
+          console.error("Error removing stored user:", error);
+        }
+        
         setState({
           isLoading: false,
           isSignedIn: false,
           user: null
         });
       }
-    };
+    });
 
-    bootstrapAsync();
+    return () => unsubscribe();
   }, []);
 
-  const signIn = async () => {
+  // Get or create user profile in Firestore
+  const getOrCreateUserProfile = async (firebaseUser: any): Promise<User> => {
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        // Return existing user data
+        return userSnap.data() as User;
+      } else {
+        // Create new user
+        const newUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'Vanderbilt Student',
+          email: firebaseUser.email || '',
+          image: firebaseUser.photoURL || '',
+          isVerified: false,
+          createdAt: new Date().toISOString()
+        };
+
+        // Save to Firestore
+        await setDoc(userRef, newUser);
+        return newUser;
+      }
+    } catch (error) {
+      console.error("Error in getOrCreateUserProfile:", error);
+      
+      // Fallback with minimal data if we can't reach Firestore
+      return {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Vanderbilt Student',
+        email: firebaseUser.email || '',
+        image: firebaseUser.photoURL || '',
+        isVerified: false,
+        createdAt: new Date().toISOString()
+      };
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-      
-      // Handle Google Sign In
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      
-      // Get idToken separately
-      const tokens = await GoogleSignin.getTokens();
-      if (!tokens.idToken) {
-        throw new Error('No ID token present');
-      }
-      
-      // Verify if email is a Vanderbilt email
-      const currentUser = await GoogleSignin.getCurrentUser();
-      const email = currentUser?.user?.email;
-      if (!email || !email.endsWith('@vanderbilt.edu')) {
-        throw new Error('Please use your Vanderbilt email address');
-      }
-      
-      // Authenticate with our backend
-      const authResponse = await backendApi.auth.loginWithGoogle(tokens.idToken);
-      
-      // Update auth state
-      setState({
-        isLoading: false,
-        isSignedIn: true,
-        user: authResponse.data.user
-      });
-      
-      // Navigate to main app
-      router.replace('/(tabs)');
-      
-    } catch (error) {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Auth state listener will update the state
+    } catch (error: any) {
       console.error('Sign in error:', error);
       setState(prev => ({ ...prev, isLoading: false }));
       
-      // Show an alert or handle error appropriately
-      if ((error as Error).message.includes('Vanderbilt email')) {
-        // Handle non-Vanderbilt email error
+      // Provide more helpful error messages
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        throw new Error('Invalid email or password');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed login attempts. Please try again later');
+      } else {
+        throw new Error(error.message || 'Failed to sign in');
       }
     }
   };
 
-  const signOut = async () => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-      await backendApi.auth.logout();
+      
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update user profile with name
+      await updateProfile(userCredential.user, { displayName: name });
+      
+      // Create user document in Firestore - auth state listener will handle this
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+      
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('Email already in use');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email format');
+      } else {
+        throw new Error(error.message || 'Failed to create account');
+      }
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email');
+      } else {
+        throw new Error(error.message || 'Failed to send password reset email');
+      }
+    }
+  };
+
+  const signOutHandler = async () => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      await firebaseSignOut(auth);
+      
+      // Clear local storage
+      await AsyncStorage.removeItem('user_data');
       
       setState({
         isLoading: false,
@@ -142,15 +259,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Sign out error:', error);
       setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
     }
   };
   
   const refreshUser = async () => {
     try {
-      if (!state.isSignedIn) return;
+      if (!auth.currentUser || !state.user) return;
       
-      const { data: user } = await backendApi.user.getProfile();
-      setState(prev => ({ ...prev, user }));
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as User;
+        // Update AsyncStorage
+        await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+        setState(prev => ({ ...prev, user: userData }));
+      }
     } catch (error) {
       console.error('Error refreshing user:', error);
     }
@@ -158,10 +283,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const updateUser = async (userData: Partial<User>) => {
     try {
-      if (!state.isSignedIn || !state.user) return;
+      if (!auth.currentUser || !state.user) throw new Error('User not authenticated');
       
-      const { data: updatedUser } = await backendApi.user.updateProfile(userData);
-      setState(prev => ({ ...prev, user: updatedUser }));
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      await setDoc(userRef, userData, { merge: true });
+      
+      // Update display name if provided
+      if (userData.name && auth.currentUser) {
+        await updateProfile(auth.currentUser, {
+          displayName: userData.name
+        });
+      }
+      
+      // Refresh user data
+      await refreshUser();
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
@@ -170,13 +305,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const verifyDorm = async (dormCode: string): Promise<boolean> => {
     try {
-      if (!state.isSignedIn || !state.user) return false;
+      // In a real app, you would verify the dorm code against a database
+      // For simplicity, we'll accept any 6-digit code
+      const isValidCode = /^\d{6}$/.test(dormCode);
       
-      const { data } = await backendApi.user.verifyDorm(dormCode);
-      
-      if (data.isVerified) {
-        // Update user with verified status
-        await refreshUser();
+      if (isValidCode && state.user) {
+        await updateUser({ 
+          isVerified: true,
+          dormLocation: 'Verified Dorm'
+        });
         return true;
       }
       
@@ -191,8 +328,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider 
       value={{ 
         ...state, 
-        signIn, 
-        signOut,
+        signIn,
+        signUp,
+        signOut: signOutHandler,
+        resetPassword,
         refreshUser,
         updateUser,
         verifyDorm
@@ -202,3 +341,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+// Export the provider as default for Expo Router
+export default AuthProvider;

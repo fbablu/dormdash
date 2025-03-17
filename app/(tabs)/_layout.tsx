@@ -8,7 +8,7 @@ import { Feather } from "@expo/vector-icons";
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
+    screenOptions={{
         tabBarActiveTintColor: "#000",
         tabBarInactiveTintColor: "#fff",
         tabBarStyle: {

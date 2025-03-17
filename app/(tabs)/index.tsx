@@ -248,9 +248,10 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   return (
     <TouchableOpacity 
     style={styles.restaurantCard}
-    onPress={() => {
-      const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      router.push(`/restaurant/${id}`);    }}>
+    // onPress={() => {
+    //   const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    //   router.push(`/restaurant/${id}`);    }}
+    >
       <Image
         source={{ uri: FOOD_IMAGE_URL }}
         style={styles.restaurantImage}
