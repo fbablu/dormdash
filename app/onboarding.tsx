@@ -2,11 +2,7 @@
 // Contributors: @Fardeen Bablu
 // Time spent: 1 hour
 
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-} from "react-native";
+import { View, StyleSheet, Dimensions } from "react-native";
 import Onboarding from "react-native-onboarding-swiper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WelcomeScreen from "@/components/onboarding/WelcomeScreen";

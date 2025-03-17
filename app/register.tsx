@@ -1,5 +1,5 @@
 // app/register.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,19 +11,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useAuth } from './context/AuthContext';
-import { Color } from '@/GlobalStyles';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useAuth } from "./context/AuthContext";
+import { Color } from "@/GlobalStyles";
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{
@@ -44,34 +44,34 @@ export default function RegisterScreen() {
 
     // Validate name
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
       isValid = false;
     }
 
     // Validate email
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
       isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
       isValid = false;
-    } else if (!email.toLowerCase().endsWith('vanderbilt.edu')) {
-      newErrors.email = 'Please use your Vanderbilt email (@vanderbilt.edu)';
+    } else if (!email.toLowerCase().endsWith("vanderbilt.edu")) {
+      newErrors.email = "Please use your Vanderbilt email (@vanderbilt.edu)";
       isValid = false;
     }
 
     // Validate password
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
       isValid = false;
     } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters long';
+      newErrors.password = "Password must be at least 8 characters long";
       isValid = false;
     }
 
     // Validate confirm password
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
       isValid = false;
     }
 
@@ -89,7 +89,10 @@ export default function RegisterScreen() {
       await signUp(email, password, name);
       // Success! The AuthContext will handle navigation after successful signup
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
+      Alert.alert(
+        "Registration Failed",
+        error.message || "An error occurred during registration",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +101,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -121,7 +124,9 @@ export default function RegisterScreen() {
             {/* Name Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Full Name</Text>
-              <View style={[styles.inputWrapper, errors.name && styles.inputError]}>
+              <View
+                style={[styles.inputWrapper, errors.name && styles.inputError]}
+              >
                 <Feather name="user" size={20} color="#888" />
                 <TextInput
                   style={styles.input}
@@ -131,13 +136,17 @@ export default function RegisterScreen() {
                   autoCapitalize="words"
                 />
               </View>
-              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+              {errors.name && (
+                <Text style={styles.errorText}>{errors.name}</Text>
+              )}
             </View>
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Vanderbilt Email</Text>
-              <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
+              <View
+                style={[styles.inputWrapper, errors.email && styles.inputError]}
+              >
                 <Feather name="mail" size={20} color="#888" />
                 <TextInput
                   style={styles.input}
@@ -148,13 +157,20 @@ export default function RegisterScreen() {
                   autoCapitalize="none"
                 />
               </View>
-              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
             </View>
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
-              <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.password && styles.inputError,
+                ]}
+              >
                 <Feather name="lock" size={20} color="#888" />
                 <TextInput
                   style={styles.input}
@@ -168,19 +184,26 @@ export default function RegisterScreen() {
                   style={styles.visibilityToggle}
                 >
                   <Feather
-                    name={showPassword ? 'eye-off' : 'eye'}
+                    name={showPassword ? "eye-off" : "eye"}
                     size={20}
                     color="#888"
                   />
                 </TouchableOpacity>
               </View>
-              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              {errors.password && (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              )}
             </View>
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Confirm Password</Text>
-              <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputError]}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.confirmPassword && styles.inputError,
+                ]}
+              >
                 <Feather name="lock" size={20} color="#888" />
                 <TextInput
                   style={styles.input}
@@ -190,7 +213,9 @@ export default function RegisterScreen() {
                   secureTextEntry={!showPassword}
                 />
               </View>
-              {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+              {errors.confirmPassword && (
+                <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+              )}
             </View>
 
             {/* Register Button */}
@@ -209,7 +234,7 @@ export default function RegisterScreen() {
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account?</Text>
-              <TouchableOpacity onPress={() => router.push('/login')}>
+              <TouchableOpacity onPress={() => router.push("/login")}>
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
@@ -217,8 +242,8 @@ export default function RegisterScreen() {
 
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
-              By creating an account, you agree to our{' '}
-              <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+              By creating an account, you agree to our{" "}
+              <Text style={styles.termsLink}>Terms of Service</Text> and{" "}
               <Text style={styles.termsLink}>Privacy Policy</Text>
             </Text>
           </View>
@@ -231,7 +256,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   keyboardView: {
     flex: 1,
@@ -241,9 +266,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 30,
   },
   backButton: {
@@ -251,16 +276,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   placeholder: {
     width: 40,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
     marginBottom: 30,
   },
   form: {
@@ -271,21 +296,21 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
   },
   inputError: {
-    borderColor: '#ff6b6b',
+    borderColor: "#ff6b6b",
   },
   input: {
     flex: 1,
@@ -296,7 +321,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   errorText: {
-    color: '#ff6b6b',
+    color: "#ff6b6b",
     fontSize: 14,
     marginTop: 4,
     marginLeft: 4,
@@ -305,28 +330,28 @@ const styles = StyleSheet.create({
     backgroundColor: Color.colorBurlywood,
     borderRadius: 8,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
   },
   registerButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
   },
   loginText: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   loginLink: {
     fontSize: 16,
     color: Color.colorBurlywood,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 5,
   },
   termsContainer: {
@@ -334,8 +359,8 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
+    color: "#888",
+    textAlign: "center",
   },
   termsLink: {
     color: Color.colorBurlywood,

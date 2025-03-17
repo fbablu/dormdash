@@ -23,19 +23,19 @@ import { Order, DeliveryRequest } from "@/app/services/backendApi";
 
 export default function Deliver() {
   // Get state and functions from contexts
-  const { 
-    isOnlineForDelivery, 
-    activeDeliveries, 
-    availableDeliveryRequests, 
+  const {
+    isOnlineForDelivery,
+    activeDeliveries,
+    availableDeliveryRequests,
     isDeliveryLoading,
     toggleDeliveryMode,
     refreshDeliveries,
     acceptDelivery,
-    updateDeliveryStatus
+    updateDeliveryStatus,
   } = useOrders();
-  
+
   const { user } = useAuth();
-  
+
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
@@ -69,7 +69,7 @@ export default function Deliver() {
   const handleAcceptDelivery = async (requestId: string) => {
     try {
       const success = await acceptDelivery(requestId);
-      
+
       if (success) {
         Alert.alert("Success", "Delivery request accepted!");
       } else {
@@ -82,10 +82,13 @@ export default function Deliver() {
   };
 
   // Update the status of a delivery
-  const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: Order["status"],
+  ) => {
     try {
       const success = await updateDeliveryStatus(orderId, newStatus);
-      
+
       if (success) {
         if (newStatus === "delivered") {
           Alert.alert("Success", "Delivery marked as completed!");
@@ -93,11 +96,17 @@ export default function Deliver() {
           Alert.alert("Success", `Delivery status updated to ${newStatus}!`);
         }
       } else {
-        Alert.alert("Error", "Failed to update delivery status. Please try again.");
+        Alert.alert(
+          "Error",
+          "Failed to update delivery status. Please try again.",
+        );
       }
     } catch (error) {
       console.error("Error updating delivery status:", error);
-      Alert.alert("Error", "Failed to update delivery status. Please try again.");
+      Alert.alert(
+        "Error",
+        "Failed to update delivery status. Please try again.",
+      );
     }
   };
 
@@ -117,7 +126,7 @@ export default function Deliver() {
   const renderAvailableDeliveryItem = ({ item }: { item: DeliveryRequest }) => {
     // Check if this is the user's own order
     const isOwnOrder = item.customerId === user?.id;
-    
+
     return (
       <View style={styles.deliveryItem}>
         {isOwnOrder && (
@@ -125,7 +134,7 @@ export default function Deliver() {
             <Text style={styles.ownOrderText}>Your Order</Text>
           </View>
         )}
-        
+
         <View style={styles.deliveryHeader}>
           <Text style={styles.restaurantName}>{item.restaurantName}</Text>
           <Text style={styles.deliveryAmount}>
@@ -143,7 +152,7 @@ export default function Deliver() {
           <Text style={styles.deliveryFee}>
             Delivery Fee: ${item.deliveryFee.toFixed(2)}
           </Text>
-          
+
           {!isOwnOrder && (
             <TouchableOpacity
               style={styles.acceptButton}
@@ -176,8 +185,8 @@ export default function Deliver() {
       <View style={styles.statusButtons}>
         <TouchableOpacity
           style={[
-            styles.statusButton, 
-            item.status === "picked_up" && styles.activeStatusButton
+            styles.statusButton,
+            item.status === "picked_up" && styles.activeStatusButton,
           ]}
           onPress={() => handleUpdateStatus(item.id, "picked_up")}
         >

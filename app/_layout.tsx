@@ -12,7 +12,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { isLoading, isSignedIn } = useAuth();
-  
+
   useEffect(() => {
     // Hide splash screen once auth state is determined
     const hideSplash = async () => {
@@ -20,10 +20,10 @@ function RootLayoutNav() {
         await SplashScreen.hideAsync();
       }
     };
-    
+
     hideSplash();
   }, [isLoading]);
-  
+
   useEffect(() => {
     // Redirect based on auth state
     if (!isLoading) {
@@ -34,7 +34,7 @@ function RootLayoutNav() {
       }
     }
   }, [isLoading, isSignedIn]);
-  
+
   // If still loading, return nothing
   if (isLoading) {
     return null;
@@ -46,10 +46,11 @@ function RootLayoutNav() {
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="restaurant/[id]" 
+      <Stack.Screen
+        name="restaurant/[id]"
         options={{
-          presentation: 'card',
-          animation: 'slide_from_right'
+          presentation: "card",
+          animation: "slide_from_right",
         }}
       />
     </Stack>

@@ -1,6 +1,6 @@
 // app/components/onboarding/WelcomeScreen.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 1 hour
+// Time spent: 3 hours
 
 import * as React from "react";
 import { Image, StyleSheet, View, Text, Dimensions } from "react-native";

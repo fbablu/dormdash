@@ -1,9 +1,9 @@
 // app/config/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Directly use Firebase configuration values
 const firebaseConfig = {
@@ -13,7 +13,7 @@ const firebaseConfig = {
   storageBucket: "dormdash-2bceb.appspot.com",
   messagingSenderId: "462922659749",
   appId: "1:462922659749:web:d8907b3b55ece28e6eda4c",
-  measurementId: "G-NGF8H7LCFB"
+  measurementId: "G-NGF8H7LCFB",
 };
 
 // Initialize Firebase

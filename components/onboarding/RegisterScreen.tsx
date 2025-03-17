@@ -1,8 +1,8 @@
 // components/onboarding/RegisterScreen.tsx
 // Contributors: @Fardeen Bablu, @Yuening Li
-// Time spent: 2 hour
+// Time spent: 3 hours
 
-import React from 'react';
+import React from "react";
 import {
   StyleSheet,
   View,
@@ -12,16 +12,15 @@ import {
   Image,
   Linking,
 } from "react-native";
-import { Color } from '@/GlobalStyles';
-import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { CustomSafeAreaView } from '../CustomSafeAreaView';
+import { Color } from "@/GlobalStyles";
+import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { CustomSafeAreaView } from "../CustomSafeAreaView";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const RegisterScreen = () => {
   return (
-
     <CustomSafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Image
@@ -69,29 +68,34 @@ const RegisterScreen = () => {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             style={styles.signupButton}
-            onPress={() => router.push('/register')}
+            onPress={() => router.push("/register")}
           >
             <Feather name="user-plus" size={24} color="white" />
             <Text style={styles.signupButtonText}>Create Account</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => router.push('/login')}
+            onPress={() => router.push("/login")}
           >
-            <Text style={styles.loginButtonText}>Already have an account? Sign In</Text>
+            <Text style={styles.loginButtonText}>
+              Already have an account? Sign In
+            </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.tosButton}
-            onPress={() => Linking.openURL("https://github.com/fbablu/dormdash/blob/main/TERMS_OF_SERVICE.md")}
+            onPress={() =>
+              Linking.openURL(
+                "https://github.com/fbablu/dormdash/blob/main/TERMS_OF_SERVICE.md",
+              )
+            }
           >
             <Text style={styles.tosText}>Questions? View Terms of Service</Text>
           </TouchableOpacity>
         </View>
       </View>
     </CustomSafeAreaView>
-  
   );
 };
 
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomButtons: {
-    marginTop: "auto", 
+    marginTop: "auto",
     alignItems: "center",
   },
   signupButton: {

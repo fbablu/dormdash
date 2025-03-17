@@ -1,18 +1,18 @@
 // app/context/AuthContext.tsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import { 
+import React, { createContext, useState, useEffect, useContext } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
-import { setPersistence, browserLocalPersistence } from 'firebase/auth';
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
+import { setPersistence, browserLocalPersistence } from "firebase/auth";
 
 // Define user type
 export interface User {
@@ -52,18 +52,20 @@ const defaultAuthContext: AuthContextType = {
   resetPassword: async () => {},
   refreshUser: async () => {},
   updateUser: async () => {},
-  verifyDorm: async () => false
+  verifyDorm: async () => false,
 };
 
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [state, setState] = useState<AuthState>({
     isLoading: true,
     isSignedIn: false,
-    user: null
+    user: null,
   });
 
   // Enable persistence
@@ -75,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error setting persistence:", error);
       }
     };
-    
+
     setupPersistence();
   }, []);
 
@@ -83,56 +85,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check if we have a stored user first
     const checkStoredAuth = async () => {
       try {
-        const userData = await AsyncStorage.getItem('user_data');
+        const userData = await AsyncStorage.getItem("user_data");
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setState({
             isLoading: false,
             isSignedIn: true,
-            user: parsedUser
+            user: parsedUser,
           });
         }
       } catch (error) {
         console.error("Error checking stored auth:", error);
       }
     };
-    
+
     checkStoredAuth();
-    
+
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const user = await getOrCreateUserProfile(firebaseUser);
-          
+
           // Store user data for offline access
-          await AsyncStorage.setItem('user_data', JSON.stringify(user));
-          
+          await AsyncStorage.setItem("user_data", JSON.stringify(user));
+
           setState({
             isLoading: false,
             isSignedIn: true,
-            user
+            user,
           });
         } catch (error) {
           console.error("Error processing authenticated user:", error);
           setState({
             isLoading: false,
             isSignedIn: false,
-            user: null
+            user: null,
           });
         }
       } else {
         // No user signed in via Firebase, clear any stored data
         try {
-          await AsyncStorage.removeItem('user_data');
+          await AsyncStorage.removeItem("user_data");
         } catch (error) {
           console.error("Error removing stored user:", error);
         }
-        
+
         setState({
           isLoading: false,
           isSignedIn: false,
-          user: null
+          user: null,
         });
       }
     });
@@ -143,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Get or create user profile in Firestore
   const getOrCreateUserProfile = async (firebaseUser: any): Promise<User> => {
     try {
-      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userRef = doc(db, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
@@ -153,11 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Create new user
         const newUser: User = {
           id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'Vanderbilt Student',
-          email: firebaseUser.email || '',
-          image: firebaseUser.photoURL || '',
+          name: firebaseUser.displayName || "Vanderbilt Student",
+          email: firebaseUser.email || "",
+          image: firebaseUser.photoURL || "",
           isVerified: false,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         };
 
         // Save to Firestore
@@ -166,62 +168,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error("Error in getOrCreateUserProfile:", error);
-      
+
       // Fallback with minimal data if we can't reach Firestore
       return {
         id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Vanderbilt Student',
-        email: firebaseUser.email || '',
-        image: firebaseUser.photoURL || '',
+        name: firebaseUser.displayName || "Vanderbilt Student",
+        email: firebaseUser.email || "",
+        image: firebaseUser.photoURL || "",
         isVerified: false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
+      setState((prev) => ({ ...prev, isLoading: true }));
       await signInWithEmailAndPassword(auth, email, password);
       // Auth state listener will update the state
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
-      
+      console.error("Sign in error:", error);
+      setState((prev) => ({ ...prev, isLoading: false }));
+
       // Provide more helpful error messages
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        throw new Error('Invalid email or password');
-      } else if (error.code === 'auth/too-many-requests') {
-        throw new Error('Too many failed login attempts. Please try again later');
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        throw new Error("Invalid email or password");
+      } else if (error.code === "auth/too-many-requests") {
+        throw new Error(
+          "Too many failed login attempts. Please try again later",
+        );
       } else {
-        throw new Error(error.message || 'Failed to sign in');
+        throw new Error(error.message || "Failed to sign in");
       }
     }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      
+      setState((prev) => ({ ...prev, isLoading: true }));
+
       // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+
       // Update user profile with name
       await updateProfile(userCredential.user, { displayName: name });
-      
+
       // Create user document in Firestore - auth state listener will handle this
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
-      
-      if (error.code === 'auth/email-already-in-use') {
-        throw new Error('Email already in use');
-      } else if (error.code === 'auth/weak-password') {
-        throw new Error('Password is too weak');
-      } else if (error.code === 'auth/invalid-email') {
-        throw new Error('Invalid email format');
+      console.error("Sign up error:", error);
+      setState((prev) => ({ ...prev, isLoading: false }));
+
+      if (error.code === "auth/email-already-in-use") {
+        throw new Error("Email already in use");
+      } else if (error.code === "auth/weak-password") {
+        throw new Error("Password is too weak");
+      } else if (error.code === "auth/invalid-email") {
+        throw new Error("Invalid email format");
       } else {
-        throw new Error(error.message || 'Failed to create account');
+        throw new Error(error.message || "Failed to create account");
       }
     }
   };
@@ -230,111 +241,112 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      
-      if (error.code === 'auth/user-not-found') {
-        throw new Error('No account found with this email');
+      console.error("Password reset error:", error);
+
+      if (error.code === "auth/user-not-found") {
+        throw new Error("No account found with this email");
       } else {
-        throw new Error(error.message || 'Failed to send password reset email');
+        throw new Error(error.message || "Failed to send password reset email");
       }
     }
   };
 
   const signOutHandler = async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
+      setState((prev) => ({ ...prev, isLoading: true }));
       await firebaseSignOut(auth);
-      
+
       // Clear local storage
-      await AsyncStorage.removeItem('user_data');
-      
+      await AsyncStorage.removeItem("user_data");
+
       setState({
         isLoading: false,
         isSignedIn: false,
-        user: null
+        user: null,
       });
-      
+
       // Navigate to onboarding
-      router.replace('/onboarding');
+      router.replace("/onboarding");
     } catch (error) {
-      console.error('Sign out error:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      console.error("Sign out error:", error);
+      setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
     }
   };
-  
+
   const refreshUser = async () => {
     try {
       if (!auth.currentUser || !state.user) return;
-      
-      const userRef = doc(db, 'users', auth.currentUser.uid);
+
+      const userRef = doc(db, "users", auth.currentUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
         // Update AsyncStorage
-        await AsyncStorage.setItem('user_data', JSON.stringify(userData));
-        setState(prev => ({ ...prev, user: userData }));
+        await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+        setState((prev) => ({ ...prev, user: userData }));
       }
     } catch (error) {
-      console.error('Error refreshing user:', error);
+      console.error("Error refreshing user:", error);
     }
   };
-  
+
   const updateUser = async (userData: Partial<User>) => {
     try {
-      if (!auth.currentUser || !state.user) throw new Error('User not authenticated');
-      
-      const userRef = doc(db, 'users', auth.currentUser.uid);
+      if (!auth.currentUser || !state.user)
+        throw new Error("User not authenticated");
+
+      const userRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
-      
+
       // Update display name if provided
       if (userData.name && auth.currentUser) {
         await updateProfile(auth.currentUser, {
-          displayName: userData.name
+          displayName: userData.name,
         });
       }
-      
+
       // Refresh user data
       await refreshUser();
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error updating user:", error);
       throw error;
     }
   };
-  
+
   const verifyDorm = async (dormCode: string): Promise<boolean> => {
     try {
       // In a real app, you would verify the dorm code against a database
       // For simplicity, we'll accept any 6-digit code
       const isValidCode = /^\d{6}$/.test(dormCode);
-      
+
       if (isValidCode && state.user) {
-        await updateUser({ 
+        await updateUser({
           isVerified: true,
-          dormLocation: 'Verified Dorm'
+          dormLocation: "Verified Dorm",
         });
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      console.error('Error verifying dorm:', error);
+      console.error("Error verifying dorm:", error);
       return false;
     }
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        ...state, 
+    <AuthContext.Provider
+      value={{
+        ...state,
         signIn,
         signUp,
         signOut: signOutHandler,
         resetPassword,
         refreshUser,
         updateUser,
-        verifyDorm
+        verifyDorm,
       }}
     >
       {children}
