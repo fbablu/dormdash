@@ -114,6 +114,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const checkIfFavorite = async () => {
     try {
+      // Try API first
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) return;
 
@@ -157,7 +158,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   };
 
   const toggleFavorite = async () => {
-    event?.stopPropagation();
     try {
       const currentUser = await GoogleSignin.getCurrentUser();
       if (!currentUser) {
@@ -245,16 +245,15 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     }
   };
 
+
   return (
     <TouchableOpacity
       style={styles.restaurantCard}
       onPress={() => {
-        const safeId = restaurant.name 
-          ? restaurant.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-          : '';
-          if (safeId) {
-            router.push(`/restaurant/${safeId}`);
-          }
+        // Generate id from restaurant name
+        const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        console.log(`Navigating to restaurant: ${restaurant.name} with ID: ${id}`);
+        router.push(`/restaurant/${id}`);
       }}
     >
       <Image
@@ -274,14 +273,13 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
             />
           </TouchableOpacity>
         </View>
-        <Text style={styles.restaurantDetails}>
-          {restaurant.location} • {restaurant.cuisine.join(", ")}
-        </Text>
-        <Text style={styles.deliveryFee}>Accepts Commodore Cash</Text>
-      </View>
+        </View>
     </TouchableOpacity>
   );
-};
+}; 
+
+
+
 // Main Component
 export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");

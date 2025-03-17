@@ -19,8 +19,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePayment } from "@/app/context/PaymentContext";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/app/config/firebase";
+import restaurants from "@/data/ton_restaurants.json";
 
 const { width } = Dimensions.get("window");
+
+// Use a smaller resolution version of the image to prevent memory issues
+const FOOD_IMAGE_URL =
+  "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop";
 
 interface CartItem {
   id: string;
@@ -55,6 +60,138 @@ interface Restaurant {
   deliveryFee: number;
 }
 
+// Sample menu categories based on Taco Mama menu
+const MENU_CATEGORIES: MenuCategory[] = [
+  {
+    id: "burritos",
+    name: "Burritos",
+    items: [
+      {
+        id: "yo-mama",
+        name: "Yo Mama",
+        description:
+          "Ground beef, shredded cheddar, lettuce, tomato, sour cream with side of queso",
+        price: 9.99,
+      },
+      {
+        id: "big-client",
+        name: "The Big Client",
+        description:
+          "Barbacoa (braised beef), refried beans, queso, shredded cheddar, tomatoes, mild salsa ranchera",
+        price: 10.99,
+      },
+      {
+        id: "judge",
+        name: "The Judge",
+        description:
+          "Marinated chicken, black beans, cilantro-lime rice, shredded cheddar, lettuce, mild salsa ranchera, creamy cilantro pesto",
+        price: 10.49,
+      },
+      {
+        id: "q-burrito",
+        name: "Q-Burrito",
+        description:
+          "Roasted pulled barbacoa, ancho chile slaw, pickles, homemade chipotle BBQ sauce",
+        price: 11.99,
+      },
+    ],
+  },
+  {
+    id: "tacos",
+    name: "Tacos",
+    items: [
+      {
+        id: "classico-beef",
+        name: "Classico Beef",
+        description:
+          "Ground beef, shredded cheddar, lettuce, tomato, sour cream",
+        price: 8.99,
+      },
+      {
+        id: "cheezy-beef",
+        name: "Cheezy Beef",
+        description:
+          "Barbacoa (braised beef), tomatoes, onions, cilantro, queso, lettuce, queso fresco, mild salsa ranchera",
+        price: 9.49,
+      },
+      {
+        id: "mayor",
+        name: "The Mayor",
+        description:
+          "Marinated chicken, lettuce, tomatoes, creamy-cilantro pesto, queso fresco",
+        price: 8.99,
+      },
+      {
+        id: "sizzler",
+        name: "The Sizzler",
+        description:
+          "Grilled steak tenderloin, grilled onions, avocado, lettuce, tomatoes, red chile butter sauce, queso fresco",
+        price: 10.99,
+      },
+    ],
+  },
+  {
+    id: "sides",
+    name: "Sides",
+    items: [
+      {
+        id: "street-corn",
+        name: "Street Corn",
+        description: "Grilled corn with chile, lime and queso fresco",
+        price: 4.99,
+      },
+      {
+        id: "ancho-slaw",
+        name: "Ancho Chile Slaw",
+        description: "Fresh cabbage with ancho chile dressing",
+        price: 3.99,
+      },
+      {
+        id: "rice",
+        name: "Cilantro-Lime Rice",
+        description: "Rice with fresh cilantro and lime",
+        price: 3.49,
+      },
+      {
+        id: "mac",
+        name: "Mexican Mac & Cheese",
+        description: "Macaroni with queso and mild spices",
+        price: 4.49,
+      },
+    ],
+  },
+  {
+    id: "drinks",
+    name: "Drinks",
+    items: [
+      {
+        id: "margarita",
+        name: "Mi Casa Margarita",
+        description: "House margarita with fresh lime",
+        price: 7.99,
+      },
+      {
+        id: "beer",
+        name: "Imported Beer",
+        description: "Selection of imported beers",
+        price: 5.99,
+      },
+      {
+        id: "soda",
+        name: "Fountain Drink",
+        description: "Assorted sodas",
+        price: 2.49,
+      },
+      {
+        id: "water",
+        name: "Bottled Water",
+        description: "Purified water",
+        price: 1.99,
+      },
+    ],
+  },
+];
+
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
   const { paymentMethod } = usePayment();
@@ -77,53 +214,109 @@ export default function RestaurantMenuScreen() {
       try {
         setLoading(true);
         
-        // Firebase query to get restaurant
-        const restaurantRef = doc(db, "restaurants", id as string);
-        const restaurantSnap = await getDoc(restaurantRef);
+        // Log the ID for debugging
+        console.log(`Attempting to fetch restaurant with ID: "${id}"`);
         
-        if (restaurantSnap.exists()) {
-          const data = restaurantSnap.data();
-          setRestaurant({
-            id: restaurantSnap.id,
-            name: data.name || '',
-            image: data.image || '',
-            location: data.location || '',
-            address: data.address || '',
-            cuisines: data.cuisines || [],
-            rating: data.rating || 0,
-            reviewCount: data.reviewCount || '',
-            deliveryTime: data.deliveryTime || '',
-            deliveryFee: data.deliveryFee || 0
-          } as Restaurant);
+        // Try Firebase first (may fail if collections don't exist)
+        try {
+          const restaurantRef = doc(db, "restaurants", id as string);
+          const restaurantSnap = await getDoc(restaurantRef);
           
-          // Fetch menu categories
-          const menuRef = collection(db, "restaurants", id as string, "menu");
-          const menuSnap = await getDocs(menuRef);
-          
-          const categories: MenuCategory[] = [];
-          menuSnap.forEach((doc) => {
-            categories.push({
-              id: doc.id,
-              ...doc.data() as Omit<MenuCategory, 'id'>
+          if (restaurantSnap.exists()) {
+            const data = restaurantSnap.data();
+            setRestaurant({
+              id: restaurantSnap.id,
+              name: data.name || '',
+              image: data.image || FOOD_IMAGE_URL,
+              location: data.location || '',
+              address: data.address || '',
+              cuisines: data.cuisines || [],
+              rating: data.rating || 4.5,
+              reviewCount: data.reviewCount || '200+',
+              deliveryTime: data.deliveryTime || '15-25 min',
+              deliveryFee: data.deliveryFee || 3.99
             });
+            
+            // Fetch menu categories
+            const menuRef = collection(db, "restaurants", id as string, "menu");
+            const menuSnap = await getDocs(menuRef);
+            
+            const categories: MenuCategory[] = [];
+            menuSnap.forEach((doc) => {
+              categories.push({
+                id: doc.id,
+                ...doc.data() as Omit<MenuCategory, 'id'>
+              });
+            });
+            
+            if (categories.length > 0) {
+              // Sort categories
+              const sortedCategories = categories.sort((a, b) => a.name.localeCompare(b.name));
+              setMenuCategories(sortedCategories);
+              
+              // Set initial active category
+              setActiveCategory(sortedCategories[0].id);
+            } else {
+              // Use sample menu if no categories found
+              setMenuCategories(MENU_CATEGORIES);
+              setActiveCategory(MENU_CATEGORIES[0].id);
+            }
+            
+            return; // Exit if Firebase data is found
+          }
+        } catch (firebaseError) {
+          console.log("Firebase query failed, trying local data:", firebaseError);
+        }
+        
+        // If Firebase fails, try local restaurant data
+        console.log("Searching local restaurant data");
+        
+        // Get raw ID value for debugging
+        const rawId = typeof id === 'string' ? id : String(id);
+        console.log("Raw ID value:", rawId);
+        
+        // Try to find restaurant in local data
+        const foundRestaurant = restaurants.find(r => {
+          const normalizedName = r.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          console.log(`Comparing: "${normalizedName}" with "${rawId}"`);
+          return normalizedName === rawId;
+        });
+        
+        if (foundRestaurant) {
+          console.log("Found restaurant in local data:", foundRestaurant.name);
+          
+          // Create restaurant object with additional properties
+          setRestaurant({
+            id: rawId,
+            name: foundRestaurant.name,
+            image: FOOD_IMAGE_URL,
+            location: foundRestaurant.location,
+            address: foundRestaurant.address,
+            cuisines: foundRestaurant.cuisine,
+            rating: 4.5,
+            reviewCount: "200+",
+            deliveryTime: "15-25 min",
+            deliveryFee: 3.99,
           });
           
-          // Sort categories
-          const sortedCategories = categories.sort((a, b) => a.name.localeCompare(b.name));
-          setMenuCategories(sortedCategories);
-          
-          // Set initial active category
-          if (sortedCategories.length > 0) {
-            setActiveCategory(sortedCategories[0].id);
-          }
+          // Use sample menu categories
+          setMenuCategories(MENU_CATEGORIES);
+          setActiveCategory(MENU_CATEGORIES[0].id);
         } else {
-          console.error("Restaurant not found");
-          Alert.alert("Error", "Restaurant not found");
+          // Log all available restaurant names for comparison
+          const allNames = restaurants.map(r => {
+            const formattedId = r.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            return { name: r.name, formattedId };
+          });
+          console.log("Available restaurants:", JSON.stringify(allNames.slice(0, 5)) + "...");
+          
+          console.error("Restaurant not found in any source");
+          Alert.alert("Restaurant Not Found", `Could not find restaurant with ID: ${id}`);
           router.back();
         }
       } catch (error) {
         console.error("Error fetching restaurant:", error);
-        Alert.alert("Error", "Failed to load restaurant data");
+        Alert.alert("Error", `Failed to load restaurant data: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         setLoading(false);
       }

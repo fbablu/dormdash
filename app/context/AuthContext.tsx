@@ -12,7 +12,6 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
-import { setPersistence, browserLocalPersistence } from "firebase/auth";
 
 // Define user type
 export interface User {
@@ -67,19 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isSignedIn: false,
     user: null,
   });
-
-  // Enable persistence
-  useEffect(() => {
-    const setupPersistence = async () => {
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch (error) {
-        console.error("Error setting persistence:", error);
-      }
-    };
-
-    setupPersistence();
-  }, []);
 
   useEffect(() => {
     // Check if we have a stored user first
@@ -354,5 +340,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// Export the provider as default for Expo Router
+// Add default export to fix the routing issue
 export default AuthProvider;
