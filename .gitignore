@@ -40,7 +40,11 @@ DormDash.session.sql
 # typescript
 *.tsbuildinfo
 
+# app dirs
 app-example
-
 ios/
 android/
+
+
+# tests
+coverage/**/*
