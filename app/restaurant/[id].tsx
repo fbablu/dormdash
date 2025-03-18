@@ -1,4 +1,9 @@
 // app/restaurant/[id].tsx
+// Contributors: Fardeen Bablu
+// Time spent: 8 hours
+
+///// TODO: Decompose into seperate components !!!!!!!!!!!!!!
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -17,7 +22,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Color } from "@/GlobalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePayment } from "@/app/context/PaymentContext";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/app/config/firebase";
 import restaurants from "@/data/ton_restaurants.json";
 
@@ -60,137 +72,345 @@ interface Restaurant {
   deliveryFee: number;
 }
 
-// Sample menu categories based on Taco Mama menu
-const MENU_CATEGORIES: MenuCategory[] = [
-  {
-    id: "burritos",
-    name: "Burritos",
-    items: [
+// Menu categories specific to each restaurant
+const getMenuCategoriesForRestaurant = (restaurantId: string) => {
+  // Taco Mama menu
+  if (restaurantId === "taco-mama") {
+    return [
       {
-        id: "yo-mama",
-        name: "Yo Mama",
-        description:
-          "Ground beef, shredded cheddar, lettuce, tomato, sour cream with side of queso",
-        price: 9.99,
+        id: "burritos",
+        name: "Burritos",
+        items: [
+          {
+            id: "yo-mama",
+            name: "Yo Mama",
+            description:
+              "Ground beef, shredded cheddar, lettuce, tomato, sour cream with side of queso",
+            price: 9.99,
+          },
+          {
+            id: "big-client",
+            name: "The Big Client",
+            description:
+              "Barbacoa (braised beef), refried beans, queso, shredded cheddar, tomatoes, mild salsa ranchera",
+            price: 10.99,
+          },
+          {
+            id: "judge",
+            name: "The Judge",
+            description:
+              "Marinated chicken, black beans, cilantro-lime rice, shredded cheddar, lettuce, mild salsa ranchera, creamy cilantro pesto",
+            price: 10.49,
+          },
+          {
+            id: "q-burrito",
+            name: "Q-Burrito",
+            description:
+              "Roasted pulled barbacoa, ancho chile slaw, pickles, homemade chipotle BBQ sauce",
+            price: 11.99,
+          },
+        ],
       },
       {
-        id: "big-client",
-        name: "The Big Client",
-        description:
-          "Barbacoa (braised beef), refried beans, queso, shredded cheddar, tomatoes, mild salsa ranchera",
-        price: 10.99,
+        id: "tacos",
+        name: "Tacos",
+        items: [
+          {
+            id: "classico-beef",
+            name: "Classico Beef",
+            description:
+              "Ground beef, shredded cheddar, lettuce, tomato, sour cream",
+            price: 8.99,
+          },
+          {
+            id: "cheezy-beef",
+            name: "Cheezy Beef",
+            description:
+              "Barbacoa (braised beef), tomatoes, onions, cilantro, queso, lettuce, queso fresco, mild salsa ranchera",
+            price: 9.49,
+          },
+          {
+            id: "mayor",
+            name: "The Mayor",
+            description:
+              "Marinated chicken, lettuce, tomatoes, creamy-cilantro pesto, queso fresco",
+            price: 8.99,
+          },
+          {
+            id: "sizzler",
+            name: "The Sizzler",
+            description:
+              "Grilled steak tenderloin, grilled onions, avocado, lettuce, tomatoes, red chile butter sauce, queso fresco",
+            price: 10.99,
+          },
+        ],
       },
       {
-        id: "judge",
-        name: "The Judge",
-        description:
-          "Marinated chicken, black beans, cilantro-lime rice, shredded cheddar, lettuce, mild salsa ranchera, creamy cilantro pesto",
-        price: 10.49,
+        id: "sides",
+        name: "Sides",
+        items: [
+          {
+            id: "street-corn",
+            name: "Street Corn",
+            description: "Grilled corn with chile, lime and queso fresco",
+            price: 4.99,
+          },
+          {
+            id: "ancho-slaw",
+            name: "Ancho Chile Slaw",
+            description: "Fresh cabbage with ancho chile dressing",
+            price: 3.99,
+          },
+          {
+            id: "rice",
+            name: "Cilantro-Lime Rice",
+            description: "Rice with fresh cilantro and lime",
+            price: 3.49,
+          },
+          {
+            id: "mac",
+            name: "Mexican Mac & Cheese",
+            description: "Macaroni with queso and mild spices",
+            price: 4.49,
+          },
+        ],
       },
       {
-        id: "q-burrito",
-        name: "Q-Burrito",
-        description:
-          "Roasted pulled barbacoa, ancho chile slaw, pickles, homemade chipotle BBQ sauce",
-        price: 11.99,
+        id: "drinks",
+        name: "Drinks",
+        items: [
+          {
+            id: "margarita",
+            name: "Mi Casa Margarita",
+            description: "House margarita with fresh lime",
+            price: 7.99,
+          },
+          {
+            id: "beer",
+            name: "Imported Beer",
+            description: "Selection of imported beers",
+            price: 5.99,
+          },
+          {
+            id: "soda",
+            name: "Fountain Drink",
+            description: "Assorted sodas",
+            price: 2.49,
+          },
+          {
+            id: "water",
+            name: "Bottled Water",
+            description: "Purified water",
+            price: 1.99,
+          },
+        ],
       },
-    ],
-  },
-  {
-    id: "tacos",
-    name: "Tacos",
-    items: [
+    ];
+  }
+  // Banh Mi & Roll menu
+  else if (restaurantId === "banh-mi-roll") {
+    return [
       {
-        id: "classico-beef",
-        name: "Classico Beef",
-        description:
-          "Ground beef, shredded cheddar, lettuce, tomato, sour cream",
-        price: 8.99,
-      },
-      {
-        id: "cheezy-beef",
-        name: "Cheezy Beef",
-        description:
-          "Barbacoa (braised beef), tomatoes, onions, cilantro, queso, lettuce, queso fresco, mild salsa ranchera",
-        price: 9.49,
-      },
-      {
-        id: "mayor",
-        name: "The Mayor",
-        description:
-          "Marinated chicken, lettuce, tomatoes, creamy-cilantro pesto, queso fresco",
-        price: 8.99,
-      },
-      {
-        id: "sizzler",
-        name: "The Sizzler",
-        description:
-          "Grilled steak tenderloin, grilled onions, avocado, lettuce, tomatoes, red chile butter sauce, queso fresco",
-        price: 10.99,
-      },
-    ],
-  },
-  {
-    id: "sides",
-    name: "Sides",
-    items: [
-      {
-        id: "street-corn",
-        name: "Street Corn",
-        description: "Grilled corn with chile, lime and queso fresco",
-        price: 4.99,
-      },
-      {
-        id: "ancho-slaw",
-        name: "Ancho Chile Slaw",
-        description: "Fresh cabbage with ancho chile dressing",
-        price: 3.99,
-      },
-      {
-        id: "rice",
-        name: "Cilantro-Lime Rice",
-        description: "Rice with fresh cilantro and lime",
-        price: 3.49,
-      },
-      {
-        id: "mac",
-        name: "Mexican Mac & Cheese",
-        description: "Macaroni with queso and mild spices",
-        price: 4.49,
-      },
-    ],
-  },
-  {
-    id: "drinks",
-    name: "Drinks",
-    items: [
-      {
-        id: "margarita",
-        name: "Mi Casa Margarita",
-        description: "House margarita with fresh lime",
-        price: 7.99,
+        id: "banh-mi",
+        name: "Banh Mi Sandwiches",
+        items: [
+          {
+            id: "classic-pork",
+            name: "Classic Pork",
+            description:
+              "Marinated pork, pate, mayo, pickled vegetables, cilantro, jalapeño",
+            price: 8.99,
+          },
+          {
+            id: "lemongrass-chicken",
+            name: "Lemongrass Chicken",
+            description:
+              "Lemongrass-marinated chicken, mayo, pickled vegetables, cilantro, jalapeño",
+            price: 8.99,
+          },
+          {
+            id: "tofu",
+            name: "Tofu",
+            description:
+              "Lemongrass tofu, vegan mayo, pickled vegetables, cilantro, jalapeño",
+            price: 8.49,
+          },
+          {
+            id: "beef",
+            name: "Beef",
+            description:
+              "Marinated beef, mayo, pickled vegetables, cilantro, jalapeño",
+            price: 9.49,
+          },
+        ],
       },
       {
-        id: "beer",
-        name: "Imported Beer",
-        description: "Selection of imported beers",
-        price: 5.99,
+        id: "rolls",
+        name: "Spring Rolls",
+        items: [
+          {
+            id: "veggie-roll",
+            name: "Veggie Roll",
+            description:
+              "Fresh vegetables, vermicelli noodles, herbs with peanut sauce",
+            price: 5.99,
+          },
+          {
+            id: "shrimp-roll",
+            name: "Shrimp Roll",
+            description:
+              "Shrimp, vegetables, vermicelli noodles, herbs with peanut sauce",
+            price: 6.99,
+          },
+          {
+            id: "pork-roll",
+            name: "Pork Roll",
+            description:
+              "Pork, vegetables, vermicelli noodles, herbs with peanut sauce",
+            price: 6.49,
+          },
+        ],
       },
       {
-        id: "soda",
-        name: "Fountain Drink",
-        description: "Assorted sodas",
-        price: 2.49,
+        id: "bowls",
+        name: "Vermicelli Bowls",
+        items: [
+          {
+            id: "pork-bowl",
+            name: "Pork Bowl",
+            description:
+              "Grilled pork over vermicelli noodles with vegetables and nuoc cham sauce",
+            price: 10.99,
+          },
+          {
+            id: "chicken-bowl",
+            name: "Chicken Bowl",
+            description:
+              "Lemongrass chicken over vermicelli noodles with vegetables and nuoc cham sauce",
+            price: 10.99,
+          },
+          {
+            id: "beef-bowl",
+            name: "Beef Bowl",
+            description:
+              "Grilled beef over vermicelli noodles with vegetables and nuoc cham sauce",
+            price: 11.99,
+          },
+          {
+            id: "tofu-bowl",
+            name: "Tofu Bowl",
+            description:
+              "Lemongrass tofu over vermicelli noodles with vegetables and vegan sauce",
+            price: 10.49,
+          },
+        ],
       },
       {
-        id: "water",
-        name: "Bottled Water",
-        description: "Purified water",
-        price: 1.99,
+        id: "sides",
+        name: "Sides",
+        items: [
+          {
+            id: "crispy-rolls",
+            name: "Crispy Egg Rolls (3)",
+            description: "Fried rolls with pork, vegetables, and dipping sauce",
+            price: 5.99,
+          },
+          {
+            id: "vietnamese-coffee",
+            name: "Vietnamese Coffee",
+            description: "Traditional Vietnamese coffee with condensed milk",
+            price: 4.99,
+          },
+          {
+            id: "thai-tea",
+            name: "Thai Iced Tea",
+            description: "Sweet thai tea with cream",
+            price: 4.49,
+          },
+        ],
       },
-    ],
-  },
-];
+    ];
+  }
+  // Default generic menu
+  else {
+    return [
+      {
+        id: "appetizers",
+        name: "Appetizers",
+        items: [
+          {
+            id: "app-1",
+            name: "House Special Appetizer",
+            description: "Our signature starter with seasonal ingredients",
+            price: 8.99,
+          },
+          {
+            id: "app-2",
+            name: "Mixed Salad",
+            description: "Fresh greens with house dressing",
+            price: 6.99,
+          },
+        ],
+      },
+      {
+        id: "entrees",
+        name: "Main Courses",
+        items: [
+          {
+            id: "entree-1",
+            name: "Chef's Special",
+            description:
+              "Our most popular dish, prepared with the finest ingredients",
+            price: 14.99,
+          },
+          {
+            id: "entree-2",
+            name: "House Special Plate",
+            description:
+              "A delicious combination of flavors unique to our restaurant",
+            price: 13.99,
+          },
+        ],
+      },
+      {
+        id: "sides",
+        name: "Sides",
+        items: [
+          {
+            id: "side-1",
+            name: "Side Item 1",
+            description: "Delicious side to complement any meal",
+            price: 3.99,
+          },
+          {
+            id: "side-2",
+            name: "Side Item 2",
+            description: "Another tasty side option",
+            price: 4.49,
+          },
+        ],
+      },
+      {
+        id: "beverages",
+        name: "Beverages",
+        items: [
+          {
+            id: "bev-1",
+            name: "Soft Drink",
+            description: "Assorted soft drinks",
+            price: 2.49,
+          },
+          {
+            id: "bev-2",
+            name: "Bottled Water",
+            description: "Purified water",
+            price: 1.99,
+          },
+        ],
+      },
+    ];
+  }
+};
 
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
@@ -213,78 +433,87 @@ export default function RestaurantMenuScreen() {
     const fetchRestaurant = async () => {
       try {
         setLoading(true);
-        
+
         // Log the ID for debugging
         console.log(`Attempting to fetch restaurant with ID: "${id}"`);
-        
+
         // Try Firebase first (may fail if collections don't exist)
         try {
           const restaurantRef = doc(db, "restaurants", id as string);
           const restaurantSnap = await getDoc(restaurantRef);
-          
+
           if (restaurantSnap.exists()) {
             const data = restaurantSnap.data();
             setRestaurant({
               id: restaurantSnap.id,
-              name: data.name || '',
+              name: data.name || "",
               image: data.image || FOOD_IMAGE_URL,
-              location: data.location || '',
-              address: data.address || '',
+              location: data.location || "",
+              address: data.address || "",
               cuisines: data.cuisines || [],
               rating: data.rating || 4.5,
-              reviewCount: data.reviewCount || '200+',
-              deliveryTime: data.deliveryTime || '15-25 min',
-              deliveryFee: data.deliveryFee || 3.99
+              reviewCount: data.reviewCount || "200+",
+              deliveryTime: data.deliveryTime || "15-25 min",
+              deliveryFee: data.deliveryFee || 3.99,
             });
-            
-            // Fetch menu categories
-            const menuRef = collection(db, "restaurants", id as string, "menu");
-            const menuSnap = await getDocs(menuRef);
-            
-            const categories: MenuCategory[] = [];
-            menuSnap.forEach((doc) => {
-              categories.push({
-                id: doc.id,
-                ...doc.data() as Omit<MenuCategory, 'id'>
+
+            // Fetch menu categories from Firebase if available
+            try {
+              const menuRef = collection(
+                db,
+                "restaurants",
+                id as string,
+                "menu",
+              );
+              const menuSnap = await getDocs(menuRef);
+
+              const categories: MenuCategory[] = [];
+              menuSnap.forEach((doc) => {
+                categories.push({
+                  id: doc.id,
+                  ...(doc.data() as Omit<MenuCategory, "id">),
+                });
               });
-            });
-            
-            if (categories.length > 0) {
-              // Sort categories
-              const sortedCategories = categories.sort((a, b) => a.name.localeCompare(b.name));
-              setMenuCategories(sortedCategories);
-              
-              // Set initial active category
-              setActiveCategory(sortedCategories[0].id);
-            } else {
-              // Use sample menu if no categories found
-              setMenuCategories(MENU_CATEGORIES);
-              setActiveCategory(MENU_CATEGORIES[0].id);
+
+              if (categories.length > 0) {
+                // Sort categories
+                const sortedCategories = categories.sort((a, b) =>
+                  a.name.localeCompare(b.name),
+                );
+                setMenuCategories(sortedCategories);
+
+                // Set initial active category
+                setActiveCategory(sortedCategories[0].id);
+                setLoading(false);
+                return;
+              }
+            } catch (menuError) {
+              console.log("Firebase menu query failed:", menuError);
             }
-            
-            return; // Exit if Firebase data is found
           }
         } catch (firebaseError) {
-          console.log("Firebase query failed, trying local data:", firebaseError);
+          console.log("Firebase restaurant query failed:", firebaseError);
         }
-        
+
         // If Firebase fails, try local restaurant data
         console.log("Searching local restaurant data");
-        
+
         // Get raw ID value for debugging
-        const rawId = typeof id === 'string' ? id : String(id);
+        const rawId = typeof id === "string" ? id : String(id);
         console.log("Raw ID value:", rawId);
-        
+
         // Try to find restaurant in local data
-        const foundRestaurant = restaurants.find(r => {
-          const normalizedName = r.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const foundRestaurant = restaurants.find((r) => {
+          const normalizedName = r.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "-");
           console.log(`Comparing: "${normalizedName}" with "${rawId}"`);
           return normalizedName === rawId;
         });
-        
+
         if (foundRestaurant) {
           console.log("Found restaurant in local data:", foundRestaurant.name);
-          
+
           // Create restaurant object with additional properties
           setRestaurant({
             id: rawId,
@@ -298,25 +527,35 @@ export default function RestaurantMenuScreen() {
             deliveryTime: "15-25 min",
             deliveryFee: 3.99,
           });
-          
-          // Use sample menu categories
-          setMenuCategories(MENU_CATEGORIES);
-          setActiveCategory(MENU_CATEGORIES[0].id);
+
+          // Use restaurant-specific menu categories based on ID
+          const menuCats = getMenuCategoriesForRestaurant(rawId);
+          setMenuCategories(menuCats);
+          setActiveCategory(menuCats[0].id);
         } else {
           // Log all available restaurant names for comparison
-          const allNames = restaurants.map(r => {
-            const formattedId = r.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const allNames = restaurants.map((r) => {
+            const formattedId = r.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
             return { name: r.name, formattedId };
           });
-          console.log("Available restaurants:", JSON.stringify(allNames.slice(0, 5)) + "...");
-          
+          console.log(
+            "Available restaurants:",
+            JSON.stringify(allNames.slice(0, 5)) + "...",
+          );
+
           console.error("Restaurant not found in any source");
-          Alert.alert("Restaurant Not Found", `Could not find restaurant with ID: ${id}`);
+          Alert.alert(
+            "Restaurant Not Found",
+            `Could not find restaurant with ID: ${id}`,
+          );
           router.back();
         }
       } catch (error) {
         console.error("Error fetching restaurant:", error);
-        Alert.alert("Error", `Failed to load restaurant data: ${error instanceof Error ? error.message : String(error)}`);
+        Alert.alert(
+          "Error",
+          `Failed to load restaurant data: ${error instanceof Error ? error.message : String(error)}`,
+        );
       } finally {
         setLoading(false);
       }
@@ -407,7 +646,7 @@ export default function RestaurantMenuScreen() {
         restaurantId: id,
         restaurantName: restaurant?.name,
         items: cart,
-        total: orderTotal.toFixed(2),
+        totalAmount: orderTotal.toFixed(2),
         deliveryFee: deliveryFee.toFixed(2),
         status: "pending",
         timestamp: new Date().toISOString(),
@@ -525,8 +764,9 @@ export default function RestaurantMenuScreen() {
         <Text style={styles.sectionTitle}>
           {menuCategories.find((c) => c.id === activeCategory)?.name || "Menu"}
         </Text>
-        {menuCategories.find((c) => c.id === activeCategory)?.items.map(
-          (item) => (
+        {menuCategories
+          .find((c) => c.id === activeCategory)
+          ?.items.map((item) => (
             <View key={item.id} style={styles.menuItem}>
               <View style={styles.menuItemContent}>
                 <Text style={styles.menuItemName}>{item.name}</Text>
@@ -539,7 +779,7 @@ export default function RestaurantMenuScreen() {
               </View>
               <View style={styles.quantityControls}>
                 {(cart.find((cartItem) => cartItem.id === item.id)?.quantity ??
-                0) > 0 ? (
+                  0) > 0 ? (
                   <View style={styles.quantityControlsContainer}>
                     <TouchableOpacity
                       style={styles.quantityButton}
@@ -568,8 +808,7 @@ export default function RestaurantMenuScreen() {
                 )}
               </View>
             </View>
-          ),
-        )}
+          ))}
         <View style={styles.bottomPadding} />
       </ScrollView>
 

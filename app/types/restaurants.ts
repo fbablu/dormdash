@@ -1,6 +1,6 @@
 // app/types/restaurants.ts
 // Contributors: @Fardeen Bablu
-// Time spent: 20 minutes
+// Time spent: 30 mins
 
 export type Location =
   | "HILLSBORO VILLAGE"

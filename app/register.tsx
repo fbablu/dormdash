@@ -1,4 +1,7 @@
 // app/register.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 2 hours
+
 import React, { useState } from "react";
 import {
   View,

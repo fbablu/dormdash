@@ -1,4 +1,7 @@
 // app/_layout.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 2 hours (ended up having to restart ide and clean cache to remove random tab)
+
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { router } from "expo-router";

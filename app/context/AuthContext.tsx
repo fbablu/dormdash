@@ -1,4 +1,6 @@
 // app/context/AuthContext.tsx
+// Contributors: Fardeen Bablu
+// Time spent: 6 hours
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -171,7 +173,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
       await signInWithEmailAndPassword(auth, email, password);
-      // Auth state listener will update the state
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -205,8 +206,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Update user profile with name
       await updateProfile(userCredential.user, { displayName: name });
-
-      // Create user document in Firestore - auth state listener will handle this
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -301,10 +300,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // TODO: Fully integrated with buildings on commons side of camppus
   const verifyDorm = async (dormCode: string): Promise<boolean> => {
     try {
-      // In a real app, you would verify the dorm code against a database
-      // For simplicity, we'll accept any 6-digit code
+      // TODO: Verify the dorm and Apple (no database needed)
       const isValidCode = /^\d{6}$/.test(dormCode);
 
       if (isValidCode && state.user) {
@@ -340,5 +339,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// Add default export to fix the routing issue
 export default AuthProvider;

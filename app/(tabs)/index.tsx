@@ -127,7 +127,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
             headers: {
               Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
             },
-          }
+          },
         );
 
         if (response.ok) {
@@ -139,17 +139,17 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         throw new Error("API request failed");
       } catch (apiError) {
         console.log(
-          "API call failed for favorites check, using AsyncStorage fallback"
+          "API call failed for favorites check, using AsyncStorage fallback",
         );
 
         // Fallback to AsyncStorage
         const savedFavoritesJson = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY
+          FAVORITES_STORAGE_KEY,
         );
         if (savedFavoritesJson) {
           const savedFavorites = JSON.parse(savedFavoritesJson);
           const isFav = savedFavorites.some(
-            (fav: FavoriteRestaurant) => fav.name === restaurant.name
+            (fav: FavoriteRestaurant) => fav.name === restaurant.name,
           );
           setIsFavorite(isFav);
         }
@@ -162,9 +162,10 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   const toggleFavorite = async (event: GestureResponderEvent) => {
     // Stop event propagation to prevent navigation when tapping heart icon
     event.stopPropagation();
-    
+
     try {
       // Use the user from context instead of GoogleSignin
+      // TODO: Fix later, this is incorrect because it maps all restaurants as Taco Mama data
       if (!user) {
         Alert.alert("Error", "Please sign in to save favorites");
         return;
@@ -193,14 +194,14 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         throw new Error("API request failed");
       } catch (apiError) {
         console.log(
-          "API call failed for toggle favorite, using AsyncStorage fallback"
+          "API call failed for toggle favorite, using AsyncStorage fallback",
         );
 
         // Fallback to AsyncStorage
         let savedFavorites = [];
         try {
           const savedFavoritesJson = await AsyncStorage.getItem(
-            FAVORITES_STORAGE_KEY
+            FAVORITES_STORAGE_KEY,
           );
           if (savedFavoritesJson) {
             savedFavorites = JSON.parse(savedFavoritesJson);
@@ -213,7 +214,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         if (isFavorite) {
           // Remove from favorites
           savedFavorites = savedFavorites.filter(
-            (item: FavoriteRestaurant) => item.name !== restaurant.name
+            (item: FavoriteRestaurant) => item.name !== restaurant.name,
           );
         } else {
           // Add to favorites with additional info
@@ -228,7 +229,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
           // Check if it already exists
           const existingIndex = savedFavorites.findIndex(
-            (item: FavoriteRestaurant) => item.name === restaurant.name
+            (item: FavoriteRestaurant) => item.name === restaurant.name,
           );
           if (existingIndex === -1) {
             savedFavorites.push(newFavorite);
@@ -238,7 +239,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         // Save updated favorites
         await AsyncStorage.setItem(
           FAVORITES_STORAGE_KEY,
-          JSON.stringify(savedFavorites)
+          JSON.stringify(savedFavorites),
         );
 
         // Update state
@@ -255,8 +256,10 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       style={styles.restaurantCard}
       onPress={() => {
         // Generate id from restaurant name
-        const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        console.log(`Navigating to restaurant: ${restaurant.name} with ID: ${id}`);
+        const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+        console.log(
+          `Navigating to restaurant: ${restaurant.name} with ID: ${id}`,
+        );
         router.push(`/restaurant/${id}`);
       }}
     >
@@ -269,7 +272,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       <View style={styles.restaurantInfo}>
         <View style={styles.restaurantHeader}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={toggleFavorite}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -288,7 +291,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     </TouchableOpacity>
   );
 };
-
 
 // Main Component
 export default function Page() {

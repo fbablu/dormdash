@@ -1,6 +1,6 @@
 // app/onboarding.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 1 hour
+// Time spent: 2 hour
 
 import { View, StyleSheet, Dimensions } from "react-native";
 import Onboarding from "react-native-onboarding-swiper";

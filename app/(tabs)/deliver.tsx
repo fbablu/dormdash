@@ -1,6 +1,6 @@
 // app/(tabs)/deliver.tsx
 // Contributors: @Albert Castrejon, @Fardeen Bablu
-// Time spent: 4 hours
+// Time spent: 6 hours
 // app/(tabs)/deliver.tsx
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -17,25 +17,42 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useOrders } from "@/app/context/OrderContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
-import { Order, DeliveryRequest } from "@/app/services/backendApi";
+import { Color } from "@/GlobalStyles";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Order {
+  id: string;
+  customerId: string;
+  restaurantId: string;
+  restaurantName: string;
+  items: OrderItem[];
+  totalAmount: string;
+  deliveryFee: string;
+  status: "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
+  timestamp: string;
+  paymentMethod: string;
+  delivererId?: string;
+  notes?: string;
+}
 
 export default function Deliver() {
-  // Get state and functions from contexts
-  const {
-    isOnlineForDelivery,
-    activeDeliveries,
-    availableDeliveryRequests,
-    isDeliveryLoading,
-    toggleDeliveryMode,
-    refreshDeliveries,
-    acceptDelivery,
-    updateDeliveryStatus,
-  } = useOrders();
-
   const { user } = useAuth();
 
+  const [isOnlineForDelivery, setIsOnlineForDelivery] =
+    useState<boolean>(false);
+  const [activeDeliveries, setActiveDeliveries] = useState<Order[]>([]);
+  const [availableDeliveryRequests, setAvailableDeliveryRequests] = useState<
+    Order[]
+  >([]);
+  const [isDeliveryLoading, setIsDeliveryLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
@@ -46,84 +63,153 @@ export default function Deliver() {
 
   // Toggle online status
   const toggleOnline = () => {
-    toggleDeliveryMode(true);
+    setIsOnlineForDelivery(true);
     setIsVisible(false);
   };
 
   // Toggle offline status
   const toggleOffline = () => {
-    toggleDeliveryMode(false);
+    setIsOnlineForDelivery(false);
     setIsVisible(false);
   };
 
-  // Fetch delivery requests from the API
+  // Fetch delivery requests from AsyncStorage
   const fetchDeliveryRequests = async () => {
-    if (!isOnlineForDelivery) return;
+    if (!isOnlineForDelivery || !user) return;
 
     setRefreshing(true);
-    await refreshDeliveries();
-    setRefreshing(false);
-  };
+    setIsDeliveryLoading(true);
 
-  // Accept a delivery request
-  const handleAcceptDelivery = async (requestId: string) => {
     try {
-      const success = await acceptDelivery(requestId);
-
-      if (success) {
-        Alert.alert("Success", "Delivery request accepted!");
-      } else {
-        Alert.alert("Error", "Failed to accept delivery. Please try again.");
+      // Get all orders from AsyncStorage
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (!ordersJson) {
+        setAvailableDeliveryRequests([]);
+        setActiveDeliveries([]);
+        return;
       }
+
+      const orders = JSON.parse(ordersJson) as Order[];
+
+      // Filter for pending orders (available for delivery)
+      const pendingOrders = orders.filter(
+        (order) => order.status === "pending",
+      );
+
+      // Filter for orders the user is delivering
+      const userDeliveries = orders.filter(
+        (order) =>
+          (order.status === "accepted" || order.status === "picked_up") &&
+          order.delivererId === user.id,
+      );
+
+      // Set states
+      setAvailableDeliveryRequests(pendingOrders);
+      setActiveDeliveries(userDeliveries);
     } catch (error) {
-      console.error("Error accepting delivery:", error);
-      Alert.alert("Error", "Failed to accept delivery. Please try again.");
+      console.error("Error fetching delivery data:", error);
+      Alert.alert("Error", "Failed to fetch delivery requests");
+    } finally {
+      setIsDeliveryLoading(false);
+      setRefreshing(false);
     }
   };
 
-  // Update the status of a delivery
+  // Accept a delivery request
+  const handleAcceptDelivery = async (orderId: string) => {
+    try {
+      // Get all orders
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (!ordersJson || !user) return false;
+
+      const allOrders = JSON.parse(ordersJson) as Order[];
+
+      // Update the specific order
+      const updatedOrders = allOrders.map((order) =>
+        order.id === orderId
+          ? { ...order, status: "accepted" as const, delivererId: user.id }
+          : order,
+      );
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(
+        "dormdash_orders",
+        JSON.stringify(updatedOrders),
+      );
+
+      // Refresh the lists
+      await fetchDeliveryRequests();
+
+      return true;
+    } catch (error) {
+      console.error("Error accepting delivery:", error);
+      return false;
+    }
+  };
+
+  // Update delivery status
   const handleUpdateStatus = async (
     orderId: string,
     newStatus: Order["status"],
   ) => {
     try {
-      const success = await updateDeliveryStatus(orderId, newStatus);
+      // Get all orders
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (!ordersJson) return false;
 
-      if (success) {
-        if (newStatus === "delivered") {
-          Alert.alert("Success", "Delivery marked as completed!");
-        } else {
-          Alert.alert("Success", `Delivery status updated to ${newStatus}!`);
-        }
+      const allOrders = JSON.parse(ordersJson) as Order[];
+
+      // Update the specific order
+      const updatedOrders = allOrders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order,
+      );
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(
+        "dormdash_orders",
+        JSON.stringify(updatedOrders),
+      );
+
+      // If delivered, remove from active deliveries
+      if (newStatus === "delivered") {
+        setActiveDeliveries((prev) =>
+          prev.filter((delivery) => delivery.id !== orderId),
+        );
       } else {
-        Alert.alert(
-          "Error",
-          "Failed to update delivery status. Please try again.",
+        // Otherwise update the status
+        setActiveDeliveries((prev) =>
+          prev.map((delivery) =>
+            delivery.id === orderId
+              ? { ...delivery, status: newStatus }
+              : delivery,
+          ),
         );
       }
+
+      return true;
     } catch (error) {
       console.error("Error updating delivery status:", error);
-      Alert.alert(
-        "Error",
-        "Failed to update delivery status. Please try again.",
-      );
+      return false;
     }
-  };
-
-  // Handle refresh
-  const onRefresh = () => {
-    fetchDeliveryRequests();
   };
 
   // Fetch delivery requests when going online
   useEffect(() => {
     if (isOnlineForDelivery) {
       fetchDeliveryRequests();
+    } else {
+      // Clear delivery data when going offline
+      setAvailableDeliveryRequests([]);
     }
   }, [isOnlineForDelivery]);
 
+  // Handle refresh
+  const onRefresh = () => {
+    fetchDeliveryRequests();
+  };
+
   // Render an available delivery request item
-  const renderAvailableDeliveryItem = ({ item }: { item: DeliveryRequest }) => {
+  const renderAvailableDeliveryItem = ({ item }: { item: Order }) => {
     // Check if this is the user's own order
     const isOwnOrder = item.customerId === user?.id;
 
@@ -137,12 +223,12 @@ export default function Deliver() {
 
         <View style={styles.deliveryHeader}>
           <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-          <Text style={styles.deliveryAmount}>
-            ${item.totalAmount.toFixed(2)}
-          </Text>
+          <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
         </View>
 
-        <Text style={styles.deliveryAddress}>To: {item.deliveryAddress}</Text>
+        <Text style={styles.deliveryAddress}>
+          Order #{item.id.substring(6, 12)}
+        </Text>
 
         {item.notes && (
           <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
@@ -150,13 +236,24 @@ export default function Deliver() {
 
         <View style={styles.deliveryFooter}>
           <Text style={styles.deliveryFee}>
-            Delivery Fee: ${item.deliveryFee.toFixed(2)}
+            Delivery Fee: ${item.deliveryFee}
           </Text>
 
           {!isOwnOrder && (
             <TouchableOpacity
               style={styles.acceptButton}
-              onPress={() => handleAcceptDelivery(item.id)}
+              onPress={() => {
+                handleAcceptDelivery(item.id).then((success) => {
+                  if (success) {
+                    Alert.alert("Success", "Delivery request accepted!");
+                  } else {
+                    Alert.alert(
+                      "Error",
+                      "Failed to accept delivery. Please try again.",
+                    );
+                  }
+                });
+              }}
             >
               <Text style={styles.acceptButtonText}>Accept</Text>
             </TouchableOpacity>
@@ -171,12 +268,12 @@ export default function Deliver() {
     <View style={styles.activeDeliveryItem}>
       <View style={styles.deliveryHeader}>
         <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-        <Text style={styles.deliveryAmount}>
-          ${item.totalAmount.toFixed(2)}
-        </Text>
+        <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
       </View>
 
-      <Text style={styles.deliveryAddress}>To: {item.deliveryAddress}</Text>
+      <Text style={styles.deliveryAddress}>
+        Order #{item.id.substring(6, 12)}
+      </Text>
 
       {item.notes && (
         <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
@@ -188,14 +285,36 @@ export default function Deliver() {
             styles.statusButton,
             item.status === "picked_up" && styles.activeStatusButton,
           ]}
-          onPress={() => handleUpdateStatus(item.id, "picked_up")}
+          onPress={() => {
+            handleUpdateStatus(item.id, "picked_up").then((success) => {
+              if (success) {
+                Alert.alert("Success", "Order marked as picked up!");
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Failed to update status. Please try again.",
+                );
+              }
+            });
+          }}
         >
           <Text style={styles.statusButtonText}>Picked Up</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.statusButton, styles.deliveredButton]}
-          onPress={() => handleUpdateStatus(item.id, "delivered")}
+          onPress={() => {
+            handleUpdateStatus(item.id, "delivered").then((success) => {
+              if (success) {
+                Alert.alert("Success", "Delivery marked as completed!");
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Failed to update status. Please try again.",
+                );
+              }
+            });
+          }}
         >
           <Text style={styles.statusButtonText}>Delivered</Text>
         </TouchableOpacity>
@@ -629,6 +748,7 @@ const styles = StyleSheet.create({
     width: "90%",
     borderRadius: 8,
     overflow: "hidden",
+    alignSelf: "center",
   },
   item: {
     backgroundColor: "#D9D9D9",
@@ -648,13 +768,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 20,
     backgroundColor: "#D9D9D9",
-    width: 375,
+    width: "90%",
     height: 75,
     borderColor: "#897A7A",
     borderWidth: 5,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
+    alignSelf: "center",
   },
   buttonText: {
     fontSize: 20,

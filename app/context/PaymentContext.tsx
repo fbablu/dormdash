@@ -1,4 +1,7 @@
 // app/context/PaymentContext.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 2 hours
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -53,5 +56,4 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// Export the provider as default
 export default PaymentProvider;

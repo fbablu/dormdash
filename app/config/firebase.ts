@@ -1,10 +1,12 @@
 // app/config/firebase.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 30 mins
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Directly use Firebase configuration values
+// (expo doesn't support .env, will need to import alternatively later)
 const firebaseConfig = {
   apiKey: "AIzaSyDqRdj5Q0CClfW9IT7HVJiIbHAVBucGvE8",
   authDomain: "dormdash-2bceb.firebaseapp.com",
@@ -15,16 +17,11 @@ const firebaseConfig = {
   measurementId: "G-NGF8H7LCFB",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize services with standard methods
-// We'll handle persistence in the AuthContext
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 export { app, auth, db, storage };
-
-// Add default export for Expo Router
 export default { app, auth, db, storage };
