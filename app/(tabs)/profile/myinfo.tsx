@@ -121,8 +121,6 @@ const MyInfoScreen = () => {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            // Here you would typically make an API call to delete the account
-            // For now, we'll just navigate back to the onboarding screen
             AsyncStorage.clear()
               .then(() => {
                 router.replace("/onboarding");

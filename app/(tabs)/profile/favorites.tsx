@@ -1,6 +1,6 @@
 // app/(tabs)/profile/favorites.tsx
 // Contributors: @Fardeen Bablu, @Yuening Li
-// Time spent: 2 hours
+// Time spent: 3 hours
 
 import React, { useState, useEffect } from "react";
 import {
@@ -18,6 +18,8 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Color, FontSize } from "@/GlobalStyles";
+import { useAuth } from "@/app/context/AuthContext";
+import backendApi from "@/app/services/backendApi";
 
 // Define the restaurant type
 interface Restaurant {
@@ -54,6 +56,7 @@ const MOCK_FAVORITES: Restaurant[] = [
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 export default function FavoritesScreen() {
+  const { user } = useAuth();
   const [favorites, setFavorites] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,53 +67,63 @@ export default function FavoritesScreen() {
 
   const loadFavorites = async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      // First try to get the userId
-      const userId = await AsyncStorage.getItem("userId");
-
-      // Try to fetch from API
-      if (userId) {
-        try {
-          const apiResponse = await fetch(
-            `http://localhost:3000/api/users/${userId}/favorites`,
-            {
-              headers: {
-                Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
-              },
-            },
-          );
-
-          if (apiResponse.ok) {
-            const data = await apiResponse.json();
-            setFavorites(data);
-            setLoading(false);
-            return;
-          }
-        } catch (apiError) {
-          console.log(
-            "API fetch failed, falling back to AsyncStorage",
-            apiError,
-          );
-        }
+      if (!user) {
+        console.log("No user found, cannot load favorites");
+        setError("Please sign in to view favorites");
+        setFavorites(MOCK_FAVORITES);
+        return;
       }
 
-      // Fallback to AsyncStorage if API fails
-      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites));
-      } else {
-        // Use mock data if nothing is saved yet
-        setFavorites(MOCK_FAVORITES);
-        // Save mock data to AsyncStorage for future use
-        await AsyncStorage.setItem(
+      // Use backendApi to fetch favorites (it will handle API and fallbacks)
+      try {
+        const { data } = await backendApi.user.getFavorites();
+
+        // Process data based on its format
+        if (Array.isArray(data)) {
+          if (typeof data[0] === "string") {
+            // Convert string array to Restaurant objects
+            const restaurantData = data.map((name) => ({
+              name,
+              rating: "4.5",
+              reviewCount: "100+",
+              deliveryTime: "15 min",
+              deliveryFee: "$3",
+              imageUrl:
+                "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
+            }));
+            setFavorites(restaurantData);
+          } else {
+            // Already in Restaurant format
+            setFavorites(data as unknown as Restaurant[]);
+          }
+        } else {
+          throw new Error("Unexpected data format");
+        }
+      } catch (apiError) {
+        console.log("API fetch failed, falling back to AsyncStorage", apiError);
+
+        // Fallback to AsyncStorage
+        const savedFavorites = await AsyncStorage.getItem(
           FAVORITES_STORAGE_KEY,
-          JSON.stringify(MOCK_FAVORITES),
         );
+        if (savedFavorites) {
+          setFavorites(JSON.parse(savedFavorites));
+        } else {
+          // Use mock data if nothing is saved yet
+          setFavorites(MOCK_FAVORITES);
+          // Save mock data to AsyncStorage for future use
+          await AsyncStorage.setItem(
+            FAVORITES_STORAGE_KEY,
+            JSON.stringify(MOCK_FAVORITES),
+          );
+        }
       }
     } catch (err) {
       console.error("Error loading favorites:", err);
       setError("Failed to load favorites");
-      // Fallback to mock data on error
       setFavorites(MOCK_FAVORITES);
     } finally {
       setLoading(false);
@@ -131,23 +144,32 @@ export default function FavoritesScreen() {
             text: "Remove",
             style: "destructive",
             onPress: async () => {
-              const updatedFavorites = favorites.filter(
-                (restaurant) => restaurant.name !== restaurantName,
-              );
-              setFavorites(updatedFavorites);
+              try {
+                // Use backendApi to remove favorite
+                await backendApi.user.toggleFavorite(restaurantName, "remove");
 
-              // Update AsyncStorage
-              await AsyncStorage.setItem(
-                FAVORITES_STORAGE_KEY,
-                JSON.stringify(updatedFavorites),
-              );
+                // Update UI immediately
+                const updatedFavorites = favorites.filter(
+                  (restaurant) => restaurant.name !== restaurantName,
+                );
+                setFavorites(updatedFavorites);
+
+                // Also update local storage as fallback
+                await AsyncStorage.setItem(
+                  FAVORITES_STORAGE_KEY,
+                  JSON.stringify(updatedFavorites),
+                );
+              } catch (error) {
+                console.error("Error removing favorite:", error);
+                Alert.alert("Error", "Failed to remove favorite");
+              }
             },
           },
         ],
       );
     } catch (error) {
-      console.error("Error removing favorite:", error);
-      Alert.alert("Error", "Failed to remove favorite");
+      console.error("Error with remove favorite dialog:", error);
+      Alert.alert("Error", "Failed to process request");
     }
   };
 

@@ -1,6 +1,7 @@
 // app/context/AuthContext.tsx
 // Contributors: Fardeen Bablu
-// Time spent: 6 hours
+// Time spent: 7 hours
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -11,9 +12,11 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  User as FirebaseUser,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
+import backendApi from "../services/backendApi";
 
 // Define user type
 export interface User {
@@ -70,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   useEffect(() => {
-    // Check if we have a stored user first
+    // Check stored user first
     const checkStoredAuth = async () => {
       try {
         const userData = await AsyncStorage.getItem("user_data");
@@ -97,6 +100,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Store user data for offline access
           await AsyncStorage.setItem("user_data", JSON.stringify(user));
+
+          // Try to sync with Express server if available
+          try {
+            const idToken = await firebaseUser.getIdToken();
+            await backendApi.auth.loginWithGoogle(idToken);
+          } catch (apiError) {
+            console.log(
+              "API sync failed, continuing with Firebase auth",
+              apiError,
+            );
+          }
 
           setState({
             isLoading: false,
@@ -131,7 +145,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Get or create user profile in Firestore
-  const getOrCreateUserProfile = async (firebaseUser: any): Promise<User> => {
+  const getOrCreateUserProfile = async (
+    firebaseUser: FirebaseUser,
+  ): Promise<User> => {
     try {
       const userRef = doc(db, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
@@ -152,6 +168,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Save to Firestore
         await setDoc(userRef, newUser);
+
+        // Try to sync with backend API
+        try {
+          const idToken = await firebaseUser.getIdToken();
+          await backendApi.auth.loginWithGoogle(idToken);
+        } catch (apiError) {
+          console.log("API sync failed for new user", apiError);
+        }
+
         return newUser;
       }
     } catch (error) {
@@ -172,7 +197,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signIn = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      await signInWithEmailAndPassword(auth, email, password);
+
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+
+      // Sync with Express API if available
+      try {
+        const idToken = await userCredential.user.getIdToken();
+        await backendApi.auth.loginWithGoogle(idToken);
+      } catch (apiError) {
+        console.log("API sync failed during sign in", apiError);
+      }
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -206,6 +245,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Update user profile with name
       await updateProfile(userCredential.user, { displayName: name });
+
+      // Try to sync with Express API
+      try {
+        const idToken = await userCredential.user.getIdToken();
+        await backendApi.auth.loginWithGoogle(idToken);
+      } catch (apiError) {
+        console.log("API sync failed during sign up", apiError);
+      }
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -239,10 +286,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
+
+      // Try to logout from Express API first
+      try {
+        await backendApi.auth.logout();
+      } catch (apiError) {
+        console.log(
+          "API logout failed, continuing with Firebase logout",
+          apiError,
+        );
+      }
+
+      // Sign out from Firebase
       await firebaseSignOut(auth);
 
       // Clear local storage
       await AsyncStorage.removeItem("user_data");
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userId");
 
       setState({
         isLoading: false,
@@ -271,6 +332,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Update AsyncStorage
         await AsyncStorage.setItem("user_data", JSON.stringify(userData));
         setState((prev) => ({ ...prev, user: userData }));
+
+        // Try to sync with Express API if available
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          await backendApi.auth.loginWithGoogle(idToken);
+        } catch (apiError) {
+          console.log("API sync failed during refresh", apiError);
+        }
       }
     } catch (error) {
       console.error("Error refreshing user:", error);
@@ -282,6 +351,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!auth.currentUser || !state.user)
         throw new Error("User not authenticated");
 
+      // Update Firebase
       const userRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
 
@@ -292,6 +362,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
+      // Try to update profile in Express API
+      try {
+        await backendApi.user.updateProfile(userData);
+      } catch (apiError) {
+        console.log("API profile update failed", apiError);
+      }
+
       // Refresh user data
       await refreshUser();
     } catch (error) {
@@ -300,7 +377,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // TODO: Fully integrated with buildings on commons side of camppus
+  // Verify dorm code
   const verifyDorm = async (dormCode: string): Promise<boolean> => {
     try {
       // TODO: Verify the dorm and Apple (no database needed)
@@ -311,6 +388,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           isVerified: true,
           dormLocation: "Verified Dorm",
         });
+
+        // Try to verify with Express API
+        try {
+          await backendApi.user.verifyDorm(dormCode);
+        } catch (apiError) {
+          console.log("API dorm verification failed", apiError);
+        }
+
         return true;
       }
 

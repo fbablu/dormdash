@@ -1,6 +1,6 @@
 // app/(tabs)/profile/index.tsx
 // Contributors: @Fardeen Bablu, @Yuening Li
-// Time spent: 2 hours
+// Time spent: 3 hours
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -11,74 +11,93 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { api } from "@/app/services/api";
+import { useAuth } from "@/app/context/AuthContext";
 import { usePayment } from "@/app/context/PaymentContext";
+import backendApi from "@/app/services/backendApi";
 
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 const ProfileScreen = () => {
   const { paymentMethod, refreshPaymentMethod } = usePayment();
+  const { user, refreshUser } = useAuth();
+
   const [userProfile, setUserProfile] = useState({
-    name: "Lily Li",
-    email: "dormdash@gmail.com",
+    name: "",
+    email: "",
     phoneNumber: "",
     defaultAddress: "",
   });
   const [defaultAddress, setDefaultAddress] = useState<string>("");
   const [favoriteCount, setFavoriteCount] = useState<number>(0);
   const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    refreshPaymentMethod();
     fetchUserProfile();
     fetchDefaultAddress();
     fetchFavoriteCount();
-
-    // Refresh payment method when component mounts
-    refreshPaymentMethod();
   }, []);
 
-  // Use useFocusEffect to refresh favorites count when the screen comes into focus
+  // Refresh data when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchFavoriteCount();
-      // Return a cleanup function if needed
       return () => {};
     }, []),
   );
 
   const fetchUserProfile = async () => {
     try {
-      const currentUser = await GoogleSignin.getCurrentUser();
-      if (!currentUser) {
-        // If not logged in, we'll just use the default state
+      setIsLoading(true);
+
+      if (!user) {
+        console.log("No user found in AuthContext");
         return;
       }
 
-      // Try to get the profile from API
+      // Try to get profile from backend API
       try {
-        // Comment out the API call temporarily to avoid the network error
-        // const data = await api.getUserProfile(currentUser.user.id);
-        // setUserProfile(data);
-
-        // Just use the static data for now
+        const { data } = await backendApi.user.getProfile();
         setUserProfile({
-          name: currentUser.user.name || "Lily Li",
-          email: currentUser.user.email || "dormdash@gmail.com",
+          name: data.name || user.name || "Vanderbilt Student",
+          email: data.email || user.email || "",
+          phoneNumber: data.phone || "",
+          defaultAddress: data.dormLocation || "",
+        });
+      } catch (apiError) {
+        console.log(
+          "API call failed, using user data from AuthContext",
+          apiError,
+        );
+
+        // Use user data from AuthContext as fallback
+        setUserProfile({
+          name: user.name || "Vanderbilt Student",
+          email: user.email || "",
           phoneNumber: "",
           defaultAddress: "",
         });
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
+
+        // Try to refresh user data from Firebase
+        try {
+          await refreshUser();
+        } catch (refreshError) {
+          console.error("Error refreshing user data:", refreshError);
+        }
       }
     } catch (error) {
-      console.error("Google sign-in check error:", error);
+      console.error("Error fetching user profile:", error);
+      Alert.alert("Error", "Failed to load profile data");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,39 +118,26 @@ const ProfileScreen = () => {
   const fetchFavoriteCount = async () => {
     setLoadingFavorites(true);
     try {
-      // Try to get user ID first
-      const userId = await AsyncStorage.getItem("userId");
+      // Use backendApi which handles both API calls and fallbacks
+      try {
+        const { data } = await backendApi.user.getFavorites();
+        setFavoriteCount(Array.isArray(data) ? data.length : 0);
+      } catch (apiError) {
+        console.log(
+          "API fetch failed for favorites, using AsyncStorage",
+          apiError,
+        );
 
-      // Try API first
-      if (userId) {
-        try {
-          const response = await fetch(
-            `http://localhost:3000/api/users/${userId}/favorites`,
-            {
-              headers: {
-                Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
-              },
-            },
-          );
-
-          if (response.ok) {
-            const favorites = await response.json();
-            setFavoriteCount(favorites.length);
-            setLoadingFavorites(false);
-            return;
-          }
-        } catch (error) {
-          console.log("API fetch failed, falling back to AsyncStorage", error);
+        // Fallback to AsyncStorage
+        const savedFavorites = await AsyncStorage.getItem(
+          FAVORITES_STORAGE_KEY,
+        );
+        if (savedFavorites) {
+          const favorites = JSON.parse(savedFavorites);
+          setFavoriteCount(favorites.length);
+        } else {
+          setFavoriteCount(0);
         }
-      }
-
-      // Fallback to AsyncStorage
-      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      if (savedFavorites) {
-        const favorites = JSON.parse(savedFavorites);
-        setFavoriteCount(favorites.length);
-      } else {
-        setFavoriteCount(0);
       }
     } catch (error) {
       console.error("Error fetching favorite count:", error);
@@ -143,14 +149,24 @@ const ProfileScreen = () => {
 
   const handleSignOut = async () => {
     try {
-      await GoogleSignin.signOut();
-      await AsyncStorage.removeItem("userToken");
-      await AsyncStorage.removeItem("userId");
+      await backendApi.auth.logout();
       router.replace("/onboarding");
     } catch (error) {
       console.error("Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out. Please try again.");
     }
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#cfae70" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -168,7 +184,11 @@ const ProfileScreen = () => {
         <View style={styles.profileSection}>
           <Image
             style={styles.profileImage}
-            source={require("@/assets/profile_picture.png")}
+            source={
+              user?.image
+                ? { uri: user.image }
+                : require("@/assets/profile_picture.png")
+            }
             defaultSource={require("@/assets/profile_picture.png")}
           />
           <Text style={styles.profileName}>{userProfile.name}</Text>
@@ -293,6 +313,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
   },
   header: {
     flexDirection: "row",
