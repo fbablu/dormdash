@@ -191,7 +191,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      const idToken = userInfo.idToken;
+      
+      // Get ID token from user info
+      const googleUser = await GoogleSignin.getCurrentUser();
+      const idToken = googleUser?.idToken;
+      
+      if (!idToken) {
+        throw new Error('No ID token available');
+      }
       
       const response = await fetch('http://127.0.0.1:3000/api/auth/google', {
         method: 'POST', 
