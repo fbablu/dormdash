@@ -6,15 +6,11 @@ import {
   setPersistence,
   inMemoryPersistence,
   initializeAuth,
-  getReactNativePersistence,
   signInWithCustomToken as firebaseSignInWithCustomToken,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// only looking where the light is;
-// problem could be in different places that are not visible
 
 // Firebase configuration
 const firebaseConfig = {
@@ -29,11 +25,11 @@ const firebaseConfig = {
 
 let firebaseApp: FirebaseApp;
 let fireAuth: Auth;
+
 if (getApps().length < 1) {
   firebaseApp = initializeApp(firebaseConfig);
-  fireAuth = initializeAuth(firebaseApp, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
+  // Initialize auth without React Native persistence
+  fireAuth = initializeAuth(firebaseApp);
 } else {
   firebaseApp = getApp();
   fireAuth = getAuth();
