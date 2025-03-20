@@ -1,6 +1,8 @@
-// app/components/onboarding/RegisterScreen.tsx
+// components/onboarding/RegisterScreen.tsx
+// Contributors: @Fardeen Bablu, @Yuening Li
+// Time spent: 3 hours
 
-import * as React from "react";
+import React from "react";
 import {
   StyleSheet,
   View,
@@ -10,54 +12,10 @@ import {
   Image,
   Linking,
 } from "react-native";
-import { CustomSafeAreaView } from "../CustomSafeAreaView";
-import { Feather, AntDesign } from "@expo/vector-icons";
+import { Color } from "@/GlobalStyles";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-
-import {
-  GoogleSignin,
-  statusCodes,
-  isSuccessResponse,
-  isErrorWithCode,
-} from '@react-native-google-signin/google-signin';
-
-
-// reference: https://react-native-google-signin.github.io/docs/original/
-GoogleSignin.configure({
-  iosClientId: "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
-  // offlineAccess: true,
-});
-
-// code copied from: https://react-native-google-signin.github.io/docs/original
-const handleClick = async () => {
-  try {
-    await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      if (isSuccessResponse(response)) {
-        console.log(response.data);
-        router.replace("/(tabs)");
-      } else {
-        // sign in was cancelled by user
-      }
-    }
-  catch (error) {
-    if (isErrorWithCode(error)) {
-      switch (error.code) {
-        case statusCodes.IN_PROGRESS:
-          // operation (eg. sign in) already in progress
-          break;
-        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-          // Android only, play services not available or outdated
-          break;
-        default:
-        // some other error happened
-      }
-    } else {
-      // an error that's not related to google sign in occurred
-    }
-  }
-};
-
+import { CustomSafeAreaView } from "../CustomSafeAreaView";
 
 const { width, height } = Dimensions.get("window");
 
@@ -86,7 +44,7 @@ const RegisterScreen = () => {
           <View style={styles.listItem}>
             <Feather name="check-circle" size={24} color="black" />
             <Text style={styles.listText}>
-              Direct dorm room service from registered students.
+              Direct dorm room service from registered students
             </Text>
           </View>
         </View>
@@ -96,25 +54,33 @@ const RegisterScreen = () => {
           <View style={styles.listItem}>
             <Feather name="check-circle" size={24} color="black" />
             <Text style={styles.listText}>
-              Earn through PayPal or Commodore Cash. Your choice.
+              Earn through PayPal or Commodore Cash
             </Text>
           </View>
           <View style={styles.listItem}>
             <Feather name="check-circle" size={24} color="black" />
             <Text style={styles.listText}>
-              Work your own hours on a familiar campus!
+              Work your own hours on a familiar campus
             </Text>
           </View>
         </View>
 
         <View style={styles.bottomButtons}>
           <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleClick}
-            // onPress={() => router.replace("/(tabs)")} // TODO: add Google Auth
+            style={styles.signupButton}
+            onPress={() => router.push("/register")}
           >
-            <AntDesign name="google" size={24} color="black" />
-            <Text style={styles.googleText}>Sign in with Vandy Email</Text>
+            <Feather name="user-plus" size={24} color="white" />
+            <Text style={styles.signupButtonText}>Create Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push("/login")}
+          >
+            <Text style={styles.loginButtonText}>
+              Already have an account? Sign In
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -132,15 +98,16 @@ const RegisterScreen = () => {
     </CustomSafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     width: width,
     height: height * 0.8,
-    backgroundColor: "#cfae70",
+    backgroundColor: Color.colorBurlywood,
   },
   header: {
     height: 130,
-    backgroundColor: "#cfae70",
+    backgroundColor: Color.colorBurlywood,
     justifyContent: "center",
     alignItems: "center",
     marginTop: -120,
@@ -164,7 +131,7 @@ const styles = StyleSheet.create({
     color: "black",
   },
   section: {
-    backgroundColor: "#cfae70",
+    backgroundColor: Color.colorBurlywood,
     borderRadius: 25,
     borderWidth: 2,
     borderColor: "black",
@@ -189,26 +156,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
   },
-
   bottomButtons: {
     marginTop: "auto",
     alignItems: "center",
   },
-  googleButton: {
-    backgroundColor: "#B3C9CD",
+  signupButton: {
+    backgroundColor: "#000",
     flexDirection: "row",
     borderRadius: 25,
     padding: 15,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "black",
-    alignSelf: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginBottom: 16,
   },
-  googleText: {
+  signupButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "black",
+    color: "white",
     marginLeft: 10,
+  },
+  loginButton: {
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    color: "black",
+    fontWeight: "500",
   },
   tosButton: {
     marginTop: 10,

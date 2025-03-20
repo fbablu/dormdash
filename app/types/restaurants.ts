@@ -1,3 +1,7 @@
+// app/types/restaurants.ts
+// Contributors: @Fardeen Bablu
+// Time spent: 30 mins
+
 export type Location =
   | "HILLSBORO VILLAGE"
   | "MIDTOWN"
@@ -46,7 +50,7 @@ export type Cuisine =
   | "Kosher"
   | "Vegetarian";
 
-export interface Restaurant {
+export default interface Restaurant {
   name: string;
   location: Location;
   address: string;
@@ -56,9 +60,3 @@ export interface Restaurant {
 }
 
 type Restaurants = Restaurant[];
-export default Restaurants;
-
-
-
-
-
