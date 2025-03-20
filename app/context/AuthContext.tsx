@@ -18,7 +18,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Define user type
 export interface User {
@@ -187,7 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Use authService for persistent login
       await authService.signIn(email, password);
-
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -213,7 +212,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Use authService for persistent registration
       await authService.signUp(email, password, name);
-
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -297,7 +295,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       throw error;
     }
   };
-
 
   // TODO: Update with ios scanner instead
   const verifyDorm = async (dormCode: string): Promise<boolean> => {

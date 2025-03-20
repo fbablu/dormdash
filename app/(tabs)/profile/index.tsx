@@ -53,7 +53,7 @@ const ProfileScreen = () => {
     useCallback(() => {
       fetchFavoriteCount();
       return () => {};
-    }, [])
+    }, []),
   );
 
   const fetchUserProfile = async () => {
@@ -91,7 +91,7 @@ const ProfileScreen = () => {
     try {
       // Try to get the current address
       const currentAddress = await AsyncStorage.getItem(
-        "dormdash_current_address"
+        "dormdash_current_address",
       );
       if (currentAddress) {
         setDefaultAddress(currentAddress);
@@ -116,7 +116,7 @@ const ProfileScreen = () => {
               headers: {
                 Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
               },
-            }
+            },
           );
 
           if (response.ok) {
@@ -131,9 +131,7 @@ const ProfileScreen = () => {
       }
 
       // Fallback to AsyncStorage
-      const savedFavorites = await AsyncStorage.getItem(
-        FAVORITES_STORAGE_KEY,
-      );
+      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
       if (savedFavorites) {
         const favorites = JSON.parse(savedFavorites);
         setFavoriteCount(favorites.length);
