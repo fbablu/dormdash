@@ -16,6 +16,8 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
 
 // Define user type
 export interface User {
@@ -185,31 +187,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async () => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true }));
-
-      // Use authService for persistent login
-      await authService.signIn(email, password);
-
-      // The rest is handled by the onAuthStateChanged listener
-    } catch (error: any) {
-      console.error("Sign in error:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
-
-      // More specific error handling
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        throw new Error("Invalid email or password");
-      } else if (error.code === "auth/too-many-requests") {
-        throw new Error(
-          "Too many failed login attempts. Please try again later",
-        );
-      } else {
-        throw new Error(error.message || "Failed to sign in");
-      }
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.idToken;
+      
+      const response = await fetch('http://127.0.0.1:3000/api/auth/google', {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      
+      const data = await response.json();
+      console.log('Token:', data.token);
+      
+      // Save the token
+      await AsyncStorage.setItem('userToken', data.token);
+    } catch (error) {
+      console.error(error);
     }
   };
 

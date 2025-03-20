@@ -50,7 +50,7 @@ const ProfileScreen = () => {
       fetchFavoriteCount();
       // Return a cleanup function if needed
       return () => {};
-    }, []),
+    }, [])
   );
 
   const fetchUserProfile = async () => {
@@ -86,7 +86,7 @@ const ProfileScreen = () => {
     try {
       // Try to get the current address
       const currentAddress = await AsyncStorage.getItem(
-        "dormdash_current_address",
+        "dormdash_current_address"
       );
       if (currentAddress) {
         setDefaultAddress(currentAddress);
@@ -111,7 +111,7 @@ const ProfileScreen = () => {
               headers: {
                 Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
               },
-            },
+            }
           );
 
           if (response.ok) {
@@ -210,6 +210,12 @@ const ProfileScreen = () => {
             icon="mail"
             title={userProfile.email}
             onPress={() => console.log("Email")}
+          />
+
+          <MenuItem
+            icon="activity"
+            title="API Status"
+            onPress={() => router.push("/api-status")}
           />
         </View>
 
