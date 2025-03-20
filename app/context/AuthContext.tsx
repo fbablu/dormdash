@@ -16,8 +16,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Define user type
 export interface User {
@@ -191,26 +190,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      
+
       // Get ID token from user info
       const googleUser = await GoogleSignin.getCurrentUser();
       const idToken = googleUser?.idToken;
-      
+
       if (!idToken) {
-        throw new Error('No ID token available');
+        throw new Error("No ID token available");
       }
-      
-      const response = await fetch('http://127.0.0.1:3000/api/auth/google', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken })
+
+      const response = await fetch("http://127.0.0.1:3000/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
       });
-      
+
       const data = await response.json();
-      console.log('Token:', data.token);
-      
+      console.log("Token:", data.token);
+
       // Save the token
-      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem("userToken", data.token);
     } catch (error) {
       console.error(error);
     }
