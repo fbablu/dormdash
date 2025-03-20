@@ -3,7 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.d.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

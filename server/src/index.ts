@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
 import userRoutes from "./routes/users";
 import initDatabase from "./config/initDb";
+import indexRoutes from "./routes/index";
 
 dotenv.config();
 
@@ -491,6 +492,7 @@ app.put(
 );
 
 // Routes
+app.use("/", indexRoutes);
 app.use("/api/users", userRoutes);
 
 // Health check

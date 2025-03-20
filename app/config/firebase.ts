@@ -1,12 +1,11 @@
 // app/config/firebase.ts
-// Contributors: @Fardeen Bablu
-// Time spent: 30 mins
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// (expo doesn't support .env, will need to import alternatively later)
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDqRdj5Q0CClfW9IT7HVJiIbHAVBucGvE8",
   authDomain: "dormdash-2bceb.firebaseapp.com",
@@ -19,7 +18,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Initialize regular auth - we'll handle persistence manually
 const auth = getAuth(app);
+
+
+// TODO: Setup persistence
+// next steps is this:
+// import { setPersistence, browserLocalPersistence } from "firebase/auth";
+// setPersistence(auth, browserLocalPersistence).catch(console.error);
+
 const db = getFirestore(app);
 const storage = getStorage(app);
 
