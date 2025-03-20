@@ -51,7 +51,7 @@ const ProfileScreen = () => {
     useCallback(() => {
       fetchFavoriteCount();
       return () => {};
-    }, []),
+    }, [])
   );
 
   const fetchUserProfile = async () => {
@@ -105,7 +105,7 @@ const ProfileScreen = () => {
     try {
       // Try to get the current address
       const currentAddress = await AsyncStorage.getItem(
-        "dormdash_current_address",
+        "dormdash_current_address"
       );
       if (currentAddress) {
         setDefaultAddress(currentAddress);
@@ -118,15 +118,31 @@ const ProfileScreen = () => {
   const fetchFavoriteCount = async () => {
     setLoadingFavorites(true);
     try {
-      // Use backendApi which handles both API calls and fallbacks
-      try {
-        const { data } = await backendApi.user.getFavorites();
-        setFavoriteCount(Array.isArray(data) ? data.length : 0);
-      } catch (apiError) {
-        console.log(
-          "API fetch failed for favorites, using AsyncStorage",
-          apiError,
-        );
+      // Try to get user ID first
+      const userId = await AsyncStorage.getItem("userId");
+
+      // Try API first
+      if (userId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/users/${userId}/favorites`,
+            {
+              headers: {
+                Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const favorites = await response.json();
+            setFavoriteCount(favorites.length);
+            setLoadingFavorites(false);
+            return;
+          }
+        } catch (error) {
+          console.log("API fetch failed, falling back to AsyncStorage", error);
+        }
+      }
 
         // Fallback to AsyncStorage
         const savedFavorites = await AsyncStorage.getItem(
@@ -230,6 +246,12 @@ const ProfileScreen = () => {
             icon="mail"
             title={userProfile.email}
             onPress={() => console.log("Email")}
+          />
+
+          <MenuItem
+            icon="activity"
+            title="API Status"
+            onPress={() => router.push("/api-status")}
           />
         </View>
 
