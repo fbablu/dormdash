@@ -4,11 +4,17 @@ import {
   getAuth,
   setPersistence,
   inMemoryPersistence,
+  initializeAuth,
+  getReactNativePersistence,
   signInWithCustomToken as firebaseSignInWithCustomToken,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+//@ts-ignore
+// import { getReactNativePersistence } from '@firebase/auth/dist/rn/index.js';
+
+
 
 // Firebase configuration
 const firebaseConfig = {
@@ -23,7 +29,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 // Set up manual persistence with AsyncStorage
 setPersistence(auth, inMemoryPersistence)
