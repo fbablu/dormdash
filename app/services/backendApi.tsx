@@ -13,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { v4 as uuidv4 } from "uuid";
+import { View, Text } from "react-native";
 
 // Types for our models
 export interface User {
@@ -871,3 +871,14 @@ export const orderApi = {
     }
   },
 };
+
+
+// Default export component to satisfy router requirement
+export default function backendApi() {
+  return (
+    <View>
+      <Text> </Text>
+      <Text> Restaurant Service Component</Text>
+    </View>
+  );
+}
