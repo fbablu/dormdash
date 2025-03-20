@@ -20,6 +20,7 @@ import authService from "../services/authService";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 
+
 // Define user type
 export interface User {
   id: string;
