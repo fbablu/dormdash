@@ -1,10 +1,19 @@
 // app/services/backendApi.ts
-// Contributors: @Fardeen Bablu
-// Time spent: 3 hours
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/lib/api/config";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import {
+  doc,
+  collection,
+  getDocs,
+  getDoc,
+  setDoc,
+  addDoc,
+  query,
+  where,
+} from "firebase/firestore";
+import { db } from "../config/firebase";
+import { v4 as uuidv4 } from "uuid";
 
 // Types for our models
 export interface User {
@@ -33,6 +42,7 @@ export interface Order {
   paymentMethod: string;
   createdAt: string;
   updatedAt: string;
+  delivererId?: string;
 }
 
 export interface OrderItem {
@@ -91,7 +101,6 @@ async function fetchWithAuth<T>(
 ): Promise<T> {
   try {
     const headers = await getAuthHeaders();
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -111,18 +120,18 @@ async function fetchWithAuth<T>(
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
 
-    // For development/demo purposes - if server is down, use AsyncStorage as fallback
+    // For development/demo purposes - use Firestore instead if server is down
     if ((error as Error).message.includes("Network request failed")) {
-      console.log("Using AsyncStorage fallback for:", endpoint);
-      return handleOfflineFallback<T>(endpoint, options);
+      console.log("Using Firestore/AsyncStorage fallback for:", endpoint);
+      return handleFirestoreFallback<T>(endpoint, options);
     }
 
     throw error;
   }
 }
 
-// Fallback to AsyncStorage when server is unavailable (for development/demo)
-async function handleOfflineFallback<T>(
+// Fallback to Firestore/AsyncStorage when server is unavailable
+async function handleFirestoreFallback<T>(
   endpoint: string,
   options: RequestInit,
 ): Promise<T> {
@@ -135,26 +144,39 @@ async function handleOfflineFallback<T>(
 
     if (!googleUser) throw new Error("Not signed in with Google");
 
-    const mockUser = {
-      id: googleUser.user.id || String(Date.now()),
-      name: googleUser.user.name || "Vanderbilt Student",
-      email: googleUser.user.email || "",
-      image: googleUser.user.photo || "",
-      isVerified: true,
-      createdAt: new Date().toISOString(),
-    };
+    // Create or get the user from Firestore
+    try {
+      // Check if user exists
+      const userRef = doc(db, "users", googleUser.user.id);
+      const userDoc = await getDoc(userRef);
 
-    // Store user data in AsyncStorage as a simple offline database
-    await AsyncStorage.setItem("currentUser", JSON.stringify(mockUser));
-    const mockToken = "mock-jwt-token-" + Date.now();
-    await AsyncStorage.setItem("userToken", mockToken);
+      const mockUser = {
+        id: googleUser.user.id,
+        name: googleUser.user.name || "Vanderbilt Student",
+        email: googleUser.user.email || "",
+        image: googleUser.user.photo || "",
+        isVerified: true,
+        createdAt: new Date().toISOString(),
+      };
 
-    return {
-      data: {
-        token: mockToken,
-        user: mockUser,
-      },
-    } as unknown as T;
+      // If user doesn't exist, create it
+      if (!userDoc.exists()) {
+        await setDoc(userRef, mockUser);
+      }
+
+      // Store user data in AsyncStorage as a simple offline database
+      await AsyncStorage.setItem("currentUser", JSON.stringify(mockUser));
+
+      const mockToken = "mock-jwt-token-" + Date.now();
+      await AsyncStorage.setItem("userToken", mockToken);
+
+      return {
+        data: { token: mockToken, user: mockUser },
+      } as unknown as T;
+    } catch (error) {
+      console.error("Firestore user creation error:", error);
+      throw error;
+    }
   }
 
   // Offline handling for user profile
@@ -163,43 +185,145 @@ async function handleOfflineFallback<T>(
     endpoint.includes("/profile") &&
     method === "GET"
   ) {
-    const userData = await AsyncStorage.getItem("currentUser");
-    if (!userData) throw new Error("User not found");
-    return { data: JSON.parse(userData) } as unknown as T;
+    const userId = endpoint.split("/")[3]; // Extract userId from URL
+
+    try {
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        return { data: userDoc.data() } as unknown as T;
+      } else {
+        const userData = await AsyncStorage.getItem("currentUser");
+        if (!userData) throw new Error("User not found");
+        return { data: JSON.parse(userData) } as unknown as T;
+      }
+    } catch (error) {
+      console.error("Firestore user fetch error:", error);
+      const userData = await AsyncStorage.getItem("currentUser");
+      if (!userData) throw new Error("User not found");
+      return { data: JSON.parse(userData) } as unknown as T;
+    }
   }
 
   // Offline handling for orders
-  if (endpoint === "/api/orders" && method === "GET") {
-    const ordersData = await AsyncStorage.getItem("dormdash_orders");
-    const orders = ordersData ? JSON.parse(ordersData) : [];
-    return { data: orders } as unknown as T;
+  if (endpoint === "/api/user/orders" && method === "GET") {
+    try {
+      const currentUser = await AsyncStorage.getItem("currentUser");
+      if (!currentUser) throw new Error("User not found");
+
+      const userId = JSON.parse(currentUser).id;
+
+      // Try to get orders from Firestore
+      try {
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("customerId", "==", userId),
+        );
+
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const orders: any[] = [];
+
+        ordersSnapshot.forEach((doc) => {
+          orders.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (orders.length > 0) {
+          return { data: orders } as unknown as T;
+        }
+      } catch (firestoreError) {
+        console.error("Firestore orders fetch error:", firestoreError);
+      }
+
+      // Fallback to AsyncStorage
+      const ordersData = await AsyncStorage.getItem("dormdash_orders");
+      const orders = ordersData ? JSON.parse(ordersData) : [];
+
+      // Filter to only this user's orders
+      const userOrders = orders.filter(
+        (order: any) => order.customerId === userId,
+      );
+
+      return { data: userOrders } as unknown as T;
+    } catch (error) {
+      console.error("AsyncStorage orders fetch error:", error);
+      throw error;
+    }
   }
 
   // Offline handling for delivery requests
   if (endpoint === "/api/delivery/requests" && method === "GET") {
-    const ordersData = await AsyncStorage.getItem("dormdash_orders");
-    const orders = ordersData ? JSON.parse(ordersData) : [];
+    try {
+      // Try to get pending orders from Firestore
+      try {
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("status", "==", "pending"),
+        );
 
-    // Filter for pending orders and transform to delivery requests
-    const pendingOrders = orders.filter(
-      (order: any) => order.status === "pending",
-    );
-    const deliveryRequests = pendingOrders.map((order: any) => ({
-      id: order.id,
-      orderId: order.id,
-      customerId: "mock-user-id",
-      customerName: "Vanderbilt Student",
-      restaurantId: order.restaurantId,
-      restaurantName: order.restaurantName,
-      deliveryAddress: "Vanderbilt Campus",
-      totalAmount: parseFloat(order.total),
-      deliveryFee: parseFloat(order.deliveryFee),
-      status: "pending",
-      notes: order.notes || "",
-      createdAt: order.timestamp,
-    }));
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const pendingOrders: any[] = [];
 
-    return { data: deliveryRequests } as unknown as T;
+        ordersSnapshot.forEach((doc) => {
+          pendingOrders.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (pendingOrders.length > 0) {
+          // Transform to delivery requests format
+          const deliveryRequests = pendingOrders.map((order) => ({
+            id: order.id,
+            orderId: order.id,
+            customerId: order.customerId,
+            customerName: "Vanderbilt Student", // We don't have this info readily available
+            restaurantId: order.restaurantId,
+            restaurantName: order.restaurantName,
+            deliveryAddress: order.deliveryAddress || "Vanderbilt Campus",
+            totalAmount: order.totalAmount,
+            deliveryFee: order.deliveryFee,
+            status: order.status,
+            notes: order.notes || "",
+            createdAt: order.createdAt,
+          }));
+
+          return { data: deliveryRequests } as unknown as T;
+        }
+      } catch (firestoreError) {
+        console.error(
+          "Firestore delivery requests fetch error:",
+          firestoreError,
+        );
+      }
+
+      // Fallback to AsyncStorage
+      const ordersData = await AsyncStorage.getItem("dormdash_orders");
+      const orders = ordersData ? JSON.parse(ordersData) : [];
+
+      // Filter for pending orders
+      const pendingOrders = orders.filter(
+        (order: any) => order.status === "pending",
+      );
+
+      // Transform to delivery requests format
+      const deliveryRequests = pendingOrders.map((order: any) => ({
+        id: order.id,
+        orderId: order.id,
+        customerId: order.customerId || "mock-user-id",
+        customerName: "Vanderbilt Student",
+        restaurantId: order.restaurantId,
+        restaurantName: order.restaurantName,
+        deliveryAddress: order.deliveryAddress || "Vanderbilt Campus",
+        totalAmount: parseFloat(order.totalAmount),
+        deliveryFee: parseFloat(order.deliveryFee),
+        status: "pending",
+        notes: order.notes || "",
+        createdAt: order.timestamp || order.createdAt,
+      }));
+
+      return { data: deliveryRequests } as unknown as T;
+    } catch (error) {
+      console.error("AsyncStorage delivery requests fetch error:", error);
+      throw error;
+    }
   }
 
   throw new Error(`No offline fallback available for ${endpoint}`);
@@ -210,10 +334,15 @@ export const authApi = {
   loginWithGoogle: async (
     idToken: string,
   ): Promise<ApiResponse<{ token: string; user: User }>> => {
-    return fetchWithAuth("/api/auth/google", {
-      method: "POST",
-      body: JSON.stringify({ idToken }),
-    });
+    try {
+      return fetchWithAuth("/api/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      });
+    } catch (error) {
+      console.error("Google login error:", error);
+      throw error;
+    }
   },
 
   logout: async (): Promise<void> => {
@@ -251,6 +380,27 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
+    try {
+      // Try to update in Firestore first
+      const userRef = doc(db, "users", user.id);
+      await setDoc(userRef, data, { merge: true });
+
+      // Update local storage
+      const currentUserStr = await AsyncStorage.getItem("currentUser");
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        await AsyncStorage.setItem(
+          "currentUser",
+          JSON.stringify({
+            ...currentUser,
+            ...data,
+          }),
+        );
+      }
+    } catch (error) {
+      console.error("Error updating user in Firestore:", error);
+    }
+
     return fetchWithAuth(`/api/users/${user.id}/profile`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -276,13 +426,62 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
+    try {
+      // Update favorites in AsyncStorage regardless of API success
+      const FAVORITES_STORAGE_KEY = "dormdash_favorites";
+      let savedFavorites = [];
+
+      try {
+        const savedFavoritesJson = await AsyncStorage.getItem(
+          FAVORITES_STORAGE_KEY,
+        );
+        if (savedFavoritesJson) {
+          savedFavorites = JSON.parse(savedFavoritesJson);
+        }
+      } catch (storageError) {
+        console.error("Error reading favorites from storage:", storageError);
+        savedFavorites = [];
+      }
+
+      if (action === "remove") {
+        // Remove from favorites
+        savedFavorites = savedFavorites.filter(
+          (item: any) => item.name !== restaurantName,
+        );
+      } else {
+        // Add to favorites with additional info
+        const newFavorite = {
+          name: restaurantName,
+          rating: "4.5", // Default rating
+          reviewCount: "100+", // Default
+          deliveryTime: "15 min", // Default
+          deliveryFee: "$3", // Default
+          imageUrl:
+            "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop", // Default image
+        };
+
+        // Check if it already exists
+        const existingIndex = savedFavorites.findIndex(
+          (item: any) => item.name === restaurantName,
+        );
+
+        if (existingIndex === -1) {
+          savedFavorites.push(newFavorite);
+        }
+      }
+
+      // Save updated favorites
+      await AsyncStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(savedFavorites),
+      );
+    } catch (error) {
+      console.error("Error updating favorites in local storage:", error);
+    }
+
     return fetchWithAuth("/api/users/favorites", {
       method: "POST",
-      body: JSON.stringify({
-        userId: user.id,
-        restaurantName,
-        action,
-      }),
+      body: JSON.stringify({ userId: user.id, restaurantName, action }),
     });
   },
 
@@ -290,7 +489,230 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
-    return fetchWithAuth(`/api/users/${user.id}/favorites`);
+    try {
+      return fetchWithAuth(`/api/users/${user.id}/favorites`);
+    } catch (error) {
+      // Fallback to AsyncStorage
+      const FAVORITES_STORAGE_KEY = "dormdash_favorites";
+      const favoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      const favorites = favoritesJson ? JSON.parse(favoritesJson) : [];
+      return { data: favorites.map((f: any) => f.name) };
+    }
+  },
+};
+
+export const deliveryApi = {
+  getDeliveryRequests: async (): Promise<ApiResponse<DeliveryRequest[]>> => {
+    try {
+      // Try Firestore first
+      try {
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("status", "==", "pending"),
+        );
+
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const pendingOrders: any[] = [];
+
+        ordersSnapshot.forEach((doc) => {
+          pendingOrders.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (pendingOrders.length > 0) {
+          // Transform to delivery requests format
+          const deliveryRequests = pendingOrders.map((order) => ({
+            id: order.id,
+            orderId: order.id,
+            customerId: order.customerId,
+            customerName: "Vanderbilt Student", // We don't have this info readily available
+            restaurantId: order.restaurantId,
+            restaurantName: order.restaurantName,
+            deliveryAddress: order.deliveryAddress || "Vanderbilt Campus",
+            totalAmount: order.totalAmount,
+            deliveryFee: order.deliveryFee,
+            status: order.status,
+            notes: order.notes || "",
+            createdAt: order.createdAt,
+          }));
+
+          return { data: deliveryRequests };
+        }
+      } catch (firestoreError) {
+        console.error(
+          "Firestore delivery requests fetch error:",
+          firestoreError,
+        );
+      }
+
+      // Fallback to AsyncStorage
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (ordersJson) {
+        const orders = JSON.parse(ordersJson);
+
+        // Filter for pending orders
+        const pendingOrders = orders.filter(
+          (order: any) => order.status === "pending",
+        );
+
+        // Transform to delivery requests format
+        const deliveryRequests = pendingOrders.map((order: any) => ({
+          id: order.id,
+          orderId: order.id,
+          customerId: order.customerId || "mock-user-id",
+          customerName: "Vanderbilt Student",
+          restaurantId: order.restaurantId,
+          restaurantName: order.restaurantName,
+          deliveryAddress: order.deliveryAddress || "Vanderbilt Campus",
+          totalAmount: parseFloat(order.totalAmount),
+          deliveryFee: parseFloat(order.deliveryFee),
+          status: "pending",
+          notes: order.notes || "",
+          createdAt: order.timestamp || order.createdAt,
+        }));
+
+        return { data: deliveryRequests };
+      }
+
+      // Try API last
+      return fetchWithAuth("/api/delivery/requests");
+    } catch (error) {
+      console.error("Error getting delivery requests:", error);
+      return { data: [] };
+    }
+  },
+
+  acceptDeliveryRequest: async (
+    orderId: string,
+  ): Promise<ApiResponse<{ success: boolean }>> => {
+    try {
+      const user = await authApi.getCurrentUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Update in Firestore first
+      try {
+        const orderRef = doc(db, "orders", orderId);
+        const orderDoc = await getDoc(orderRef);
+
+        if (orderDoc.exists()) {
+          const orderData = orderDoc.data();
+
+          // Verify order is still pending
+          if (orderData.status !== "pending" || orderData.delivererId) {
+            return { data: { success: false } };
+          }
+
+          // Update order in Firestore
+          await setDoc(
+            orderRef,
+            {
+              status: "accepted",
+              delivererId: user.id,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true },
+          );
+        }
+      } catch (firestoreError) {
+        console.error("Error accepting delivery in Firestore:", firestoreError);
+      }
+
+      // Update in AsyncStorage as fallback
+      try {
+        const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+        if (ordersJson) {
+          const orders = JSON.parse(ordersJson);
+
+          // Check if order exists and is still pending
+          const orderIndex = orders.findIndex((o: any) => o.id === orderId);
+          if (orderIndex === -1) {
+            return { data: { success: false } };
+          }
+
+          if (
+            orders[orderIndex].status !== "pending" ||
+            orders[orderIndex].delivererId
+          ) {
+            return { data: { success: false } };
+          }
+
+          // Update order
+          orders[orderIndex] = {
+            ...orders[orderIndex],
+            status: "accepted",
+            delivererId: user.id,
+            updatedAt: new Date().toISOString(),
+          };
+
+          // Save updated orders
+          await AsyncStorage.setItem("dormdash_orders", JSON.stringify(orders));
+        }
+      } catch (error) {
+        console.error("Error accepting delivery in AsyncStorage:", error);
+      }
+
+      // Try API last
+      return fetchWithAuth(`/api/delivery/accept/${orderId}`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Error accepting delivery request:", error);
+      return { data: { success: false } };
+    }
+  },
+
+  getUserDeliveries: async (): Promise<ApiResponse<Order[]>> => {
+    try {
+      const user = await authApi.getCurrentUser();
+      if (!user) {
+        return { data: [] };
+      }
+
+      // Try Firestore first
+      try {
+        const deliveriesQuery = query(
+          collection(db, "orders"),
+          where("delivererId", "==", user.id),
+          where("status", "in", ["accepted", "picked_up"]),
+        );
+
+        const deliveriesSnapshot = await getDocs(deliveriesQuery);
+        const deliveries: any[] = [];
+
+        deliveriesSnapshot.forEach((doc) => {
+          deliveries.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (deliveries.length > 0) {
+          return { data: deliveries };
+        }
+      } catch (firestoreError) {
+        console.error(
+          "Error getting deliveries from Firestore:",
+          firestoreError,
+        );
+      }
+
+      // Fallback to AsyncStorage
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (ordersJson) {
+        const orders = JSON.parse(ordersJson);
+
+        // Filter for orders the user is delivering
+        const deliveries = orders.filter(
+          (order: any) =>
+            order.delivererId === user.id &&
+            ["accepted", "picked_up"].includes(order.status),
+        );
+
+        return { data: deliveries };
+      }
+
+      // Try API last
+      return fetchWithAuth("/api/user/deliveries");
+    } catch (error) {
+      console.error("Error getting user deliveries:", error);
+      return { data: [] };
+    }
   },
 };
 
@@ -323,14 +745,22 @@ export const orderApi = {
     // For offline/demo mode
     try {
       // Create new order with generated ID
+      const orderId = `order-${Date.now()}`;
       const order = {
-        id: `order-${Date.now()}`,
+        id: orderId,
         customerId: user.id,
         ...orderData,
         status: "pending" as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      try {
+        // Try to save to Firestore first
+        await setDoc(doc(db, "orders", orderId), order);
+      } catch (firestoreError) {
+        console.error("Error saving order to Firestore:", firestoreError);
+      }
 
       // Save to AsyncStorage as fallback
       const existingOrdersJson = await AsyncStorage.getItem("dormdash_orders");
@@ -342,142 +772,102 @@ export const orderApi = {
         "dormdash_orders",
         JSON.stringify(updatedOrders),
       );
+
+      return { data: { orderId } };
     } catch (error) {
       console.error("Error saving order to AsyncStorage:", error);
-    }
 
-    return fetchWithAuth("/api/orders", {
-      method: "POST",
-      body: JSON.stringify({
-        ...orderData,
-        customerId: user.id,
-      }),
-    });
+      // Attempt to use the API anyway
+      return fetchWithAuth("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          ...orderData,
+          customerId: user.id,
+        }),
+      });
+    }
   },
 
   getUserOrders: async (): Promise<ApiResponse<Order[]>> => {
-    // Fallback for offline/demo mode
-    try {
-      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const orders = JSON.parse(ordersJson);
-        return { data: orders };
-      }
-    } catch (error) {
-      console.error("Error getting orders from AsyncStorage:", error);
+    const user = await authApi.getCurrentUser();
+    if (!user) {
+      return { data: [] };
     }
 
-    return fetchWithAuth("/api/user/orders");
+    try {
+      // Try to get orders from Firestore first
+      try {
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("customerId", "==", user.id),
+        );
+
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const orders: any[] = [];
+
+        ordersSnapshot.forEach((doc) => {
+          orders.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (orders.length > 0) {
+          return { data: orders };
+        }
+      } catch (firestoreError) {
+        console.error("Error getting orders from Firestore:", firestoreError);
+      }
+
+      // Fallback to AsyncStorage
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      if (ordersJson) {
+        const allOrders = JSON.parse(ordersJson);
+
+        // Filter to get only this user's orders
+        const userOrders = allOrders.filter(
+          (order: any) => order.customerId === user.id,
+        );
+
+        return { data: userOrders };
+      }
+
+      return { data: [] };
+    } catch (error) {
+      console.error("Error getting orders from AsyncStorage:", error);
+
+      // Try API as last resort
+      return fetchWithAuth("/api/user/orders");
+    }
   },
 
   getOrderById: async (id: string): Promise<ApiResponse<Order>> => {
-    return fetchWithAuth(`/api/orders/${id}`);
-  },
-
-  updateOrderStatus: async (
-    orderId: string,
-    status: Order["status"],
-  ): Promise<ApiResponse<{ success: boolean }>> => {
-    // Update in AsyncStorage for offline/demo mode
     try {
+      // First try Firestore
+      try {
+        const orderRef = doc(db, "orders", id);
+        const orderDoc = await getDoc(orderRef);
+
+        if (orderDoc.exists()) {
+          return { data: { id: orderDoc.id, ...orderDoc.data() } as Order };
+        }
+      } catch (firestoreError) {
+        console.error("Error getting order from Firestore:", firestoreError);
+      }
+
+      // Fallback to AsyncStorage
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (ordersJson) {
         const orders = JSON.parse(ordersJson);
-        const updatedOrders = orders.map((order: any) => {
-          if (order.id === orderId) {
-            return { ...order, status, updatedAt: new Date().toISOString() };
-          }
-          return order;
-        });
-        await AsyncStorage.setItem(
-          "dormdash_orders",
-          JSON.stringify(updatedOrders),
-        );
-      }
-    } catch (error) {
-      console.error("Error updating order in AsyncStorage:", error);
-    }
+        const order = orders.find((o: any) => o.id === id);
 
-    return fetchWithAuth(`/api/orders/${orderId}/status`, {
-      method: "PUT",
-      body: JSON.stringify({ status }),
-    });
+        if (order) {
+          return { data: order as Order };
+        }
+      }
+
+      // If still not found, try the API
+      return fetchWithAuth(`/api/orders/${id}`);
+    } catch (error) {
+      console.error("Error getting order:", error);
+      throw error;
+    }
   },
 };
-
-// Delivery API
-export const deliveryApi = {
-  getDeliveryRequests: async (): Promise<ApiResponse<DeliveryRequest[]>> => {
-    return fetchWithAuth("/api/delivery/requests");
-  },
-
-  acceptDeliveryRequest: async (
-    orderId: string,
-  ): Promise<ApiResponse<{ success: boolean }>> => {
-    const user = await authApi.getCurrentUser();
-    if (!user) throw new Error("User not authenticated");
-
-    // Update in AsyncStorage for offline/demo mode
-    try {
-      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const orders = JSON.parse(ordersJson);
-        const updatedOrders = orders.map((order: any) => {
-          if (order.id === orderId) {
-            return {
-              ...order,
-              status: "accepted",
-              delivererId: user.id,
-              updatedAt: new Date().toISOString(),
-            };
-          }
-          return order;
-        });
-        await AsyncStorage.setItem(
-          "dormdash_orders",
-          JSON.stringify(updatedOrders),
-        );
-      }
-    } catch (error) {
-      console.error("Error accepting delivery in AsyncStorage:", error);
-    }
-
-    return fetchWithAuth(`/api/delivery/accept/${orderId}`, {
-      method: "POST",
-    });
-  },
-
-  getUserDeliveries: async (): Promise<ApiResponse<Order[]>> => {
-    const user = await authApi.getCurrentUser();
-    if (!user) throw new Error("User not authenticated");
-
-    // Get from AsyncStorage for offline/demo mode
-    try {
-      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const orders = JSON.parse(ordersJson);
-        const deliveries = orders.filter(
-          (order: any) =>
-            order.delivererId === user.id &&
-            ["accepted", "picked_up"].includes(order.status),
-        );
-        return { data: deliveries };
-      }
-    } catch (error) {
-      console.error("Error getting deliveries from AsyncStorage:", error);
-    }
-
-    return fetchWithAuth("/api/user/deliveries");
-  },
-};
-
-// Export a unified API object
-const backendApi = {
-  auth: authApi,
-  user: userApi,
-  restaurant: restaurantApi,
-  order: orderApi,
-  delivery: deliveryApi,
-};
-
-export default backendApi;

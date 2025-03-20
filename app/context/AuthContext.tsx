@@ -11,8 +11,9 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  UserCredential,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 
 // Define user type
@@ -98,6 +99,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           // Store user data for offline access
           await AsyncStorage.setItem("user_data", JSON.stringify(user));
 
+          // Save user token for API requests
+          await AsyncStorage.setItem(
+            "userToken",
+            await firebaseUser.getIdToken(),
+          );
+          await AsyncStorage.setItem("userId", user.id);
+
           setState({
             isLoading: false,
             isSignedIn: true,
@@ -115,6 +123,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // No user signed in via Firebase, clear any stored data
         try {
           await AsyncStorage.removeItem("user_data");
+          await AsyncStorage.removeItem("userToken");
+          await AsyncStorage.removeItem("userId");
         } catch (error) {
           console.error("Error removing stored user:", error);
         }
@@ -151,7 +161,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         // Save to Firestore
-        await setDoc(userRef, newUser);
+        await setDoc(userRef, {
+          ...newUser,
+          createdAt: serverTimestamp(),
+        });
+
         return newUser;
       }
     } catch (error) {
@@ -172,24 +186,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signIn = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      await signInWithEmailAndPassword(auth, email, password);
+
+      let userCredential: UserCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
+      } catch (error: any) {
+        setState((prev) => ({ ...prev, isLoading: false }));
+
+        if (
+          error.code === "auth/user-not-found" ||
+          error.code === "auth/wrong-password"
+        ) {
+          throw new Error("Invalid email or password");
+        } else if (error.code === "auth/too-many-requests") {
+          throw new Error(
+            "Too many failed login attempts. Please try again later",
+          );
+        } else {
+          throw new Error(error.message || "Failed to sign in");
+        }
+      }
+
+      // Get the ID token
+      const idToken = await userCredential.user.getIdToken();
+
+      // Store token for API requests
+      await AsyncStorage.setItem("userToken", idToken);
+      await AsyncStorage.setItem("userId", userCredential.user.uid);
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-
-      // Provide more helpful error messages
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        throw new Error("Invalid email or password");
-      } else if (error.code === "auth/too-many-requests") {
-        throw new Error(
-          "Too many failed login attempts. Please try again later",
-        );
-      } else {
-        throw new Error(error.message || "Failed to sign in");
-      }
+      throw error;
     }
   };
 
@@ -198,27 +229,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setState((prev) => ({ ...prev, isLoading: true }));
 
       // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+      let userCredential: UserCredential;
+      try {
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
 
-      // Update user profile with name
-      await updateProfile(userCredential.user, { displayName: name });
+        // Update user profile with name
+        await updateProfile(userCredential.user, { displayName: name });
+
+        // Create user document in Firestore
+        const userRef = doc(db, "users", userCredential.user.uid);
+        const newUser: User = {
+          id: userCredential.user.uid,
+          name: name,
+          email: email,
+          isVerified: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        await setDoc(userRef, {
+          ...newUser,
+          createdAt: serverTimestamp(),
+        });
+
+        // Get the ID token
+        const idToken = await userCredential.user.getIdToken();
+
+        // Store token for API requests
+        await AsyncStorage.setItem("userToken", idToken);
+        await AsyncStorage.setItem("userId", userCredential.user.uid);
+      } catch (error: any) {
+        setState((prev) => ({ ...prev, isLoading: false }));
+
+        if (error.code === "auth/email-already-in-use") {
+          throw new Error("Email already in use");
+        } else if (error.code === "auth/weak-password") {
+          throw new Error("Password is too weak");
+        } else if (error.code === "auth/invalid-email") {
+          throw new Error("Invalid email format");
+        } else {
+          throw new Error(error.message || "Failed to create account");
+        }
+      }
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-
-      if (error.code === "auth/email-already-in-use") {
-        throw new Error("Email already in use");
-      } else if (error.code === "auth/weak-password") {
-        throw new Error("Password is too weak");
-      } else if (error.code === "auth/invalid-email") {
-        throw new Error("Invalid email format");
-      } else {
-        throw new Error(error.message || "Failed to create account");
-      }
+      throw error;
     }
   };
 
@@ -239,10 +298,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
+
       await firebaseSignOut(auth);
 
       // Clear local storage
       await AsyncStorage.removeItem("user_data");
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userId");
 
       setState({
         isLoading: false,
@@ -268,9 +330,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
+
         // Update AsyncStorage
         await AsyncStorage.setItem("user_data", JSON.stringify(userData));
-        setState((prev) => ({ ...prev, user: userData }));
+
+        setState((prev) => ({
+          ...prev,
+          user: userData,
+        }));
       }
     } catch (error) {
       console.error("Error refreshing user:", error);
@@ -300,10 +367,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // TODO: Fully integrated with buildings on commons side of camppus
+  // Verifies dorm access code
   const verifyDorm = async (dormCode: string): Promise<boolean> => {
     try {
-      // TODO: Verify the dorm and Apple (no database needed)
+      // Verify the dorm code
       const isValidCode = /^\d{6}$/.test(dormCode);
 
       if (isValidCode && state.user) {
