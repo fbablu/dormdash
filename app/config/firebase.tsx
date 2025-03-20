@@ -1,6 +1,7 @@
-// app/config/firebase.ts
-import { initializeApp } from "firebase/app";
+// firebaseApp/config/firebase.ts
+import { initializeApp, FirebaseApp, getApps, getApp } from "firebase/app";
 import {
+  Auth,
   getAuth,
   setPersistence,
   inMemoryPersistence,
@@ -11,10 +12,9 @@ import {
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-//@ts-ignore
-// import { getReactNativePersistence } from '@firebase/auth/dist/rn/index.js';
 
-
+// only looking where the light is;
+// problem could be in different places that are not visible
 
 // Firebase configuration
 const firebaseConfig = {
@@ -27,20 +27,26 @@ const firebaseConfig = {
   measurementId: "G-NGF8H7LCFB",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+let firebaseApp: FirebaseApp;
+let fireAuth: Auth;
+if (getApps().length < 1) {
+  firebaseApp = initializeApp(firebaseConfig);
+  fireAuth = initializeAuth(firebaseApp, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} else {
+  firebaseApp = getApp();
+  fireAuth = getAuth();
+}
 
 // Set up manual persistence with AsyncStorage
-setPersistence(auth, inMemoryPersistence)
+setPersistence(fireAuth, inMemoryPersistence)
   .then(() => {
-    // Get the current user's token from AsyncStorage on app start
+    // Get the current user's token from AsyncStorage on firebaseApp start
     AsyncStorage.getItem("firebase_user_token")
       .then((token) => {
         if (token) {
-          firebaseSignInWithCustomToken(auth, token).catch((error: any) => {
+          firebaseSignInWithCustomToken(fireAuth, token).catch((error: any) => {
             console.log("Error signing in with custom token:", error);
           });
         }
@@ -50,7 +56,7 @@ setPersistence(auth, inMemoryPersistence)
       });
 
     // Store the token when user signs in
-    auth.onAuthStateChanged((user) => {
+    fireAuth.onAuthStateChanged((user) => {
       if (user) {
         user.getIdToken().then((token) => {
           AsyncStorage.setItem("firebase_user_token", token);
@@ -60,13 +66,13 @@ setPersistence(auth, inMemoryPersistence)
       }
     });
   })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error("Error setting persistence:", error);
   });
 
 // Get other Firebase services
-const db = getFirestore(app);
-const storage = getStorage(app);
+const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
-export { app, auth, db, storage };
-export default { app, auth, db, storage };
+export { firebaseApp, fireAuth, db, storage };
+export default { firebaseApp, fireAuth, db, storage };
