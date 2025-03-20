@@ -1,6 +1,9 @@
 // app/(tabs)/profile/index.tsx
 // Contributors: @Fardeen Bablu, @Yuening Li
 // Time spent: 3 hours
+// app/(tabs)/profile/index.tsx
+// Contributors: @Fardeen Bablu, @Yuening Li
+// Time spent: 3 hours
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -20,13 +23,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePayment } from "@/app/context/PaymentContext";
-import backendApi from "@/app/services/backendApi";
 
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 const ProfileScreen = () => {
   const { paymentMethod, refreshPaymentMethod } = usePayment();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, signOut } = useAuth();
 
   const [userProfile, setUserProfile] = useState({
     name: "",
@@ -63,35 +65,19 @@ const ProfileScreen = () => {
         return;
       }
 
-      // Try to get profile from backend API
+      // Use user data from AuthContext
+      setUserProfile({
+        name: user.name || "Vanderbilt Student",
+        email: user.email || "",
+        phoneNumber: "",
+        defaultAddress: "",
+      });
+
+      // Try to refresh user data from Firebase
       try {
-        const { data } = await backendApi.user.getProfile();
-        setUserProfile({
-          name: data.name || user.name || "Vanderbilt Student",
-          email: data.email || user.email || "",
-          phoneNumber: data.phone || "",
-          defaultAddress: data.dormLocation || "",
-        });
-      } catch (apiError) {
-        console.log(
-          "API call failed, using user data from AuthContext",
-          apiError,
-        );
-
-        // Use user data from AuthContext as fallback
-        setUserProfile({
-          name: user.name || "Vanderbilt Student",
-          email: user.email || "",
-          phoneNumber: "",
-          defaultAddress: "",
-        });
-
-        // Try to refresh user data from Firebase
-        try {
-          await refreshUser();
-        } catch (refreshError) {
-          console.error("Error refreshing user data:", refreshError);
-        }
+        await refreshUser();
+      } catch (refreshError) {
+        console.error("Error refreshing user data:", refreshError);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -144,16 +130,15 @@ const ProfileScreen = () => {
         }
       }
 
-        // Fallback to AsyncStorage
-        const savedFavorites = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY,
-        );
-        if (savedFavorites) {
-          const favorites = JSON.parse(savedFavorites);
-          setFavoriteCount(favorites.length);
-        } else {
-          setFavoriteCount(0);
-        }
+      // Fallback to AsyncStorage
+      const savedFavorites = await AsyncStorage.getItem(
+        FAVORITES_STORAGE_KEY,
+      );
+      if (savedFavorites) {
+        const favorites = JSON.parse(savedFavorites);
+        setFavoriteCount(favorites.length);
+      } else {
+        setFavoriteCount(0);
       }
     } catch (error) {
       console.error("Error fetching favorite count:", error);
@@ -165,7 +150,7 @@ const ProfileScreen = () => {
 
   const handleSignOut = async () => {
     try {
-      await backendApi.auth.logout();
+      await signOut();
       router.replace("/onboarding");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -246,12 +231,6 @@ const ProfileScreen = () => {
             icon="mail"
             title={userProfile.email}
             onPress={() => console.log("Email")}
-          />
-
-          <MenuItem
-            icon="activity"
-            title="API Status"
-            onPress={() => router.push("/api-status")}
           />
         </View>
 
