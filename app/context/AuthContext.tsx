@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
+import authService from "../services/authService";
 
 // Define user type
 export interface User {
@@ -74,13 +75,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Check if we have a stored user first
     const checkStoredAuth = async () => {
       try {
-        const userData = await AsyncStorage.getItem("user_data");
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
+        const isAuthenticated = await authService.isAuthenticated();
+        if (isAuthenticated) {
+          const userData = await authService.getCurrentUser();
+          // Convert to our User type
+          const user: User = {
+            id: userData.uid,
+            name: userData.displayName || "",
+            email: userData.email || "",
+            image: userData.photoURL || "",
+            isVerified: false,
+            createdAt: new Date().toISOString(),
+          };
           setState({
             isLoading: false,
             isSignedIn: true,
-            user: parsedUser,
+            user: user,
           });
         }
       } catch (error) {
@@ -95,17 +105,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (firebaseUser) {
         try {
           const user = await getOrCreateUserProfile(firebaseUser);
-
           // Store user data for offline access
           await AsyncStorage.setItem("user_data", JSON.stringify(user));
-
           // Save user token for API requests
           await AsyncStorage.setItem(
             "userToken",
             await firebaseUser.getIdToken(),
           );
           await AsyncStorage.setItem("userId", user.id);
-
           setState({
             isLoading: false,
             isSignedIn: true,
@@ -128,7 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (error) {
           console.error("Error removing stored user:", error);
         }
-
         setState({
           isLoading: false,
           isSignedIn: false,
@@ -145,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const userRef = doc(db, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
-
       if (userSnap.exists()) {
         // Return existing user data
         return userSnap.data() as User;
@@ -159,18 +164,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           isVerified: false,
           createdAt: new Date().toISOString(),
         };
-
         // Save to Firestore
         await setDoc(userRef, {
           ...newUser,
           createdAt: serverTimestamp(),
         });
-
         return newUser;
       }
     } catch (error) {
       console.error("Error in getOrCreateUserProfile:", error);
-
       // Fallback with minimal data if we can't reach Firestore
       return {
         id: firebaseUser.uid,
@@ -187,40 +189,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      let userCredential: UserCredential;
-      try {
-        userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
-      } catch (error: any) {
-        setState((prev) => ({ ...prev, isLoading: false }));
+      // Use authService for persistent login
+      await authService.signIn(email, password);
 
-        if (
-          error.code === "auth/user-not-found" ||
-          error.code === "auth/wrong-password"
-        ) {
-          throw new Error("Invalid email or password");
-        } else if (error.code === "auth/too-many-requests") {
-          throw new Error(
-            "Too many failed login attempts. Please try again later",
-          );
-        } else {
-          throw new Error(error.message || "Failed to sign in");
-        }
-      }
-
-      // Get the ID token
-      const idToken = await userCredential.user.getIdToken();
-
-      // Store token for API requests
-      await AsyncStorage.setItem("userToken", idToken);
-      await AsyncStorage.setItem("userId", userCredential.user.uid);
+      // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw error;
+
+      // More specific error handling
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        throw new Error("Invalid email or password");
+      } else if (error.code === "auth/too-many-requests") {
+        throw new Error(
+          "Too many failed login attempts. Please try again later",
+        );
+      } else {
+        throw new Error(error.message || "Failed to sign in");
+      }
     }
   };
 
@@ -228,56 +217,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      // Create user in Firebase Auth
-      let userCredential: UserCredential;
-      try {
-        userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
+      // Use authService for persistent registration
+      await authService.signUp(email, password, name);
 
-        // Update user profile with name
-        await updateProfile(userCredential.user, { displayName: name });
-
-        // Create user document in Firestore
-        const userRef = doc(db, "users", userCredential.user.uid);
-        const newUser: User = {
-          id: userCredential.user.uid,
-          name: name,
-          email: email,
-          isVerified: false,
-          createdAt: new Date().toISOString(),
-        };
-
-        await setDoc(userRef, {
-          ...newUser,
-          createdAt: serverTimestamp(),
-        });
-
-        // Get the ID token
-        const idToken = await userCredential.user.getIdToken();
-
-        // Store token for API requests
-        await AsyncStorage.setItem("userToken", idToken);
-        await AsyncStorage.setItem("userId", userCredential.user.uid);
-      } catch (error: any) {
-        setState((prev) => ({ ...prev, isLoading: false }));
-
-        if (error.code === "auth/email-already-in-use") {
-          throw new Error("Email already in use");
-        } else if (error.code === "auth/weak-password") {
-          throw new Error("Password is too weak");
-        } else if (error.code === "auth/invalid-email") {
-          throw new Error("Invalid email format");
-        } else {
-          throw new Error(error.message || "Failed to create account");
-        }
-      }
+      // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw error;
+
+      if (error.code === "auth/email-already-in-use") {
+        throw new Error("Email already in use");
+      } else if (error.code === "auth/weak-password") {
+        throw new Error("Password is too weak");
+      } else if (error.code === "auth/invalid-email") {
+        throw new Error("Invalid email format");
+      } else {
+        throw new Error(error.message || "Failed to create account");
+      }
     }
   };
 
@@ -286,7 +242,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await sendPasswordResetEmail(auth, email);
     } catch (error: any) {
       console.error("Password reset error:", error);
-
       if (error.code === "auth/user-not-found") {
         throw new Error("No account found with this email");
       } else {
@@ -299,12 +254,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      await firebaseSignOut(auth);
-
-      // Clear local storage
-      await AsyncStorage.removeItem("user_data");
-      await AsyncStorage.removeItem("userToken");
-      await AsyncStorage.removeItem("userId");
+      // Use authService for signout (clears local storage)
+      await authService.signOut();
 
       setState({
         isLoading: false,
@@ -324,16 +275,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const refreshUser = async () => {
     try {
       if (!auth.currentUser || !state.user) return;
-
       const userRef = doc(db, "users", auth.currentUser.uid);
       const userSnap = await getDoc(userRef);
-
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
-
         // Update AsyncStorage
         await AsyncStorage.setItem("user_data", JSON.stringify(userData));
-
         setState((prev) => ({
           ...prev,
           user: userData,
@@ -348,17 +295,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (!auth.currentUser || !state.user)
         throw new Error("User not authenticated");
-
       const userRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
-
       // Update display name if provided
       if (userData.name && auth.currentUser) {
         await updateProfile(auth.currentUser, {
           displayName: userData.name,
         });
       }
-
       // Refresh user data
       await refreshUser();
     } catch (error) {
@@ -372,7 +316,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Verify the dorm code
       const isValidCode = /^\d{6}$/.test(dormCode);
-
       if (isValidCode && state.user) {
         await updateUser({
           isVerified: true,
@@ -380,7 +323,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return true;
       }
-
       return false;
     } catch (error) {
       console.error("Error verifying dorm:", error);

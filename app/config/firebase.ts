@@ -1,6 +1,11 @@
 // app/config/firebase.ts
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  getAuth,
+  setPersistence,
+  inMemoryPersistence,
+  signInWithCustomToken as firebaseSignInWithCustomToken,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,17 +21,42 @@ const firebaseConfig = {
   measurementId: "G-NGF8H7LCFB",
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize regular auth - we'll handle persistence manually
 const auth = getAuth(app);
 
+// Set up manual persistence with AsyncStorage
+setPersistence(auth, inMemoryPersistence)
+  .then(() => {
+    // Get the current user's token from AsyncStorage on app start
+    AsyncStorage.getItem("firebase_user_token")
+      .then((token) => {
+        if (token) {
+          firebaseSignInWithCustomToken(auth, token).catch((error: any) => {
+            console.log("Error signing in with custom token:", error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.log("Error getting token from AsyncStorage:", error);
+      });
 
-// TODO: Setup persistence
-// next steps is this:
-// import { setPersistence, browserLocalPersistence } from "firebase/auth";
-// setPersistence(auth, browserLocalPersistence).catch(console.error);
+    // Store the token when user signs in
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        user.getIdToken().then((token) => {
+          AsyncStorage.setItem("firebase_user_token", token);
+        });
+      } else {
+        AsyncStorage.removeItem("firebase_user_token");
+      }
+    });
+  })
+  .catch((error) => {
+    console.error("Error setting persistence:", error);
+  });
 
+// Get other Firebase services
 const db = getFirestore(app);
 const storage = getStorage(app);
 
