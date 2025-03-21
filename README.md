@@ -1,89 +1,83 @@
 # DormDash
 
-DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For instance, a student living in the Village at Vanderbilt who wants to order from I Love Sushi on Elliston Place either has to walk a mile to pick up their food and pay with CC, or use a third-party app that doesn't support CC or direct dorm delivery. DormDash solves this problem by enabling students to deliver food directly to dorm rooms, all while using CC, making the process faster, more convenient, and student-friendly.
+DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For students living in Vanderbilt dorms who want to order from restaurants like Taco Mama, DormDash enables peer-to-peer delivery directly to dorm rooms while supporting Commodore Cash payments.
 
 ## Project Scope
 
-The focus of this project is on direct delivery services, as navigating Vanderbilt's strict VUDACS regulations for CC approval is a time-consuming process. Initially, DormDash will focus on Vanderbilt's campus and its surrounding ToN restaurants (40 restaurants and 31 residential colleges), with plans to expand to other campuses across the U.S. in the future.
+DormDash focuses on direct delivery services between Vanderbilt students. Initially targeting Vanderbilt's campus and surrounding Taste of Nashville (ToN) restaurants (40+ restaurants and 31 residential colleges), with future expansion plans to other campuses.
+
+## Key Features
+
+- **Restaurant Browsing**: Browse all 40+ Taste of Nashville restaurants
+- **Order Placement**: Place orders with accurate menu information
+- **Commodore Cash Integration**: Pay using Vanderbilt's Commodore Cash system
+- **Peer Delivery**: Student-to-student delivery system
+- **Real-time Tracking**: Track delivery status in real-time
+- **Rating System**: Rate both deliverers and restaurants
 
 ## Tech Stack
 
-### **Frontend**
+### Frontend
+- **React Native with Expo**: Cross-platform mobile development
+- **TypeScript**: Type-safe code
+- **AsyncStorage**: Local data persistence
+- **Firebase Auth**: User authentication
+- **Firebase Firestore**: Cloud database (with local fallback)
 
-#### **CUSTOM REEM Stack**
-
-- R: React Native with Expo (Frontend development and cross-platform support)
-- E: Express.js (Backend framework for RESTful APIs)
-- E: EAS (Expo Application Services for deployment pipeline)
-- M: MySQL (Relational database for structured data)
-
-##### More Info:
-
-- **React Native with Expo**:
-  - Provides a cross-platform codebase for iOS and Android
-  - Simplified testing and deployment pipeline through Expo EAS
-
-### **Backend**
-
-- **TypeScript**:
-  - Ensures type safety and consistency across the full stack
-  - Reduces runtime errors and integrates well with chosen frameworks
-- **Express.js**:
-  - Lightweight and flexible framework for RESTful API development
-  - Supported by robust middleware and extensive documentation
-- **MySQL**:
-  - A relational database offering strong performance for handling DormDash's structured data needs
-
-### **Development Tools**
-
-- **GitHub Actions**:
-  - Streamlines version control, collaborative development, and implements an automated CI/CD pipeline for testing and deployment
-- **TestFlight and Google Play Console**:
-  - Enables testing and demoing on various iOS and Android devices before deployment
+### Backend
+- **Express.js**: RESTful API backend
+- **MySQL**: Relational database for structured data
+- **JSON Web Tokens**: Secure authentication
 
 ## Development Setup
 
-### iOS Development Setup
+### Prerequisites
+- Node.js (v14+)
+- npm or yarn
+- Expo CLI
+- iOS Simulator or Android Emulator (for mobile testing)
 
-1. Download Xcode and ensure you have the latest iOS simulator installed
-   - XCode > Settings > Components > _Ensure latest iOS version is installed_
-2. After installing, reload your developer window
-   - Shift + Cmd + P > Developer: Reload Window
-3. In your terminal, run:
-   ```bash
-   npm i
-   npx expo prebuild --clean
-   npx expo run:ios  # May take a while for a cold start
-   ```
-4. XCode Simulator should pop up
+### iOS Development Setup
+1. Install Xcode with the latest iOS simulator
+   - XCode > Settings > Components > Ensure latest iOS version is installed
+2. Run the following commands:
+```bash
+npm install
+npx expo prebuild --clean
+npx expo run:ios
+```
 
 ### Android Development Setup
+1. Install Android Studio: https://developer.android.com/studio
+2. Configure environment variables:
+```bash
+# Add to ~/.zshrc or ~/.bash_profile
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/tools
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+```
+3. Reload your terminal:
+```bash
+source ~/.zshrc  # or source ~/.bash_profile
+```
+4. Run the app:
+```bash
+npm install
+npx expo prebuild --clean
+npx expo run:android
+```
 
-1. Download Android Studio from: https://developer.android.com/studio
+## Project Structure
 
-   - Choose the standard installation option
+- `/app`: Main application code
+  - `/context`: React Context providers (Auth, Order, Payment)
+  - `/services`: API and backend services
+  - `/(tabs)`: Main app tabs (Home, Deliver, Orders, Profile)
+- `/components`: Reusable UI components
+- `/assets`: Images and static resources
+- `/data`: Local data files
+- `/server`: Backend Express.js server
 
-2. Configure environment variables by editing your profile:
+## Support
 
-   ```bash
-   nano ~/.zshrc  # if using zsh
-   # or
-   nano ~/.bash_profile  # if using bash
-   ```
-
-3. Add these lines to the end of the file:
-   ```bash
-   export ANDROID_HOME=$HOME/Library/Android/sdk
-   export PATH=$PATH:$ANDROID_HOME/tools
-   export PATH=$PATH:$ANDROID_HOME/platform-tools
-   ```
-4. Save the file and reload your terminal or run:
-   ```bash
-   source ~/.zshrc  # or source ~/.bash_profile
-   ```
-5. Run the app using:
-   ```bash
-   npm i
-   npx expo prebuild --clean
-   npx expo run:android # This will take a while for cold start
-   ```
+Contact dormdash.vu@gmail.com for any questions! 
