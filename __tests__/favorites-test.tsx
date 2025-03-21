@@ -62,10 +62,3 @@ describe("FavoritesScreen", () => {
     expect(screen.getByText("Saved Restaurants")).toBeTruthy();
   });
 });
-
-describe("Naive test", () => {
-  it("run a naive test", async () => {
-    expect(1 + 1).toBe(2);
-  });
-});
-
