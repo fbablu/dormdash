@@ -133,6 +133,7 @@ export default function RegisterScreen() {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
+                  textContentType="name"
                 />
               </View>
               {errors.name && (
@@ -154,6 +155,8 @@ export default function RegisterScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  textContentType="emailAddress"
+                  autoComplete="email"
                 />
               </View>
               {errors.email && (
@@ -177,6 +180,9 @@ export default function RegisterScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  textContentType="newPassword"
+                  autoComplete="password-new"
+                  passwordRules="minlength: 8;"
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -210,6 +216,8 @@ export default function RegisterScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
+                  textContentType="newPassword"
+                  autoComplete="password-new"
                 />
               </View>
               {errors.confirmPassword && (
