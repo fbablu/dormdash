@@ -14,6 +14,7 @@
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
       },
+      "useFrameworks": "static",
       "bundleIdentifier": "com.anonymous.dormdash"
     },
     "android": {
@@ -48,6 +49,40 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.895573352563-bglvrv3e9visj279hc9g157787jd4on3"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "extraPods": [
+              {
+                "name": "GoogleUtilities",
+                "modular_headers": true
+              },
+              {
+                "name": "FirebaseAuthInterop",
+                "modular_headers": true
+              },
+              {
+                "name": "FirebaseAppCheckInterop",
+                "modular_headers": true
+              },
+              {
+                "name": "FirebaseCore",
+                "modular_headers": true
+              },
+              {
+                "name": "FirebaseCoreExtension",
+                "modular_headers": true
+              },
+              {
+                "name": "RecaptchaInterop",
+                "modular_headers": true
+              }
+            ]
+          }
         }
       ]
     ],
