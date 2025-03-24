@@ -52,8 +52,6 @@ const PaymentScreen = () => {
 
       // Update the context directly instead of using window events
       setPaymentMethod(selectedPayment);
-
-      Alert.alert("Success", "Payment method updated successfully");
       router.back();
     } catch (error) {
       console.error("Error saving payment method:", error);

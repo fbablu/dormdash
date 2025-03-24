@@ -16,7 +16,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Validate that JWT_SECRET exists
 if (!JWT_SECRET) {
   console.error("JWT_SECRET is not defined in environment variables!");
-  // Don't exit process in case this is called during import
 }
 
 // Google OAuth client
