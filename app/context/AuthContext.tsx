@@ -17,7 +17,8 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { configureGoogleSignIn } from "../utils/googleSignIn";
+import GoogleSignin from "../utils/googleSignIn";
 
 // Define user type
 export interface User {
@@ -74,10 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   useEffect(() => {
-    // Configure GoogleSignin
-    GoogleSignin.configure({
-      webClientId: "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
-    });
+    configureGoogleSignIn();
     
     // Check if we have a stored user first
     const checkStoredAuth = async () => {
