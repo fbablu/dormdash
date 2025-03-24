@@ -1,13 +1,9 @@
-// firebaseApp/config/firebase.ts
-import { initializeApp, FirebaseApp, getApps, getApp } from "firebase/app";
-import {
-  Auth,
-  getAuth,
-  setPersistence,
-  inMemoryPersistence,
-  initializeAuth,
-  signInWithCustomToken as firebaseSignInWithCustomToken,
-} from "firebase/auth";
+// app/config/firebase.ts
+// Contributor: @Fardeen Bablu
+// Time spent: 1 hour
+
+import { initializeApp } from "firebase/app";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,52 +19,47 @@ const firebaseConfig = {
   measurementId: "G-NGF8H7LCFB",
 };
 
-let firebaseApp: FirebaseApp;
-let fireAuth: Auth;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-if (getApps().length < 1) {
-  firebaseApp = initializeApp(firebaseConfig);
-  // Initialize auth without React Native persistence
-  fireAuth = initializeAuth(firebaseApp);
-} else {
-  firebaseApp = getApp();
-  fireAuth = getAuth();
-}
-
-// Set up manual persistence with AsyncStorage
-setPersistence(fireAuth, inMemoryPersistence)
-  .then(() => {
-    // Get the current user's token from AsyncStorage on firebaseApp start
-    AsyncStorage.getItem("firebase_user_token")
-      .then((token) => {
-        if (token) {
-          firebaseSignInWithCustomToken(fireAuth, token).catch((error: any) => {
-            console.log("Error signing in with custom token:", error);
-          });
-        }
-      })
-      .catch((error) => {
-        console.log("Error getting token from AsyncStorage:", error);
-      });
-
-    // Store the token when user signs in
-    fireAuth.onAuthStateChanged((user) => {
-      if (user) {
-        user.getIdToken().then((token) => {
-          AsyncStorage.setItem("firebase_user_token", token);
-        });
-      } else {
-        AsyncStorage.removeItem("firebase_user_token");
-      }
-    });
-  })
-  .catch((error: any) => {
-    console.error("Error setting persistence:", error);
-  });
+// Initialize Auth
+const auth = getAuth(app);
 
 // Get other Firebase services
-const db = getFirestore(firebaseApp);
-const storage = getStorage(firebaseApp);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-export { firebaseApp, fireAuth, db, storage };
-export default { firebaseApp, fireAuth, db, storage };
+// Set up manual token persistence
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    try {
+      // Store the user's token for API requests
+      const token = await user.getIdToken();
+      await AsyncStorage.setItem("userToken", token);
+      await AsyncStorage.setItem("userId", user.uid);
+      
+      // Store minimal user data
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      };
+      await AsyncStorage.setItem("auth_user", JSON.stringify(userData));
+    } catch (error) {
+      console.error("Error saving auth data:", error);
+    }
+  } else {
+    try {
+      // Clear tokens when user is signed out
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userId");
+      await AsyncStorage.removeItem("auth_user");
+    } catch (error) {
+      console.error("Error removing auth data:", error);
+    }
+  }
+});
+
+export { app, auth, db, storage };
+export default { app, auth, db, storage };
