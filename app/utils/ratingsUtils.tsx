@@ -2,8 +2,8 @@
 // Contributor: @Fardeen Bablu
 // Time spent: 1.5 hours
 
-import React from 'react';
-import { View, Text } from 'react-native';
+import React from "react";
+import { View, Text } from "react-native";
 import {
   collection,
   doc,
@@ -284,7 +284,7 @@ export const findTopRatedRestaurantsByCuisine = async (
 // Required default export for Expo Router
 const RatingsUtils: React.FC = () => {
   return (
-    <View style={{ display: 'none' }}>
+    <View style={{ display: "none" }}>
       <Text>Ratings Utilities</Text>
     </View>
   );

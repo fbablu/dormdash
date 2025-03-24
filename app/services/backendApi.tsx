@@ -486,17 +486,16 @@ export const userApi = {
   },
 
   getFavorites: async (): Promise<ApiResponse<string[]>> => {
-    const user = await authApi.getCurrentUser();
-    if (!user) throw new Error("User not authenticated");
-
     try {
-      return fetchWithAuth(`/api/users/${user.id}/favorites`);
+      const user = await authApi.getCurrentUser();
+      if (!user) {
+        return { data: [] };
+      }
+      const response = await fetchWithAuth(`/api/users/${user.id}/favorites`);
+      return response as ApiResponse<string[]>;
     } catch (error) {
-      // Fallback to AsyncStorage
-      const FAVORITES_STORAGE_KEY = "dormdash_favorites";
-      const favoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      const favorites = favoritesJson ? JSON.parse(favoritesJson) : [];
-      return { data: favorites.map((f: any) => f.name) };
+      console.log("Error fetching favorites:", error);
+      return { data: [] };
     }
   },
 };

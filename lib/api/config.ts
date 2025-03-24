@@ -10,16 +10,18 @@ export const API_DISABLED = false;
 
 // Export the API base URL - configure properly for different platforms
 export const API_BASE_URL = Platform.select({
-  ios: "http://127.0.0.1:3000",       // iOS simulator local loopback
-  android: "http://10.0.2.2:3000",    // Android emulator redirect to host loopback
-  default: "http://localhost:3000",   // Web/browser default
+  ios: "http://127.0.0.1:3000", // iOS simulator local loopback
+  android: "http://10.0.2.2:3000", // Android emulator redirect to host loopback
+  default: "http://localhost:3000", // Web/browser default
 });
 
 // Favorites API module
 export const favoritesApi = {
   getFavorites: async (userId: string): Promise<string[]> => {
     try {
-      const response = await apiRequest<{data: string[]}>(`/api/users/${userId}/favorites`);
+      const response = await apiRequest<{ data: string[] }>(
+        `/api/users/${userId}/favorites`,
+      );
       return response.data;
     } catch (error) {
       console.log("Error fetching favorites:", error);
@@ -28,21 +30,24 @@ export const favoritesApi = {
   },
 
   toggleFavorite: async (
-    userId: string, 
-    restaurantName: string, 
-    action: "add" | "remove"
+    userId: string,
+    restaurantName: string,
+    action: "add" | "remove",
   ): Promise<boolean> => {
     try {
-      await apiRequest('/api/users/favorites', {
-        method: 'POST',
+      await apiRequest("/api/users/favorites", {
+        method: "POST",
         body: JSON.stringify({ userId, restaurantName, action }),
       });
       return true;
     } catch (error) {
-      console.log(`Error ${action === 'add' ? 'adding' : 'removing'} favorite:`, error);
+      console.log(
+        `Error ${action === "add" ? "adding" : "removing"} favorite:`,
+        error,
+      );
       throw error;
     }
-  }
+  },
 };
 
 // Helper to check if API server is available - will set a flag in storage
@@ -52,12 +57,12 @@ export const checkApiHealth = async (): Promise<boolean> => {
     await AsyncStorage.setItem("api_disabled", "true");
     return false;
   }
-  
+
   try {
     // Use an AbortController to set a timeout for the request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);  // 3s timeout
-    
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
     const response = await fetch(`${API_BASE_URL}/api/health`, {
       signal: controller.signal,
       method: "GET",
@@ -66,9 +71,9 @@ export const checkApiHealth = async (): Promise<boolean> => {
         "Content-Type": "application/json",
       },
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     // Store API status in AsyncStorage
     if (response.ok) {
       await AsyncStorage.setItem("api_disabled", "false");
@@ -80,14 +85,14 @@ export const checkApiHealth = async (): Promise<boolean> => {
   } catch (error) {
     console.error("API health check failed");
     // Don't log the full error stack to reduce console noise
-    
+
     // Store API status in AsyncStorage
     await AsyncStorage.setItem("api_disabled", "true");
     return false;
   }
 };
 
-/** 
+/**
  * Generic API request function that first checks if the API is disabled
  * to avoid making requests when we know they'll fail
  */
@@ -101,14 +106,14 @@ export async function apiRequest<T>(
     if (apiDisabled === "true" || API_DISABLED) {
       throw new Error("API is disabled");
     }
-    
+
     // Get auth token if available
     let headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json",
       ...((options.headers as Record<string, string>) || {}),
     };
-    
+
     try {
       // Only add auth header if we have a token
       const token = await AsyncStorage.getItem("userToken");
@@ -118,23 +123,25 @@ export async function apiRequest<T>(
     } catch (err) {
       console.log("Error getting auth token");
     }
-    
+
     // Set timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-    
+
     // Format endpoint to ensure it starts with a slash
-    const formattedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    
+    const formattedEndpoint = endpoint.startsWith("/")
+      ? endpoint
+      : `/${endpoint}`;
+
     // Make the request
     const response = await fetch(`${API_BASE_URL}${formattedEndpoint}`, {
       ...options,
       headers,
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       // Mark API as disabled if we get a connection error
       if (response.status === 0 || response.status >= 500) {
@@ -142,7 +149,7 @@ export async function apiRequest<T>(
       }
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     // Parse response
     const data = await response.json();
     return data as T;

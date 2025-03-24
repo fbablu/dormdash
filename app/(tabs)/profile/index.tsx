@@ -39,7 +39,8 @@ const ProfileScreen = () => {
   const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userIsAdmin, setUserIsAdmin] = useState<boolean>(false);
-  const [userIsRestaurantOwner, setUserIsRestaurantOwner] = useState<boolean>(false);
+  const [userIsRestaurantOwner, setUserIsRestaurantOwner] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const initializeProfile = async () => {
@@ -49,7 +50,7 @@ const ProfileScreen = () => {
         await fetchUserProfile();
         await fetchDefaultAddress();
         await fetchFavoriteCount();
-        
+
         // Check if user has admin privileges
         if (user) {
           setUserIsAdmin(isAdmin(user));
@@ -61,7 +62,7 @@ const ProfileScreen = () => {
         setIsLoading(false);
       }
     };
-    
+
     initializeProfile();
   }, [user]);
 
@@ -133,7 +134,10 @@ const ProfileScreen = () => {
           return;
         }
       } catch (apiError) {
-        console.log("API fetch failed, falling back to AsyncStorage:", apiError);
+        console.log(
+          "API fetch failed, falling back to AsyncStorage:",
+          apiError,
+        );
         // Don't set api_disabled flag
       }
 
@@ -157,10 +161,10 @@ const ProfileScreen = () => {
     try {
       // Remove api_disabled flag before signing out
       await AsyncStorage.removeItem("api_disabled");
-      
+
       // First, perform the sign out operation
       await signOut();
-      
+
       // Don't immediately navigate - instead set a timeout to ensure
       // React component state updates have propagated first
       setTimeout(() => {
@@ -204,12 +208,15 @@ const ProfileScreen = () => {
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.heading}>Profile</Text>
-          <TouchableOpacity 
-            style={styles.settingsButton} 
+          <TouchableOpacity
+            style={styles.settingsButton}
             onPress={async () => {
               // Add a Reset API Connection button when in development
               await AsyncStorage.removeItem("api_disabled");
-              Alert.alert("API Connection Reset", "API connection has been reset.");
+              Alert.alert(
+                "API Connection Reset",
+                "API connection has been reset.",
+              );
             }}
           >
             <Feather name="settings" size={24} color="black" />
@@ -217,11 +224,11 @@ const ProfileScreen = () => {
         </View>
 
         <View style={styles.profileSection}>
-          <Image 
-            style={styles.profileImage} 
+          <Image
+            style={styles.profileImage}
             source={
-              user?.image 
-                ? { uri: user.image } 
+              user?.image
+                ? { uri: user.image }
                 : require("@/assets/profile_picture.png")
             }
             defaultSource={require("@/assets/profile_picture.png")}
@@ -232,15 +239,26 @@ const ProfileScreen = () => {
         {/* My Information Section */}
         <Text style={styles.sectionHeading}>My Account</Text>
         <View style={styles.section}>
-          <MenuItem icon="user" title="My Information" onPress={() => router.push("/profile/myinfo")} />
-          
+          <MenuItem
+            icon="user"
+            title="My Information"
+            onPress={() => router.push("/profile/myinfo")}
+          />
+
           {/* Enhanced Favorites MenuItem with count */}
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/favorites")}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/profile/favorites")}
+          >
             <Feather name="heart" size={24} color="#000" />
             <View style={styles.menuItemTextContainer}>
               <Text style={styles.menuItemText}>Favorites</Text>
               {loadingFavorites ? (
-                <ActivityIndicator size="small" color="#cfae70" style={styles.favoriteIndicator} />
+                <ActivityIndicator
+                  size="small"
+                  color="#cfae70"
+                  style={styles.favoriteIndicator}
+                />
               ) : favoriteCount > 0 ? (
                 <View style={styles.favoriteCountBadge}>
                   <Text style={styles.favoriteCountText}>{favoriteCount}</Text>
@@ -250,25 +268,38 @@ const ProfileScreen = () => {
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
 
-          <MenuItem icon="mail" title={userProfile.email} onPress={() => console.log("Email")} />
-          
+          <MenuItem
+            icon="mail"
+            title={userProfile.email}
+            onPress={() => console.log("Email")}
+          />
+
           {/* Admin Panel - Only show for admins and restaurant owners */}
           {(userIsAdmin || userIsRestaurantOwner) && (
-            <MenuItem icon="shield" title="Admin Panel" onPress={() => router.push("/admin")} />
+            <MenuItem
+              icon="shield"
+              title="Admin Panel"
+              onPress={() => router.push("/admin")}
+            />
           )}
         </View>
 
         {/* Account Settings Section */}
         <Text style={styles.sectionHeading}>Account Settings</Text>
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/address")}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/profile/address")}
+          >
             <Feather name="map-pin" size={24} color="#000" />
             <View style={styles.addressContainer}>
               <Text style={styles.menuItemText}>Address</Text>
               {defaultAddress ? (
                 <View style={styles.currentAddress}>
                   <Text style={styles.currentAddressText} numberOfLines={1}>
-                    {defaultAddress.length > 30 ? defaultAddress.substring(0, 30) + "..." : defaultAddress}
+                    {defaultAddress.length > 30
+                      ? defaultAddress.substring(0, 30) + "..."
+                      : defaultAddress}
                   </Text>
                 </View>
               ) : null}
@@ -276,7 +307,10 @@ const ProfileScreen = () => {
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/profile/payment")}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/profile/payment")}
+          >
             <Feather name="credit-card" size={24} color="#000" />
             <View style={styles.paymentMethodContainer}>
               <Text style={styles.menuItemText}>Payment Methods</Text>
@@ -296,28 +330,34 @@ const ProfileScreen = () => {
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
 
-          <MenuItem 
-            icon="bell" 
-            title="Notifications" 
-            onPress={() => router.push("/profile/notifications")} 
+          <MenuItem
+            icon="bell"
+            title="Notifications"
+            onPress={() => router.push("/profile/notifications")}
           />
-          
-          <MenuItem 
-            icon="help-circle" 
-            title="Support" 
-            onPress={() => router.replace("https://dormdash.github.io/support")} 
+
+          <MenuItem
+            icon="help-circle"
+            title="Support"
+            onPress={() => router.replace("https://dormdash.github.io/support")}
           />
-          
+
           <MenuItem icon="log-out" title="Sign Out" onPress={handleSignOut} />
         </View>
-        
+
         {/* Developer options (only visible in development) */}
         <Text style={styles.sectionHeading}>Developer Options</Text>
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem} onPress={async () => {
-            await AsyncStorage.removeItem("api_disabled");
-            Alert.alert("API Connection Reset", "API connection has been reset.");
-          }}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={async () => {
+              await AsyncStorage.removeItem("api_disabled");
+              Alert.alert(
+                "API Connection Reset",
+                "API connection has been reset.",
+              );
+            }}
+          >
             <Feather name="refresh-cw" size={24} color="#000" />
             <Text style={styles.menuItemText}>Reset API Connection</Text>
             <Feather name="chevron-right" size={24} color="#666" />

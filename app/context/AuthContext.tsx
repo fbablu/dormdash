@@ -2,7 +2,13 @@
 // Contributor: @Fardeen Bablu
 // time spent: 7.5 hours
 
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createUserWithEmailAndPassword,
@@ -12,14 +18,24 @@ import {
   onAuthStateChanged,
   updateProfile,
   User as FirebaseUser,
-  Auth
+  Auth,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  Firestore,
+} from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
 import { configureGoogleSignIn } from "../utils/googleSignIn";
 import GoogleSignin from "../utils/googleSignIn";
-import { isAdmin, isRestaurantOwner, getOwnedRestaurantId } from "../utils/adminAuth";
+import {
+  isAdmin,
+  isRestaurantOwner,
+  getOwnedRestaurantId,
+} from "../utils/adminAuth";
 
 // Define user type
 export interface User {
@@ -80,23 +96,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     user: null,
   });
 
+  const setAuthState = useCallback(
+    (newState: AuthState | ((prev: AuthState) => AuthState)) => {
+      setState((prev) => {
+        const updatedState =
+          typeof newState === "function" ? newState(prev) : newState;
+
+        if (JSON.stringify(prev.user) === JSON.stringify(updatedState.user)) {
+          return prev;
+        }
+        return updatedState;
+      });
+    },
+    [],
+  );
+
   // Check user roles (admin, restaurant owner)
   const checkUserRole = () => {
     if (!state.user) return;
-    
+
     const userIsAdmin = isAdmin(state.user);
     const userIsRestaurantOwner = isRestaurantOwner(state.user);
-    const ownedRestaurantId = userIsRestaurantOwner ? getOwnedRestaurantId(state.user) : null;
-    
+    const ownedRestaurantId = userIsRestaurantOwner
+      ? getOwnedRestaurantId(state.user)
+      : null;
+
     if (userIsAdmin || userIsRestaurantOwner) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         user: {
           ...prev.user!,
           isAdmin: userIsAdmin,
           isRestaurantOwner: userIsRestaurantOwner,
           ownedRestaurantId: ownedRestaurantId || undefined,
-        }
+        },
       }));
     }
   };
@@ -120,13 +153,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               isVerified: false,
               createdAt: new Date().toISOString(),
             };
-            
-            setState({
+
+            setAuthState({
               isLoading: false,
               isSignedIn: true,
               user: user,
             });
-            
+
             // Check user roles after setting state
             setTimeout(() => {
               checkUserRole();
@@ -158,84 +191,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     checkStoredAuth();
 
     // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth as Auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const user = await getOrCreateUserProfile(firebaseUser);
-          
-          // Store user data for offline access
-          await AsyncStorage.setItem("user_data", JSON.stringify(user));
-          
-          // Save user token for API requests
-          await AsyncStorage.setItem("userToken", await firebaseUser.getIdToken());
-          await AsyncStorage.setItem("userId", user.id);
-          
-          setState({
-            isLoading: false,
-            isSignedIn: true,
-            user,
-          });
-          
-          // Check admin/restaurant owner status
-          setTimeout(() => {
-            checkUserRole();
-          }, 100);
-        } catch (error) {
-          console.error("Error processing authenticated user:", error);
+    const unsubscribe = onAuthStateChanged(
+      auth as Auth,
+      async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const user = await getOrCreateUserProfile(firebaseUser);
+
+            // Store user data for offline access
+            await AsyncStorage.setItem("user_data", JSON.stringify(user));
+
+            // Save user token for API requests
+            await AsyncStorage.setItem(
+              "userToken",
+              await firebaseUser.getIdToken(),
+            );
+            await AsyncStorage.setItem("userId", user.id);
+
+            setState({
+              isLoading: false,
+              isSignedIn: true,
+              user,
+            });
+
+            // Check admin/restaurant owner status
+            setTimeout(() => {
+              checkUserRole();
+            }, 100);
+          } catch (error) {
+            console.error("Error processing authenticated user:", error);
+            setState({
+              isLoading: false,
+              isSignedIn: false,
+              user: null,
+            });
+          }
+        } else {
+          // No user signed in via Firebase, clear any stored data
+          try {
+            await AsyncStorage.removeItem("user_data");
+            await AsyncStorage.removeItem("userToken");
+            await AsyncStorage.removeItem("userId");
+          } catch (error) {
+            console.error("Error removing stored user:", error);
+          }
           setState({
             isLoading: false,
             isSignedIn: false,
             user: null,
           });
         }
-      } else {
-        // No user signed in via Firebase, clear any stored data
-        try {
-          await AsyncStorage.removeItem("user_data");
-          await AsyncStorage.removeItem("userToken");
-          await AsyncStorage.removeItem("userId");
-        } catch (error) {
-          console.error("Error removing stored user:", error);
-        }
-        setState({
-          isLoading: false,
-          isSignedIn: false,
-          user: null,
-        });
-      }
-    });
+      },
+    );
 
     return () => unsubscribe();
   }, []);
 
   // Get or create user profile in Firestore
-  const getOrCreateUserProfile = async (firebaseUser: FirebaseUser): Promise<User> => {
+  const getOrCreateUserProfile = async (
+    firebaseUser: FirebaseUser,
+  ): Promise<User> => {
     try {
       const userRef = doc(db as Firestore, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (userSnap.exists()) {
         // Return existing user data
         const userData = userSnap.data() as User;
         // Check admin status
-        const userIsAdmin = isAdmin({...userData, email: firebaseUser.email || ''});
-        const userIsRestaurantOwner = isRestaurantOwner({...userData, email: firebaseUser.email || ''});
-        
+        const userIsAdmin = isAdmin({
+          ...userData,
+          email: firebaseUser.email || "",
+        });
+        const userIsRestaurantOwner = isRestaurantOwner({
+          ...userData,
+          email: firebaseUser.email || "",
+        });
+
         // Only add ownedRestaurantId if the user is a restaurant owner
         let updatedUserData: User = {
           ...userData,
           isAdmin: userIsAdmin,
           isRestaurantOwner: userIsRestaurantOwner,
         };
-        
+
         // Only add ownedRestaurantId if user is a restaurant owner and we have a valid ID
         if (userIsRestaurantOwner) {
-          const ownedId = getOwnedRestaurantId({...userData, email: firebaseUser.email || ''});
-          if (ownedId) { // Only add the field if it's not null
+          const ownedId = getOwnedRestaurantId({
+            ...userData,
+            email: firebaseUser.email || "",
+          });
+          if (ownedId) {
+            // Only add the field if it's not null
             updatedUserData.ownedRestaurantId = ownedId;
           }
         }
-        
+
         return updatedUserData;
       } else {
         // Create new user
@@ -247,41 +298,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           isVerified: false,
           createdAt: new Date().toISOString(),
         };
-        
+
         // Check admin status for new user
         const userIsAdmin = isAdmin(newUser);
         const userIsRestaurantOwner = isRestaurantOwner(newUser);
-        
+
         // Add role fields
         if (userIsAdmin) {
           newUser.isAdmin = true;
         }
-        
+
         if (userIsRestaurantOwner) {
           newUser.isRestaurantOwner = true;
           // Only add ownedRestaurantId if we have a valid ID
           const ownedId = getOwnedRestaurantId(newUser);
-          if (ownedId) { // Only add the field if it's not null
+          if (ownedId) {
+            // Only add the field if it's not null
             newUser.ownedRestaurantId = ownedId;
           }
         }
-        
+
         // Remove undefined fields before saving to Firestore
         const userDataToSave = Object.fromEntries(
-          Object.entries(newUser).filter(([_, v]) => v !== undefined)
+          Object.entries(newUser).filter(([_, v]) => v !== undefined),
         );
-        
+
         // Save to Firestore
         await setDoc(userRef, {
           ...userDataToSave,
           createdAt: serverTimestamp(),
         });
-        
+
         return newUser;
       }
     } catch (error) {
       console.error("Error in getOrCreateUserProfile:", error);
-      
+
       // Fallback with minimal data
       const fallbackUser: User = {
         id: firebaseUser.uid,
@@ -291,47 +343,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isVerified: false,
         createdAt: new Date().toISOString(),
       };
-      
+
       // Check admin status
       const userIsAdmin = isAdmin(fallbackUser);
       const userIsRestaurantOwner = isRestaurantOwner(fallbackUser);
-      
+
       if (userIsAdmin) {
         fallbackUser.isAdmin = userIsAdmin;
       }
-      
+
       if (userIsRestaurantOwner) {
         fallbackUser.isRestaurantOwner = userIsRestaurantOwner;
         // Only add ownedRestaurantId if we have a valid ID
         const ownedId = getOwnedRestaurantId(fallbackUser);
-        if (ownedId) { // Only add the field if it's not null
+        if (ownedId) {
+          // Only add the field if it's not null
           fallbackUser.ownedRestaurantId = ownedId;
         }
       }
-      
+
       return fallbackUser;
     }
   };
 
-
-
-
-
   const signIn = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      
+
       // Use Firebase for email/password sign in
-      const userCredential = await signInWithEmailAndPassword(auth as Auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth as Auth,
+        email,
+        password,
+      );
       // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
         throw new Error("Invalid email or password");
       } else if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many failed login attempts. Please try again later.");
+        throw new Error(
+          "Too many failed login attempts. Please try again later.",
+        );
       } else {
         throw new Error(error.message || "Failed to sign in");
       }
@@ -341,18 +399,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      
+
       // Create new user with Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth as Auth, email, password);
-      
+      const userCredential = await createUserWithEmailAndPassword(
+        auth as Auth,
+        email,
+        password,
+      );
+
       // Update display name
       await updateProfile(userCredential.user, { displayName: name });
-      
+
       // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      
+
       if (error.code === "auth/email-already-in-use") {
         throw new Error("Email already in use");
       } else if (error.code === "auth/weak-password") {
@@ -370,7 +432,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await sendPasswordResetEmail(auth as Auth, email);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      
+
       if (error.code === "auth/user-not-found") {
         throw new Error("No account found with this email");
       } else {
@@ -382,15 +444,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      
+
       // Sign out from Firebase
       await firebaseSignOut(auth as Auth);
-      
+
       // Clear local storage
       await AsyncStorage.removeItem("user_data");
       await AsyncStorage.removeItem("userToken");
       await AsyncStorage.removeItem("userId");
-      
+
       // Also sign out from Google if signed in
       try {
         const currentUser = await GoogleSignin.getCurrentUser();
@@ -400,14 +462,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.log("Google Sign-In error:", error);
       }
-      
+
       // Set state first before navigation
-      setState({
+      setAuthState({
         isLoading: false,
         isSignedIn: false,
         user: null,
       });
-      
+
       // Don't use router.replace here as it causes issues
       // The navigation will be handled by the useEffect in _layout.tsx
       // which watches for the isSignedIn state
@@ -422,29 +484,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const authObj = auth as Auth;
       if (!authObj.currentUser || !state.user) return;
-      
+
       const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
-        
+
         // Check admin status
         const userIsAdmin = isAdmin(userData);
         const userIsRestaurantOwner = isRestaurantOwner(userData);
-        
+
         if (userIsAdmin || userIsRestaurantOwner) {
           userData.isAdmin = userIsAdmin;
           userData.isRestaurantOwner = userIsRestaurantOwner;
           if (userIsRestaurantOwner) {
-            userData.ownedRestaurantId = getOwnedRestaurantId(userData) || undefined;
+            userData.ownedRestaurantId =
+              getOwnedRestaurantId(userData) || undefined;
           }
         }
-        
+
         // Update AsyncStorage
         await AsyncStorage.setItem("user_data", JSON.stringify(userData));
-        
-        setState((prev) => ({
+
+        setAuthState((prev: any) => ({
           ...prev,
           user: userData,
         }));
@@ -457,18 +520,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUser = async (userData: Partial<User>) => {
     try {
       const authObj = auth as Auth;
-      if (!authObj.currentUser || !state.user) throw new Error("User not authenticated");
-      
+      if (!authObj.currentUser || !state.user)
+        throw new Error("User not authenticated");
+
       const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
-      
+
       // Update display name if provided
       if (userData.name && authObj.currentUser) {
         await updateProfile(authObj.currentUser, {
           displayName: userData.name,
         });
       }
-      
+
       // Refresh user data
       await refreshUser();
     } catch (error) {

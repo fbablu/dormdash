@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Color } from "@/GlobalStyles";
-import * as DocumentPicker from 'expo-document-picker';
+import * as DocumentPicker from "expo-document-picker";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/app/config/firebase";
 
@@ -39,7 +39,9 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState<string>("dormdash.vu@gmail.com");
-  const [pdfFile, setPdfFile] = useState<{name: string, uri: string} | null>(null);
+  const [pdfFile, setPdfFile] = useState<{ name: string; uri: string } | null>(
+    null,
+  );
 
   // Select PDF menu
   const handleSelectPdf = async () => {
@@ -48,18 +50,18 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
         type: "application/pdf",
         copyToCacheDirectory: true,
       });
-      
+
       if (result.canceled) {
-        console.log('Document picker canceled');
+        console.log("Document picker canceled");
         return;
       }
-      
+
       // DocumentPicker.getDocumentAsync returns an array of assets when multiple is true
       const asset = result.assets[0];
-      console.log('Document selected:', asset);
+      console.log("Document selected:", asset);
       setPdfFile({
         name: asset.name,
-        uri: asset.uri
+        uri: asset.uri,
       });
     } catch (error) {
       console.error("Error selecting PDF:", error);
@@ -87,7 +89,7 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
     try {
       // In a real implementation, you would upload the PDF to Firebase Storage
       // For now, we'll just simulate by saving a request to Firestore
-      
+
       // Save menu request to Firestore
       await setDoc(doc(db, "menu_requests", restId), {
         restaurantId: restId,
@@ -113,14 +115,11 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
               }
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error("Error uploading menu request:", error);
-      Alert.alert(
-        "Error",
-        "Failed to upload menu request. Please try again."
-      );
+      Alert.alert("Error", "Failed to upload menu request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -128,20 +127,16 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
 
   // Reset the form
   const handleReset = () => {
-    Alert.alert(
-      "Reset Form",
-      "Are you sure you want to reset the form?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: () => {
-            setPdfFile(null);
-          },
+    Alert.alert("Reset Form", "Are you sure you want to reset the form?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reset",
+        style: "destructive",
+        onPress: () => {
+          setPdfFile(null);
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -184,19 +179,20 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Menu PDF Upload</Text>
           <Text style={styles.instructions}>
-            Upload your restaurant menu as a PDF file. The DormDash team will process it
-            and add it to your restaurant profile.
+            Upload your restaurant menu as a PDF file. The DormDash team will
+            process it and add it to your restaurant profile.
           </Text>
 
-          <TouchableOpacity 
-            style={styles.uploadArea}
-            onPress={handleSelectPdf}
-          >
+          <TouchableOpacity style={styles.uploadArea} onPress={handleSelectPdf}>
             {pdfFile ? (
               <View style={styles.selectedFileContainer}>
-                <Feather name="file-text" size={32} color={Color.colorBurlywood} />
+                <Feather
+                  name="file-text"
+                  size={32}
+                  color={Color.colorBurlywood}
+                />
                 <Text style={styles.selectedFileName}>{pdfFile.name}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.removeFileButton}
                   onPress={() => setPdfFile(null)}
                 >
@@ -229,7 +225,7 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
       <TouchableOpacity
         style={[
           styles.uploadButton,
-          (!pdfFile || !restaurantName) && styles.disabledButton
+          (!pdfFile || !restaurantName) && styles.disabledButton,
         ]}
         onPress={handleUpload}
         disabled={loading || !pdfFile || !restaurantName}

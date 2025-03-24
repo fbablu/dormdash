@@ -98,11 +98,13 @@ export default function RegisterScreen() {
       // Success! The AuthContext will handle navigation after successful signup
     } catch (error: any) {
       console.error("Registration error:", error);
-      
+
       // Show more specific error messages
-      let errorMessage = error.message || "An error occurred during registration";
+      let errorMessage =
+        error.message || "An error occurred during registration";
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "This email is already in use. Please try signing in instead.";
+        errorMessage =
+          "This email is already in use. Please try signing in instead.";
       } else if (error.code === "auth/invalid-email") {
         errorMessage = "The email address is improperly formatted.";
       } else if (error.code === "auth/weak-password") {
@@ -110,7 +112,7 @@ export default function RegisterScreen() {
       } else if (error.code === "auth/network-request-failed") {
         errorMessage = "Network error. Please check your internet connection.";
       }
-      
+
       Alert.alert("Registration Failed", errorMessage);
     } finally {
       setIsLoading(false);

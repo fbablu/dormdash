@@ -10,7 +10,7 @@ export interface User {
   phoneNumber?: string;
   imageUrl?: string;
   isVanderbiltUser: boolean;
-  role: 'user' | 'admin' | 'restaurant_owner' | 'deliverer';
+  role: "user" | "admin" | "restaurant_owner" | "deliverer";
   createdAt: Date;
   updatedAt: Date;
   dormLocation?: string;
@@ -70,9 +70,9 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   deliveryFee: number;
-  status: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
+  status: "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
   timestamp: Date;
-  paymentMethod: 'commodore_cash' | 'credit_card' | 'paypal';
+  paymentMethod: "commodore_cash" | "credit_card" | "paypal";
   delivererId?: string;
   notes?: string;
   deliveryAddress: string;

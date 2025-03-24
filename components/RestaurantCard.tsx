@@ -125,7 +125,6 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   };
 
   const toggleFavorite = async (event: GestureResponderEvent) => {
-    // Stop event propagation to prevent navigation when tapping heart icon
     event.stopPropagation();
 
     if (!user) {

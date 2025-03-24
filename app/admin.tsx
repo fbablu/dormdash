@@ -3,7 +3,14 @@
 // time spent: 15 minutes
 
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -11,7 +18,11 @@ import { useAuth } from "./context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import MenuUploader from "@/components/admin/MenuUploader";
 import MenuManager from "@/components/admin/MenuManager";
-import { isAdmin, isRestaurantOwner, getOwnedRestaurantId } from "./utils/adminAuth";
+import {
+  isAdmin,
+  isRestaurantOwner,
+  getOwnedRestaurantId,
+} from "./utils/adminAuth";
 
 // Adding proper default export
 export default function AdminScreen() {
@@ -178,7 +189,8 @@ export default function AdminScreen() {
             <Feather name="clipboard" size={64} color="#ddd" />
             <Text style={styles.comingSoonText}>Approval Management</Text>
             <Text style={styles.comingSoonSubtext}>
-              This feature is coming soon. You'll be able to review and approve menu changes submitted by restaurant owners.
+              This feature is coming soon. You'll be able to review and approve
+              menu changes submitted by restaurant owners.
             </Text>
           </View>
         )}

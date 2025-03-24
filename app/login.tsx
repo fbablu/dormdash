@@ -43,17 +43,23 @@ export default function LoginScreen() {
       // On success, the AuthContext will handle navigation
     } catch (error: any) {
       console.error("Login error:", error);
-      
+
       // Provide more specific error messages
       let errorMessage = error.message || "Failed to login";
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-        errorMessage = "Invalid email or password. Please check your credentials.";
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        errorMessage =
+          "Invalid email or password. Please check your credentials.";
       } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
+        errorMessage =
+          "Too many failed login attempts. Please try again later or reset your password.";
       } else if (error.code === "auth/network-request-failed") {
         errorMessage = "Network error. Please check your internet connection.";
       }
-      
+
       Alert.alert("Login Failed", errorMessage);
     } finally {
       setIsLoading(false);
@@ -78,7 +84,7 @@ export default function LoginScreen() {
       );
     } catch (error: any) {
       console.error("Reset password error:", error);
-      
+
       // Provide more specific error messages
       let errorMessage = error.message || "Failed to send reset email";
       if (error.code === "auth/user-not-found") {
@@ -88,7 +94,7 @@ export default function LoginScreen() {
       } else if (error.code === "auth/network-request-failed") {
         errorMessage = "Network error. Please check your internet connection.";
       }
-      
+
       Alert.alert("Reset Failed", errorMessage);
     } finally {
       setIsResetLoading(false);

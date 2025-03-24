@@ -2,9 +2,16 @@
 // Contributor: @Fardeen Bablu
 // Time spent: 3.5 hours
 
-import React from 'react';
-import { View, Text } from 'react-native';
-import { collection, doc, setDoc, getDocs, query, where } from "firebase/firestore";
+import React from "react";
+import { View, Text } from "react-native";
+import {
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { Restaurant } from "../types/restaurants";
 
@@ -197,7 +204,7 @@ export const parseRawMenuText = (menuText: string): MenuCategory[] => {
 // Required default export for Expo Router
 const MenuIntegration: React.FC = () => {
   return (
-    <View style={{ display: 'none' }}>
+    <View style={{ display: "none" }}>
       <Text>Menu Integration Utilities</Text>
     </View>
   );

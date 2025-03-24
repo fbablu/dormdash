@@ -2,8 +2,8 @@
 // Contributor: @Fardeen Bablu
 // Time spent: 45 minutes
 
-import React from 'react';
-import { View, Text } from 'react-native';
+import React from "react";
+import { View, Text } from "react-native";
 import { User } from "../context/AuthContext";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
@@ -67,10 +67,10 @@ export const submitMenuForApproval = async (
 // Default export component to satisfy router requirement
 const AdminAuth: React.FC = () => {
   return (
-    <View style={{ display: 'none' }}>
+    <View style={{ display: "none" }}>
       <Text>Admin Authentication Utilities</Text>
     </View>
-);
+  );
 };
 
 export default AdminAuth;

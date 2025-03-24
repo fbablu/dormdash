@@ -16,11 +16,19 @@ import {
   FlatList,
   Dimensions,
   useWindowDimensions,
-  Platform
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Color } from "@/GlobalStyles";
-import { collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "@/app/config/firebase";
 import { generateMenuItemId } from "@/app/utils/menuIntegration";
 
@@ -46,18 +54,20 @@ interface MenuEditorProps {
 const MenuEditor: React.FC<MenuEditorProps> = ({
   restaurantId,
   restaurantName,
-  onSave
+  onSave,
 }) => {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<MenuCategory | null>(
+    null,
+  );
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  
+
   // New category state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  
+
   // New/edit item state
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -82,7 +92,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     try {
       const menuRef = collection(db, "restaurants", restaurantId, "menu");
       const menuSnapshot = await getDocs(menuRef);
-      
+
       if (menuSnapshot.empty) {
         // No menu categories exist yet
         setCategories([]);
@@ -96,14 +106,14 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         loadedCategories.push({
           id: doc.id,
           name: data.name || doc.id,
-          items: Array.isArray(data.items) ? data.items : []
+          items: Array.isArray(data.items) ? data.items : [],
         });
       });
 
       // Sort alphabetically
       loadedCategories.sort((a, b) => a.name.localeCompare(b.name));
       setCategories(loadedCategories);
-      
+
       // Select first category if available
       if (loadedCategories.length > 0) {
         setSelectedCategory(loadedCategories[0]);
@@ -131,10 +141,12 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     setLoading(true);
     try {
       // Generate category ID from name
-      const categoryId = newCategoryName.toLowerCase().replace(/[^a-z0-9]/g, "-");
-      
+      const categoryId = newCategoryName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-");
+
       // Check if category with this ID already exists
-      const existingCategory = categories.find(cat => cat.id === categoryId);
+      const existingCategory = categories.find((cat) => cat.id === categoryId);
       if (existingCategory) {
         Alert.alert("Error", `Category "${newCategoryName}" already exists`);
         setLoading(false);
@@ -145,13 +157,13 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
       const newCategory: MenuCategory = {
         id: categoryId,
         name: newCategoryName,
-        items: []
+        items: [],
       };
 
       // Save to Firestore
       await setDoc(doc(db, "restaurants", restaurantId, "menu", categoryId), {
         name: newCategoryName,
-        items: []
+        items: [],
       });
 
       // Update local state
@@ -177,22 +189,28 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
       `Are you sure you want to delete "${category.name}" and all its items?`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
+        {
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             setLoading(true);
             try {
               // Delete from Firestore
-              await deleteDoc(doc(db, "restaurants", restaurantId, "menu", category.id));
-              
+              await deleteDoc(
+                doc(db, "restaurants", restaurantId, "menu", category.id),
+              );
+
               // Update local state
-              const updatedCategories = categories.filter(cat => cat.id !== category.id);
+              const updatedCategories = categories.filter(
+                (cat) => cat.id !== category.id,
+              );
               setCategories(updatedCategories);
-              
+
               // Select another category if available
               if (selectedCategory?.id === category.id) {
-                setSelectedCategory(updatedCategories.length > 0 ? updatedCategories[0] : null);
+                setSelectedCategory(
+                  updatedCategories.length > 0 ? updatedCategories[0] : null,
+                );
               }
             } catch (error) {
               console.error("Error deleting category:", error);
@@ -200,9 +218,9 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             } finally {
               setLoading(false);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -249,15 +267,15 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         id: editingItem?.id || generateMenuItemId(itemName),
         name: itemName.trim(),
         description: itemDescription.trim(),
-        price: price
+        price: price,
       };
 
       let updatedItems: MenuItem[];
-      
+
       if (editingItem) {
         // Update existing item
-        updatedItems = selectedCategory.items.map(i => 
-          i.id === editingItem.id ? item : i
+        updatedItems = selectedCategory.items.map((i) =>
+          i.id === editingItem.id ? item : i,
         );
       } else {
         // Add new item
@@ -269,12 +287,12 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         doc(db, "restaurants", restaurantId, "menu", selectedCategory.id),
         {
           name: selectedCategory.name,
-          items: updatedItems
-        }
+          items: updatedItems,
+        },
       );
 
       // Update local state
-      const updatedCategories = categories.map(cat => {
+      const updatedCategories = categories.map((cat) => {
         if (cat.id === selectedCategory.id) {
           return { ...cat, items: updatedItems };
         }
@@ -301,26 +319,34 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
       `Are you sure you want to delete "${item.name}"?`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
+        {
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             setLoading(true);
             try {
               // Remove item from category
-              const updatedItems = selectedCategory.items.filter(i => i.id !== item.id);
-              
+              const updatedItems = selectedCategory.items.filter(
+                (i) => i.id !== item.id,
+              );
+
               // Update Firestore
               await setDoc(
-                doc(db, "restaurants", restaurantId, "menu", selectedCategory.id),
+                doc(
+                  db,
+                  "restaurants",
+                  restaurantId,
+                  "menu",
+                  selectedCategory.id,
+                ),
                 {
                   name: selectedCategory.name,
-                  items: updatedItems
-                }
+                  items: updatedItems,
+                },
               );
 
               // Update local state
-              const updatedCategories = categories.map(cat => {
+              const updatedCategories = categories.map((cat) => {
                 if (cat.id === selectedCategory.id) {
                   return { ...cat, items: updatedItems };
                 }
@@ -335,9 +361,9 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             } finally {
               setLoading(false);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -345,20 +371,20 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     <TouchableOpacity
       style={[
         styles.categoryItem,
-        selectedCategory?.id === item.id && styles.selectedCategoryItem
+        selectedCategory?.id === item.id && styles.selectedCategoryItem,
       ]}
       onPress={() => setSelectedCategory(item)}
     >
-      <Text 
+      <Text
         style={[
           styles.categoryItemText,
-          selectedCategory?.id === item.id && styles.selectedCategoryItemText
+          selectedCategory?.id === item.id && styles.selectedCategoryItemText,
         ]}
       >
         {item.name}
       </Text>
       <Text style={styles.itemCount}>{item.items.length} items</Text>
-      
+
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => handleDeleteCategory(item)}
@@ -375,16 +401,16 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         <Text style={styles.menuItemDescription}>{item.description}</Text>
         <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
       </View>
-      
+
       <View style={styles.menuItemActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
           onPress={() => openItemModal(item)}
         >
           <Feather name="edit-2" size={18} color="#4caf50" />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDeleteItem(item)}
         >
@@ -397,7 +423,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        {restaurantName ? `${restaurantName} Menu` : 'Restaurant Menu Editor'}
+        {restaurantName ? `${restaurantName} Menu` : "Restaurant Menu Editor"}
       </Text>
 
       {loading && (
@@ -406,18 +432,22 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         </View>
       )}
 
-      <View style={[
-        styles.contentContainer, 
-        isMobile && styles.mobileContentContainer
-      ]}>
+      <View
+        style={[
+          styles.contentContainer,
+          isMobile && styles.mobileContentContainer,
+        ]}
+      >
         {/* Categories Sidebar */}
-        <View style={[
-          styles.categoriesSidebar,
-          isMobile && styles.mobileCategoriesSidebar
-        ]}>
+        <View
+          style={[
+            styles.categoriesSidebar,
+            isMobile && styles.mobileCategoriesSidebar,
+          ]}
+        >
           <View style={styles.categoriesHeader}>
             <Text style={styles.sidebarTitle}>Categories</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addButton}
               onPress={() => setShowCategoryModal(true)}
             >
@@ -428,7 +458,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           <FlatList
             data={categories}
             renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={styles.categoriesList}
             ListEmptyComponent={
               <Text style={styles.emptyText}>No categories yet</Text>
@@ -440,11 +470,11 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         <View style={styles.menuItemsContainer}>
           <View style={styles.menuHeader}>
             <Text style={styles.menuTitle}>
-              {selectedCategory ? selectedCategory.name : 'Select a category'}
+              {selectedCategory ? selectedCategory.name : "Select a category"}
             </Text>
-            
+
             {selectedCategory && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.addItemButton}
                 onPress={() => openItemModal()}
               >
@@ -458,7 +488,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             <FlatList
               data={selectedCategory.items}
               renderItem={renderMenuItem}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               contentContainerStyle={styles.menuItemsList}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
@@ -493,7 +523,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Category</Text>
-            
+
             <Text style={styles.modalLabel}>Category Name</Text>
             <TextInput
               style={styles.modalInput}
@@ -501,16 +531,16 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               onChangeText={setNewCategoryName}
               placeholder="e.g. Appetizers, Main Courses, Drinks"
             />
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCancelButton}
                 onPress={() => setShowCategoryModal(false)}
               >
                 <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.modalSaveButton}
                 onPress={handleAddCategory}
               >
@@ -531,9 +561,9 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
+              {editingItem ? "Edit Menu Item" : "Add New Menu Item"}
             </Text>
-            
+
             <Text style={styles.modalLabel}>Item Name</Text>
             <TextInput
               style={styles.modalInput}
@@ -541,7 +571,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               onChangeText={setItemName}
               placeholder="e.g. Caesar Salad"
             />
-            
+
             <Text style={styles.modalLabel}>Description</Text>
             <TextInput
               style={[styles.modalInput, styles.textArea]}
@@ -551,7 +581,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               multiline
               numberOfLines={3}
             />
-            
+
             <Text style={styles.modalLabel}>Price ($)</Text>
             <TextInput
               style={styles.modalInput}
@@ -560,21 +590,21 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               placeholder="9.99"
               keyboardType="decimal-pad"
             />
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCancelButton}
                 onPress={() => setShowItemModal(false)}
               >
                 <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.modalSaveButton}
                 onPress={handleSaveItem}
               >
                 <Text style={styles.modalSaveButtonText}>
-                  {editingItem ? 'Update Item' : 'Add Item'}
+                  {editingItem ? "Update Item" : "Add Item"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -588,83 +618,83 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 1000,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
     color: Color.colorBurlywood,
   },
   contentContainer: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   categoriesSidebar: {
-    width: '40%',
+    width: "40%",
     borderRightWidth: 1,
-    borderRightColor: '#eee',
-    backgroundColor: '#f9f9f9',
+    borderRightColor: "#eee",
+    backgroundColor: "#f9f9f9",
   },
   categoriesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   sidebarTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   addButton: {
     backgroundColor: Color.colorBurlywood,
     width: 30,
     height: 30,
     borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoriesList: {
     padding: 8,
   },
   categoryItem: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#eee',
-    flexDirection: 'column',
+    borderColor: "#eee",
+    flexDirection: "column",
   },
   selectedCategoryItem: {
     borderColor: Color.colorBurlywood,
-    backgroundColor: '#faf5eb',
+    backgroundColor: "#faf5eb",
   },
   categoryItemText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   selectedCategoryItemText: {
     color: Color.colorBurlywood,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   itemCount: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
   deleteButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     padding: 4,
@@ -674,26 +704,26 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   menuTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   addItemButton: {
     backgroundColor: Color.colorBurlywood,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 4,
   },
   addItemButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
     marginLeft: 4,
   },
   menuItemsList: {
@@ -701,56 +731,56 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   emptyStateText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 12,
     marginBottom: 4,
-    color: '#666',
+    color: "#666",
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
+    color: "#888",
+    textAlign: "center",
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     padding: 20,
-    color: '#888',
+    color: "#888",
   },
   menuItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   menuItemContent: {
     flex: 1,
   },
   menuItemName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   menuItemDescription: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 8,
   },
   menuItemPrice: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     color: Color.colorBurlywood,
   },
   menuItemActions: {
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: 12,
   },
   actionButton: {
@@ -758,16 +788,16 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
+    width: "80%",
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -775,36 +805,36 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 6,
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
     padding: 10,
     marginBottom: 16,
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   modalCancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
   modalCancelButtonText: {
-    color: '#666',
+    color: "#666",
   },
   modalSaveButton: {
     backgroundColor: Color.colorBurlywood,
@@ -813,17 +843,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   modalSaveButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
   mobileContentContainer: {
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   mobileCategoriesSidebar: {
-    width: '100%',
+    width: "100%",
     borderRightWidth: 0,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
     maxHeight: 200,
   },
 });

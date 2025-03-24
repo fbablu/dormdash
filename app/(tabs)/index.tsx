@@ -134,8 +134,11 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         );
 
         if (response.ok) {
-          const favorites = await response.json();
-          setIsFavorite(favorites.includes(restaurant.name));
+          const responseData = await response.json();
+          const favorites = responseData.data || [];
+          if (Array.isArray(favorites)) {
+            setIsFavorite(favorites.includes(restaurant.name));
+          }
           return;
         }
 

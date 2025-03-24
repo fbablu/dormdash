@@ -2,9 +2,9 @@
 // Contributor: @Fardeen Bablu
 // Time spent: 1 hour
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import MenuEditor from './MenuEditor';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import MenuEditor from "./MenuEditor";
 
 interface MenuManagerProps {
   restaurantId?: string;
@@ -15,11 +15,11 @@ interface MenuManagerProps {
 const MenuManager: React.FC<MenuManagerProps> = ({
   restaurantId,
   restaurantName,
-  onComplete
+  onComplete,
 }) => {
   return (
     <View style={styles.container}>
-      <MenuEditor 
+      <MenuEditor
         restaurantId={restaurantId}
         restaurantName={restaurantName}
         onSave={onComplete}
@@ -31,7 +31,7 @@ const MenuManager: React.FC<MenuManagerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 });
 

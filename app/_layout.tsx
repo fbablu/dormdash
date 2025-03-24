@@ -21,7 +21,7 @@ function RootLayoutNav() {
   useEffect(() => {
     // Initialize API status at startup
     initializeApiStatus();
-    
+
     // Hide splash screen once auth state is determined
     const hideSplash = async () => {
       if (!isLoading) {

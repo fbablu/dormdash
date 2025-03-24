@@ -2,8 +2,8 @@
 // Contributor: @Fardeen Bablu
 // time spent: 2 hours
 
-import React from 'react';
-import { View, Text } from 'react-native';
+import React from "react";
+import { View, Text } from "react-native";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { generateMenuItemId } from "./menuIntegration";
@@ -84,18 +84,20 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
 
   // Handle build_your_own section
   if (menu.build_your_own && menu.build_your_own.length > 0) {
-    const buildYourOwnItems: MenuItem[] = menu.build_your_own.map((item: any) => ({
-      id: generateMenuItemId(item.name),
-      name: item.name,
-      description: item.description || "",
-      price: 0, // Price depends on protein, set to 0 by default
-      extras: item.extras
-    }));
+    const buildYourOwnItems: MenuItem[] = menu.build_your_own.map(
+      (item: any) => ({
+        id: generateMenuItemId(item.name),
+        name: item.name,
+        description: item.description || "",
+        price: 0, // Price depends on protein, set to 0 by default
+        extras: item.extras,
+      }),
+    );
 
     categories.push({
       id: "build-your-own",
       name: "Build Your Own",
-      items: buildYourOwnItems
+      items: buildYourOwnItems,
     });
   }
 
@@ -105,13 +107,16 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       id: generateMenuItemId(item.name),
       name: item.name,
       description: item.note || "",
-      price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price)) || 0
+      price:
+        typeof item.price === "number"
+          ? item.price
+          : parseFloat(String(item.price)) || 0,
     }));
 
     categories.push({
       id: "proteins",
       name: "Proteins",
-      items: proteinItems
+      items: proteinItems,
     });
   }
 
@@ -121,15 +126,19 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       id: generateMenuItemId(item.name),
       name: item.name,
       description: item.description || "2 tacos with chips & salsa + a side",
-      price: typeof item.price === 'number' ? item.price : 
-        item.price === "Market Price" ? 0 : parseFloat(String(item.price)) || 0,
-      notes: item.price === "Market Price" ? "Market Price" : undefined
+      price:
+        typeof item.price === "number"
+          ? item.price
+          : item.price === "Market Price"
+            ? 0
+            : parseFloat(String(item.price)) || 0,
+      notes: item.price === "Market Price" ? "Market Price" : undefined,
     }));
 
     categories.push({
       id: "taco-baskets",
       name: "Taco Baskets",
-      items: tacoItems
+      items: tacoItems,
     });
   }
 
@@ -139,13 +148,16 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       id: generateMenuItemId(item.name),
       name: item.name,
       description: item.description || "Burrito with chips & salsa + a side",
-      price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price)) || 0
+      price:
+        typeof item.price === "number"
+          ? item.price
+          : parseFloat(String(item.price)) || 0,
     }));
 
     categories.push({
       id: "burrito-baskets",
       name: "Burrito Baskets",
-      items: burritoItems
+      items: burritoItems,
     });
   }
 
@@ -160,13 +172,13 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
         id: "domestic-beer",
         name: "Domestic Beer",
         description: "Assorted domestic beers",
-        price: drinks.beer.domestic || 0
+        price: drinks.beer.domestic || 0,
       });
       drinkItems.push({
         id: "imported-beer",
         name: "Imported Beer",
         description: "Assorted imported beers",
-        price: drinks.beer.imports || 0
+        price: drinks.beer.imports || 0,
       });
     }
 
@@ -177,7 +189,7 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
           id: generateMenuItemId(wine),
           name: wine,
           description: "Glass of wine",
-          price: drinks.wine.price || 0
+          price: drinks.wine.price || 0,
         });
       });
     }
@@ -189,7 +201,8 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
           id: generateMenuItemId(name),
           name: name + " Margarita",
           description: "",
-          price: typeof price === 'number' ? price : parseFloat(String(price)) || 0
+          price:
+            typeof price === "number" ? price : parseFloat(String(price)) || 0,
         });
       });
     }
@@ -198,7 +211,7 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       categories.push({
         id: "drinks",
         name: "Drinks",
-        items: drinkItems
+        items: drinkItems,
       });
     }
   }
@@ -213,7 +226,7 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
         id: generateMenuItemId(topping),
         name: topping,
         description: "Fresh topping",
-        price: 0
+        price: 0,
       });
     });
   }
@@ -225,7 +238,7 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
         id: generateMenuItemId(sauce),
         name: sauce,
         description: "Salsa or sauce",
-        price: 0
+        price: 0,
       });
     });
   }
@@ -234,21 +247,21 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
     categories.push({
       id: "sides-and-extras",
       name: "Sides & Extras",
-      items: sideItems
+      items: sideItems,
     });
   }
 
   // Add catering as its own category if it exists
   if (menu.catering) {
     const cateringItems: MenuItem[] = [];
-    
+
     // Taco nacho bar
     if (menu.catering.taco_nacho_bar) {
       cateringItems.push({
         id: "taco-nacho-bar",
         name: "Taco & Nacho Bar",
         description: "Feeds 10+ people - $15/person",
-        price: menu.catering.taco_nacho_bar.price_per_person || 15
+        price: menu.catering.taco_nacho_bar.price_per_person || 15,
       });
     }
 
@@ -257,8 +270,9 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       cateringItems.push({
         id: "happy-family-meal",
         name: "Happy Family Take Out Meal",
-        description: "Feeds 4 to 5 comfortably: 12 soft tortillas, tortilla chips, pint of chicken, pint of ground beef, pint of black beans, pint of cilantro lime rice, pint of queso, pint of mild salsa, tomatoes, cheese, sour cream.",
-        price: menu.catering.happy_family_meal.price || 54
+        description:
+          "Feeds 4 to 5 comfortably: 12 soft tortillas, tortilla chips, pint of chicken, pint of ground beef, pint of black beans, pint of cilantro lime rice, pint of queso, pint of mild salsa, tomatoes, cheese, sour cream.",
+        price: menu.catering.happy_family_meal.price || 54,
       });
     }
 
@@ -268,14 +282,14 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
         id: "margarita-mix-half-gallon",
         name: "Margarita Mix (Half Gallon)",
         description: "Skinny or Mi Casa Margarita mix",
-        price: menu.catering.margarita_mix.half_gallon || 10
+        price: menu.catering.margarita_mix.half_gallon || 10,
       });
-      
+
       cateringItems.push({
         id: "margarita-mix-gallon",
         name: "Margarita Mix (One Gallon)",
         description: "Skinny or Mi Casa Margarita mix",
-        price: menu.catering.margarita_mix.one_gallon || 20
+        price: menu.catering.margarita_mix.one_gallon || 20,
       });
     }
 
@@ -283,7 +297,7 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
       categories.push({
         id: "catering",
         name: "Catering",
-        items: cateringItems
+        items: cateringItems,
       });
     }
   }
@@ -299,25 +313,34 @@ export function transformMenuToFirebaseFormat(menuJson: any): MenuCategory[] {
  */
 export const parseAndUploadMenuJson = async (
   restaurantId: string,
-  menuJson: any
+  menuJson: any,
 ): Promise<boolean> => {
   try {
     // Transform the menu to Firebase format
     const categories = transformMenuToFirebaseFormat(menuJson);
-    
+
     // Upload each category and its items
     for (const category of categories) {
-      const categoryRef = doc(db, "restaurants", restaurantId, "menu", category.id);
+      const categoryRef = doc(
+        db,
+        "restaurants",
+        restaurantId,
+        "menu",
+        category.id,
+      );
       await setDoc(categoryRef, {
         name: category.name,
-        items: category.items
+        items: category.items,
       });
       console.log(`Uploaded category: ${category.name} for ${restaurantId}`);
     }
-    
+
     return true;
   } catch (error) {
-    console.error(`Error parsing and uploading menu for ${restaurantId}:`, error);
+    console.error(
+      `Error parsing and uploading menu for ${restaurantId}:`,
+      error,
+    );
     return false;
   }
 };
@@ -331,109 +354,154 @@ export const uploadTacoMamaMenu = async (): Promise<boolean> => {
         build_your_own: [
           {
             name: "Tacos",
-            description: "2 soft flour, soft corn, or crispy corn tortillas filled with your toppings. Comes with chips and salsa + a side."
+            description:
+              "2 soft flour, soft corn, or crispy corn tortillas filled with your toppings. Comes with chips and salsa + a side.",
           },
           {
             name: "Burrito Bowl",
-            description: "Just like a burrito but served in a bowl without a tortilla.",
-            extras: ["Double Protein +$3"]
+            description:
+              "Just like a burrito but served in a bowl without a tortilla.",
+            extras: ["Double Protein +$3"],
           },
           {
             name: "Burrito",
-            description: "Your choice of fresh toppings wrapped in a flour tortilla and served with chips and salsa + a side."
+            description:
+              "Your choice of fresh toppings wrapped in a flour tortilla and served with chips and salsa + a side.",
           },
           {
             name: "Jorge's Nachos",
-            description: "Your toppings piled high on fresh-made tortilla chips.",
-            extras: ["Double Protein +$3"]
+            description:
+              "Your toppings piled high on fresh-made tortilla chips.",
+            extras: ["Double Protein +$3"],
           },
           {
             name: "Quesadilla",
-            description: "Grilled with cheese & your choice of meat - served with chips & salsa."
-          }
+            description:
+              "Grilled with cheese & your choice of meat - served with chips & salsa.",
+          },
         ],
         proteins: [
-          {"name": "Chicken", "price": 15.5},
-          {"name": "Barbacoa", "price": 15.5},
-          {"name": "Grilled Shrimp", "price": 15.5},
-          {"name": "Ahi Tuna", "price": 16.5, "note": "Limited amount each day, first come first serve."},
-          {"name": "Flounder", "price": 15.5},
-          {"name": "Ground Beef", "price": 14.5},
-          {"name": "Steak", "price": 16.5},
-          {"name": "Chorizo", "price": 15.5},
-          {"name": "Veggie Mix", "price": 12.5},
-          {"name": "Tofu", "price": 14.5}
+          { name: "Chicken", price: 15.5 },
+          { name: "Barbacoa", price: 15.5 },
+          { name: "Grilled Shrimp", price: 15.5 },
+          {
+            name: "Ahi Tuna",
+            price: 16.5,
+            note: "Limited amount each day, first come first serve.",
+          },
+          { name: "Flounder", price: 15.5 },
+          { name: "Ground Beef", price: 14.5 },
+          { name: "Steak", price: 16.5 },
+          { name: "Chorizo", price: 15.5 },
+          { name: "Veggie Mix", price: 12.5 },
+          { name: "Tofu", price: 14.5 },
         ],
         fresh_free_toppings: [
-          "Cilantro-Lime Rice", "Tomatoes", "Avocado", "Chorizo", "Refried Beans", "Roasted Corn", "Cilantro", "Sour Cream", "Black Beans", "Black Olives", "Guacamole", "Grilled Onions", "Pico de Gallo", "Shredded Cheddar", "Pickled Jalapenos", "Ancho Chile Slaw", "Shredded Mozzarella", "Grilled Jalapenos", "Sriracha Slaw", "Queso Fresco", "Fresh Jalapenos", "Shredded Lettuce", "Queso", "Onions"
+          "Cilantro-Lime Rice",
+          "Tomatoes",
+          "Avocado",
+          "Chorizo",
+          "Refried Beans",
+          "Roasted Corn",
+          "Cilantro",
+          "Sour Cream",
+          "Black Beans",
+          "Black Olives",
+          "Guacamole",
+          "Grilled Onions",
+          "Pico de Gallo",
+          "Shredded Cheddar",
+          "Pickled Jalapenos",
+          "Ancho Chile Slaw",
+          "Shredded Mozzarella",
+          "Grilled Jalapenos",
+          "Sriracha Slaw",
+          "Queso Fresco",
+          "Fresh Jalapenos",
+          "Shredded Lettuce",
+          "Queso",
+          "Onions",
         ],
         salsa_sauces: [
-          "Fresh Salsa Ranchera (Mild)", "Fresh Tomatillo Salsa (Hot!)", "Roasted Poblano Tartar", "Chipotle-Ranch", "Cilantro-Lime Vinaigrette", "Mama's Chipotle BBQ Sauce", "Red-Chile Butter Sauce"
+          "Fresh Salsa Ranchera (Mild)",
+          "Fresh Tomatillo Salsa (Hot!)",
+          "Roasted Poblano Tartar",
+          "Chipotle-Ranch",
+          "Cilantro-Lime Vinaigrette",
+          "Mama's Chipotle BBQ Sauce",
+          "Red-Chile Butter Sauce",
         ],
         taco_baskets: [
-          {"name": "Classico Beef", "price": 14.5},
-          {"name": "Justice is Served", "price": 15.5},
-          {"name": "Cheezy Beef", "price": 15.5},
-          {"name": "The Sizzler", "price": 16.5},
-          {"name": "Alabama Redneck", "price": 15.5},
-          {"name": "The Mayor", "price": 15.5},
-          {"name": "Mama's Chorizo", "price": 15.5},
-          {"name": "Ahi Tuna-Si!!", "price": 16.5},
-          {"name": "Mix & Match", "price": "Market Price"},
-          {"name": "Add Single Taco", "price": 4}
+          { name: "Classico Beef", price: 14.5 },
+          { name: "Justice is Served", price: 15.5 },
+          { name: "Cheezy Beef", price: 15.5 },
+          { name: "The Sizzler", price: 16.5 },
+          { name: "Alabama Redneck", price: 15.5 },
+          { name: "The Mayor", price: 15.5 },
+          { name: "Mama's Chorizo", price: 15.5 },
+          { name: "Ahi Tuna-Si!!", price: 16.5 },
+          { name: "Mix & Match", price: "Market Price" },
+          { name: "Add Single Taco", price: 4 },
         ],
         burrito_baskets: [
-          {"name": "Yo Mama", "price": 14.5},
-          {"name": "Q-Burrito", "price": 15.5},
-          {"name": "The Big Client", "price": 15.5},
-          {"name": "The Fat Boy", "price": 16.5},
-          {"name": "The Judge", "price": 15.5},
-          {"name": "The Hippie Fisherman", "price": 15.5},
-          {"name": "The Tree Hugger", "price": 12.5}
+          { name: "Yo Mama", price: 14.5 },
+          { name: "Q-Burrito", price: 15.5 },
+          { name: "The Big Client", price: 15.5 },
+          { name: "The Fat Boy", price: 16.5 },
+          { name: "The Judge", price: 15.5 },
+          { name: "The Hippie Fisherman", price: 15.5 },
+          { name: "The Tree Hugger", price: 12.5 },
         ],
         drinks: {
           beer: {
             imports: 6.0,
-            domestic: 4.5
+            domestic: 4.5,
           },
           wine: {
-            options: ["Prosecco", "Chardonnay", "Pinot Grigio", "Marques de Caceres (Spanish Red)"],
-            price: 10
+            options: [
+              "Prosecco",
+              "Chardonnay",
+              "Pinot Grigio",
+              "Marques de Caceres (Spanish Red)",
+            ],
+            price: 10,
           },
           margaritas: {
             flavors: {
               "Mi Casa": 10.5,
-              "Frozen": 10.5,
-              "Skinny": 12.5,
-              "Pomegranate": 12.5,
-              "Mercedes": 12.5,
-              "Jalapeno": 12.5,
+              Frozen: 10.5,
+              Skinny: 12.5,
+              Pomegranate: 12.5,
+              Mercedes: 12.5,
+              Jalapeno: 12.5,
               "Prosecco Fizz": 12.5,
               "La Playa": 12.5,
               "The Real Deal": 12.5,
-              "Cucumber": 12.5,
+              Cucumber: 12.5,
               "Blood Orange (Seasonal)": 12.5,
               "Watermelon (Seasonal)": 12.5,
-              "Sangrita": 12.5,
+              Sangrita: 12.5,
               "The Paula Sangria": 10.5,
-              "The Guillermo (Ranch Water)": 12.5
-            }
-          }
+              "The Guillermo (Ranch Water)": 12.5,
+            },
+          },
         },
         catering: {
-          taco_nacho_bar: {"price_per_person": 15},
-          happy_family_meal: {"price": 54},
-          happiest_family_meal: {"margarita_mix": {"half_gallon": 10, "one_gallon": 20}},
-          margarita_mix: {"half_gallon": 10, "one_gallon": 20}
+          taco_nacho_bar: { price_per_person: 15 },
+          happy_family_meal: { price: 54 },
+          happiest_family_meal: {
+            margarita_mix: { half_gallon: 10, one_gallon: 20 },
+          },
+          margarita_mix: { half_gallon: 10, one_gallon: 20 },
         },
         contact: {
           order_online: "tacomamaonline.com",
           catering_email: "hillsborocatering@tacomamaonline.com",
-          phone: "615-600-4420"
-        }
-      }
+          phone: "615-600-4420",
+        },
+      },
     };
-    return await parseAndUploadMenuJson('taco-mama', tacoMamaMenu);
+    return await parseAndUploadMenuJson("taco-mama", tacoMamaMenu);
   } catch (error) {
     console.error("Error uploading Taco Mama menu:", error);
     return false;
@@ -442,8 +510,8 @@ export const uploadTacoMamaMenu = async (): Promise<boolean> => {
 
 // Generic function to fetch menu data from AsyncStorage
 export const uploadRestaurantMenuFromData = async (
-  restaurantId: string, 
-  menuData: any
+  restaurantId: string,
+  menuData: any,
 ): Promise<boolean> => {
   try {
     return await parseAndUploadMenuJson(restaurantId, menuData);
@@ -473,8 +541,8 @@ export const storeDefaultMenuTemplate = async (): Promise<void> => {
               name: "Mixed Salad",
               description: "Fresh greens with house dressing",
               price: 6.99,
-            }
-          ]
+            },
+          ],
         },
         {
           id: "entrees",
@@ -483,30 +551,35 @@ export const storeDefaultMenuTemplate = async (): Promise<void> => {
             {
               id: "entree-1",
               name: "Chef's Special",
-              description: "Our most popular dish, prepared with the finest ingredients",
+              description:
+                "Our most popular dish, prepared with the finest ingredients",
               price: 14.99,
             },
             {
               id: "entree-2",
               name: "House Special Plate",
-              description: "A delicious combination of flavors unique to our restaurant",
+              description:
+                "A delicious combination of flavors unique to our restaurant",
               price: 13.99,
-            }
-          ]
-        }
-      ]
+            },
+          ],
+        },
+      ],
     };
-    
-    await AsyncStorage.setItem('dormdash_default_menu', JSON.stringify(defaultMenu));
+
+    await AsyncStorage.setItem(
+      "dormdash_default_menu",
+      JSON.stringify(defaultMenu),
+    );
   } catch (error) {
-    console.error('Error storing default menu template:', error);
+    console.error("Error storing default menu template:", error);
   }
 };
 
 // Default export required for Expo Router
 export default function MenuParser() {
   return (
-    <View style={{ display: 'none' }}>
+    <View style={{ display: "none" }}>
       <Text>Menu Parser Utilities</Text>
     </View>
   );
