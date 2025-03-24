@@ -55,7 +55,6 @@ const PaymentScreen = () => {
       router.back();
     } catch (error) {
       console.error("Error saving payment method:", error);
-      Alert.alert("Error", "Failed to save payment method");
     }
   };
 
