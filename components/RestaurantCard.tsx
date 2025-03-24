@@ -56,28 +56,31 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
     try {
       // Try AsyncStorage first (faster response)
-      const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      const savedFavoritesJson = await AsyncStorage.getItem(
+        FAVORITES_STORAGE_KEY,
+      );
       if (savedFavoritesJson) {
         const savedFavorites = JSON.parse(savedFavoritesJson);
         const isFav = savedFavorites.some(
-          (fav: FavoriteRestaurant) => fav.name === restaurant.name
+          (fav: FavoriteRestaurant) => fav.name === restaurant.name,
         );
         setIsFavorite(isFav);
       }
-      
+
       // Try to sync with API in background
       if (user.id) {
-        favoritesApi.getFavorites(user.id)
-          .then(apiFavorites => {
+        favoritesApi
+          .getFavorites(user.id)
+          .then((apiFavorites) => {
             const isFav = apiFavorites.includes(restaurant.name);
             setIsFavorite(isFav);
-            
+
             // Update local storage with API data
             if (apiFavorites.length > 0) {
               syncFavoritesToStorage(apiFavorites);
             }
           })
-          .catch(err => {
+          .catch((err) => {
             // Silently fail on API errors - we're already using local data
             console.log("Background API sync failed:", err);
           });
@@ -89,29 +92,31 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const syncFavoritesToStorage = async (favoriteNames: string[]) => {
     try {
-      const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      let savedFavorites: FavoriteRestaurant[] = savedFavoritesJson 
-        ? JSON.parse(savedFavoritesJson) 
+      const savedFavoritesJson = await AsyncStorage.getItem(
+        FAVORITES_STORAGE_KEY,
+      );
+      let savedFavorites: FavoriteRestaurant[] = savedFavoritesJson
+        ? JSON.parse(savedFavoritesJson)
         : [];
-      
+
       // Create new favorites entries for any API favorites not in local storage
-      const localFavoriteNames = savedFavorites.map(fav => fav.name);
+      const localFavoriteNames = savedFavorites.map((fav) => fav.name);
       const newFavorites = favoriteNames
-        .filter(name => !localFavoriteNames.includes(name))
-        .map(name => ({
+        .filter((name) => !localFavoriteNames.includes(name))
+        .map((name) => ({
           name,
           rating: "4.5",
           reviewCount: "100+",
           deliveryTime: "15 min",
           deliveryFee: "$3",
-          imageUrl: FOOD_IMAGE_URL
+          imageUrl: FOOD_IMAGE_URL,
         }));
-      
+
       if (newFavorites.length > 0) {
         const updatedFavorites = [...savedFavorites, ...newFavorites];
         await AsyncStorage.setItem(
-          FAVORITES_STORAGE_KEY, 
-          JSON.stringify(updatedFavorites)
+          FAVORITES_STORAGE_KEY,
+          JSON.stringify(updatedFavorites),
         );
       }
     } catch (error) {
@@ -131,19 +136,23 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     if (isProcessing) return; // Prevent duplicate requests
 
     setIsProcessing(true);
-    
+
     // Update state immediately for responsive UI
     setIsFavorite(!isFavorite);
 
     try {
       // Update locally first
-      const savedFavoritesJson = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-      let savedFavorites = savedFavoritesJson ? JSON.parse(savedFavoritesJson) : [];
+      const savedFavoritesJson = await AsyncStorage.getItem(
+        FAVORITES_STORAGE_KEY,
+      );
+      let savedFavorites = savedFavoritesJson
+        ? JSON.parse(savedFavoritesJson)
+        : [];
 
       if (isFavorite) {
         // Remove from favorites
         savedFavorites = savedFavorites.filter(
-          (item: FavoriteRestaurant) => item.name !== restaurant.name
+          (item: FavoriteRestaurant) => item.name !== restaurant.name,
         );
       } else {
         // Add to favorites with additional info
@@ -158,9 +167,9 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
         // Check if it already exists
         const existingIndex = savedFavorites.findIndex(
-          (item: FavoriteRestaurant) => item.name === restaurant.name
+          (item: FavoriteRestaurant) => item.name === restaurant.name,
         );
-        
+
         if (existingIndex === -1) {
           savedFavorites.push(newFavorite);
         }
@@ -169,15 +178,16 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       // Save updated favorites locally
       await AsyncStorage.setItem(
         FAVORITES_STORAGE_KEY,
-        JSON.stringify(savedFavorites)
+        JSON.stringify(savedFavorites),
       );
 
       // Try to sync with API
       if (user.id) {
         const action = isFavorite ? "remove" : "add";
-        
-        favoritesApi.toggleFavorite(user.id, restaurant.name, action)
-          .catch(apiError => {
+
+        favoritesApi
+          .toggleFavorite(user.id, restaurant.name, action)
+          .catch((apiError) => {
             console.log(`API favorites sync failed for ${action}:`, apiError);
             // API error doesn't affect local operation, so no need to revert UI
           });
@@ -229,7 +239,9 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           {restaurant.location} • {restaurant.cuisine.join(", ")}
         </Text>
         <Text style={styles.deliveryInfo}>
-          {restaurant.acceptsCommodoreCash ? "Accepts Commodore Cash" : "Cash & Card Only"}
+          {restaurant.acceptsCommodoreCash
+            ? "Accepts Commodore Cash"
+            : "Cash & Card Only"}
         </Text>
       </View>
     </TouchableOpacity>

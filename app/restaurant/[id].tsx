@@ -1,8 +1,6 @@
 // app/restaurant/[id].tsx
 // Contributors: Fardeen Bablu
-// Time spent: 8 hours
-
-///// TODO: Decompose into seperate components !!!!!!!!!!!!!!
+// Time spent: 9 hours
 
 import React, { useState, useEffect } from "react";
 import {
@@ -22,6 +20,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Color } from "@/GlobalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePayment } from "@/app/context/PaymentContext";
+import ReviewsSection from "@/components/restaurant/ReviewsSection";
 import {
   collection,
   doc,
@@ -207,130 +206,6 @@ const getMenuCategoriesForRestaurant = (restaurantId: string) => {
       },
     ];
   }
-  // Banh Mi & Roll menu
-  else if (restaurantId === "banh-mi-roll") {
-    return [
-      {
-        id: "banh-mi",
-        name: "Banh Mi Sandwiches",
-        items: [
-          {
-            id: "classic-pork",
-            name: "Classic Pork",
-            description:
-              "Marinated pork, pate, mayo, pickled vegetables, cilantro, jalapeño",
-            price: 8.99,
-          },
-          {
-            id: "lemongrass-chicken",
-            name: "Lemongrass Chicken",
-            description:
-              "Lemongrass-marinated chicken, mayo, pickled vegetables, cilantro, jalapeño",
-            price: 8.99,
-          },
-          {
-            id: "tofu",
-            name: "Tofu",
-            description:
-              "Lemongrass tofu, vegan mayo, pickled vegetables, cilantro, jalapeño",
-            price: 8.49,
-          },
-          {
-            id: "beef",
-            name: "Beef",
-            description:
-              "Marinated beef, mayo, pickled vegetables, cilantro, jalapeño",
-            price: 9.49,
-          },
-        ],
-      },
-      {
-        id: "rolls",
-        name: "Spring Rolls",
-        items: [
-          {
-            id: "veggie-roll",
-            name: "Veggie Roll",
-            description:
-              "Fresh vegetables, vermicelli noodles, herbs with peanut sauce",
-            price: 5.99,
-          },
-          {
-            id: "shrimp-roll",
-            name: "Shrimp Roll",
-            description:
-              "Shrimp, vegetables, vermicelli noodles, herbs with peanut sauce",
-            price: 6.99,
-          },
-          {
-            id: "pork-roll",
-            name: "Pork Roll",
-            description:
-              "Pork, vegetables, vermicelli noodles, herbs with peanut sauce",
-            price: 6.49,
-          },
-        ],
-      },
-      {
-        id: "bowls",
-        name: "Vermicelli Bowls",
-        items: [
-          {
-            id: "pork-bowl",
-            name: "Pork Bowl",
-            description:
-              "Grilled pork over vermicelli noodles with vegetables and nuoc cham sauce",
-            price: 10.99,
-          },
-          {
-            id: "chicken-bowl",
-            name: "Chicken Bowl",
-            description:
-              "Lemongrass chicken over vermicelli noodles with vegetables and nuoc cham sauce",
-            price: 10.99,
-          },
-          {
-            id: "beef-bowl",
-            name: "Beef Bowl",
-            description:
-              "Grilled beef over vermicelli noodles with vegetables and nuoc cham sauce",
-            price: 11.99,
-          },
-          {
-            id: "tofu-bowl",
-            name: "Tofu Bowl",
-            description:
-              "Lemongrass tofu over vermicelli noodles with vegetables and vegan sauce",
-            price: 10.49,
-          },
-        ],
-      },
-      {
-        id: "sides",
-        name: "Sides",
-        items: [
-          {
-            id: "crispy-rolls",
-            name: "Crispy Egg Rolls (3)",
-            description: "Fried rolls with pork, vegetables, and dipping sauce",
-            price: 5.99,
-          },
-          {
-            id: "vietnamese-coffee",
-            name: "Vietnamese Coffee",
-            description: "Traditional Vietnamese coffee with condensed milk",
-            price: 4.99,
-          },
-          {
-            id: "thai-tea",
-            name: "Thai Iced Tea",
-            description: "Sweet thai tea with cream",
-            price: 4.49,
-          },
-        ],
-      },
-    ];
-  }
   // Default generic menu
   else {
     return [
@@ -420,6 +295,7 @@ export default function RestaurantMenuScreen() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState("");
+  const [activeTab, setActiveTab] = useState<"menu" | "reviews">("menu");
 
   // Calculate total price
   const cartTotal = cart.reduce(
@@ -554,7 +430,9 @@ export default function RestaurantMenuScreen() {
         console.error("Error fetching restaurant:", error);
         Alert.alert(
           "Error",
-          `Failed to load restaurant data: ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to load restaurant data: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
       } finally {
         setLoading(false);
@@ -691,7 +569,7 @@ export default function RestaurantMenuScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Color.colorBurlywood} />
-          <Text style={styles.loadingText}>Loading menu...</Text>
+          <Text style={styles.loadingText}>Loading restaurant...</Text>
         </View>
       </SafeAreaView>
     );
@@ -730,90 +608,133 @@ export default function RestaurantMenuScreen() {
         </View>
       </View>
 
-      {/* Category Selector */}
-      <View style={styles.categorySelectorContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScrollContent}
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "menu" && styles.activeTab]}
+          onPress={() => setActiveTab("menu")}
         >
-          {menuCategories.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryButton,
-                activeCategory === category.id && styles.activeCategoryButton,
-              ]}
-              onPress={() => setActiveCategory(category.id)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  activeCategory === category.id && styles.activeCategoryText,
-                ]}
-              >
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "menu" && styles.activeTabText,
+            ]}
+          >
+            Menu
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "reviews" && styles.activeTab]}
+          onPress={() => setActiveTab("reviews")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "reviews" && styles.activeTabText,
+            ]}
+          >
+            Reviews
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Menu Items */}
-      <ScrollView style={styles.menuContainer}>
-        <Text style={styles.sectionTitle}>
-          {menuCategories.find((c) => c.id === activeCategory)?.name || "Menu"}
-        </Text>
-        {menuCategories
-          .find((c) => c.id === activeCategory)
-          ?.items.map((item) => (
-            <View key={item.id} style={styles.menuItem}>
-              <View style={styles.menuItemContent}>
-                <Text style={styles.menuItemName}>{item.name}</Text>
-                <Text style={styles.menuItemDescription}>
-                  {item.description}
-                </Text>
-                <Text style={styles.menuItemPrice}>
-                  ${item.price.toFixed(2)}
-                </Text>
-              </View>
-              <View style={styles.quantityControls}>
-                {(cart.find((cartItem) => cartItem.id === item.id)?.quantity ??
-                  0) > 0 ? (
-                  <View style={styles.quantityControlsContainer}>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={() => removeFromCart(item.id)}
-                    >
-                      <Feather name="minus" size={18} color="black" />
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>
-                      {cart.find((cartItem) => cartItem.id === item.id)
-                        ?.quantity || 0}
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={() => addToCart(item)}
-                    >
-                      <Feather name="plus" size={18} color="black" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => addToCart(item)}
+      {activeTab === "menu" ? (
+        <>
+          {/* Category Selector */}
+          <View style={styles.categorySelectorContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContent}
+            >
+              {menuCategories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryButton,
+                    activeCategory === category.id &&
+                      styles.activeCategoryButton,
+                  ]}
+                  onPress={() => setActiveCategory(category.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      activeCategory === category.id &&
+                        styles.activeCategoryText,
+                    ]}
                   >
-                    <Text style={styles.addButtonText}>Add</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          ))}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Menu Items */}
+          <ScrollView style={styles.menuContainer}>
+            <Text style={styles.sectionTitle}>
+              {menuCategories.find((c) => c.id === activeCategory)?.name ||
+                "Menu"}
+            </Text>
+            {menuCategories
+              .find((c) => c.id === activeCategory)
+              ?.items.map((item) => (
+                <View key={item.id} style={styles.menuItem}>
+                  <View style={styles.menuItemContent}>
+                    <Text style={styles.menuItemName}>{item.name}</Text>
+                    <Text style={styles.menuItemDescription}>
+                      {item.description}
+                    </Text>
+                    <Text style={styles.menuItemPrice}>
+                      ${item.price.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.quantityControls}>
+                    {(cart.find((cartItem) => cartItem.id === item.id)
+                      ?.quantity ?? 0) > 0 ? (
+                      <View style={styles.quantityControlsContainer}>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() => removeFromCart(item.id)}
+                        >
+                          <Feather name="minus" size={18} color="black" />
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>
+                          {cart.find((cartItem) => cartItem.id === item.id)
+                            ?.quantity || 0}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          onPress={() => addToCart(item)}
+                        >
+                          <Feather name="plus" size={18} color="black" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => addToCart(item)}
+                      >
+                        <Text style={styles.addButtonText}>Add</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+        </>
+      ) : (
+        // Reviews Tab
+        <ReviewsSection
+          restaurantId={id as string}
+          restaurantName={restaurant?.name || "Restaurant"}
+        />
+      )}
 
       {/* Cart Summary and Checkout */}
-      {cart.length > 0 && (
+      {cart.length > 0 && activeTab === "menu" && (
         <View style={styles.cartSummary}>
           <View style={styles.cartInfo}>
             <Text style={styles.cartItemCount}>
@@ -903,6 +824,28 @@ const styles = StyleSheet.create({
   },
   deliveryTime: {
     color: "#666",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: Color.colorBurlywood,
+  },
+  tabText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  activeTabText: {
+    fontWeight: "bold",
+    color: Color.colorBurlywood,
   },
   categorySelectorContainer: {
     borderBottomWidth: 1,

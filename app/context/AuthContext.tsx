@@ -13,9 +13,15 @@ import {
   onAuthStateChanged,
   updateProfile,
   User as FirebaseUser,
-  Auth
+  Auth,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  Firestore,
+} from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
 import { configureGoogleSignIn } from "../utils/googleSignIn";
@@ -77,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     configureGoogleSignIn();
-    
+
     // Check if we have a stored user first
     const checkStoredAuth = async () => {
       try {
@@ -126,56 +132,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     checkStoredAuth();
 
     // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth as Auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const user = await getOrCreateUserProfile(firebaseUser);
-          // Store user data for offline access
-          await AsyncStorage.setItem("user_data", JSON.stringify(user));
-          // Save user token for API requests
-          await AsyncStorage.setItem("userToken", await firebaseUser.getIdToken());
-          await AsyncStorage.setItem("userId", user.id);
-          
-          setState({
-            isLoading: false,
-            isSignedIn: true,
-            user,
-          });
-        } catch (error) {
-          console.error("Error processing authenticated user:", error);
+    const unsubscribe = onAuthStateChanged(
+      auth as Auth,
+      async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const user = await getOrCreateUserProfile(firebaseUser);
+            // Store user data for offline access
+            await AsyncStorage.setItem("user_data", JSON.stringify(user));
+            // Save user token for API requests
+            await AsyncStorage.setItem(
+              "userToken",
+              await firebaseUser.getIdToken(),
+            );
+            await AsyncStorage.setItem("userId", user.id);
+
+            setState({
+              isLoading: false,
+              isSignedIn: true,
+              user,
+            });
+          } catch (error) {
+            console.error("Error processing authenticated user:", error);
+            setState({
+              isLoading: false,
+              isSignedIn: false,
+              user: null,
+            });
+          }
+        } else {
+          // No user signed in via Firebase, clear any stored data
+          try {
+            await AsyncStorage.removeItem("user_data");
+            await AsyncStorage.removeItem("userToken");
+            await AsyncStorage.removeItem("userId");
+          } catch (error) {
+            console.error("Error removing stored user:", error);
+          }
+
           setState({
             isLoading: false,
             isSignedIn: false,
             user: null,
           });
         }
-      } else {
-        // No user signed in via Firebase, clear any stored data
-        try {
-          await AsyncStorage.removeItem("user_data");
-          await AsyncStorage.removeItem("userToken");
-          await AsyncStorage.removeItem("userId");
-        } catch (error) {
-          console.error("Error removing stored user:", error);
-        }
-        
-        setState({
-          isLoading: false,
-          isSignedIn: false,
-          user: null,
-        });
-      }
-    });
+      },
+    );
 
     return () => unsubscribe();
   }, []);
 
   // Get or create user profile in Firestore
-  const getOrCreateUserProfile = async (firebaseUser: FirebaseUser): Promise<User> => {
+  const getOrCreateUserProfile = async (
+    firebaseUser: FirebaseUser,
+  ): Promise<User> => {
     try {
       const userRef = doc(db as Firestore, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (userSnap.exists()) {
         // Return existing user data
         return userSnap.data() as User;
@@ -189,13 +203,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           isVerified: false,
           createdAt: new Date().toISOString(),
         };
-        
+
         // Save to Firestore
         await setDoc(userRef, {
           ...newUser,
           createdAt: serverTimestamp(),
         });
-        
+
         return newUser;
       }
     } catch (error) {
@@ -215,19 +229,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signIn = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      
+
       // Use Firebase for email/password sign in
-      const userCredential = await signInWithEmailAndPassword(auth as Auth, email, password);
-      
+      const userCredential = await signInWithEmailAndPassword(
+        auth as Auth,
+        email,
+        password,
+      );
+
       // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
         throw new Error("Invalid email or password");
       } else if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many failed login attempts. Please try again later.");
+        throw new Error(
+          "Too many failed login attempts. Please try again later.",
+        );
       } else {
         throw new Error(error.message || "Failed to sign in");
       }
@@ -239,11 +262,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setState((prev) => ({ ...prev, isLoading: true }));
 
       // Create new user with Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth as Auth, email, password);
-      
+      const userCredential = await createUserWithEmailAndPassword(
+        auth as Auth,
+        email,
+        password,
+      );
+
       // Update display name
       await updateProfile(userCredential.user, {
-        displayName: name
+        displayName: name,
       });
 
       // The rest is handled by the onAuthStateChanged listener
@@ -282,12 +309,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Sign out from Firebase
       await firebaseSignOut(auth as Auth);
-      
+
       // Clear local storage
       await AsyncStorage.removeItem("user_data");
       await AsyncStorage.removeItem("userToken");
       await AsyncStorage.removeItem("userId");
-      
+
       // Also sign out from Google if signed in
       try {
         const currentUser = await GoogleSignin.getCurrentUser();
@@ -317,10 +344,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const authObj = auth as Auth;
       if (!authObj.currentUser || !state.user) return;
-      
+
       const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
       const userSnap = await getDoc(userRef);
-      
+
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
         // Update AsyncStorage
@@ -340,17 +367,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const authObj = auth as Auth;
       if (!authObj.currentUser || !state.user)
         throw new Error("User not authenticated");
-        
+
       const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
-      
+
       // Update display name if provided
       if (userData.name && authObj.currentUser) {
         await updateProfile(authObj.currentUser, {
           displayName: userData.name,
         });
       }
-      
+
       // Refresh user data
       await refreshUser();
     } catch (error) {

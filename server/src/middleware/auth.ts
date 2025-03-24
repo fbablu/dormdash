@@ -3,7 +3,11 @@
 // Time spent: 1.5 hours
 
 import { Request, Response, NextFunction } from "express";
-import jwt, { JsonWebTokenError, TokenExpiredError, NotBeforeError } from "jsonwebtoken";
+import jwt, {
+  JsonWebTokenError,
+  TokenExpiredError,
+  NotBeforeError,
+} from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import dotenv from "dotenv";
 
@@ -19,7 +23,8 @@ if (!JWT_SECRET) {
 }
 
 // Google OAuth client
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
   "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -45,10 +50,12 @@ export const authenticateToken = async (
 
     // Check if JWT_SECRET is available
     if (!JWT_SECRET) {
-      console.error("JWT_SECRET is not defined but required for token verification!");
+      console.error(
+        "JWT_SECRET is not defined but required for token verification!",
+      );
       return res.status(500).json({ error: "Server configuration error" });
     }
-    
+
     // First try to verify as a JWT token
     try {
       const user = jwt.verify(token, JWT_SECRET);
@@ -57,16 +64,18 @@ export const authenticateToken = async (
     } catch (error) {
       // Type guard the JWT error
       let jwtErrorMessage = "JWT verification failed";
-      if (error instanceof JsonWebTokenError || 
-          error instanceof TokenExpiredError || 
-          error instanceof NotBeforeError) {
+      if (
+        error instanceof JsonWebTokenError ||
+        error instanceof TokenExpiredError ||
+        error instanceof NotBeforeError
+      ) {
         jwtErrorMessage = error.message;
       } else if (error instanceof Error) {
         jwtErrorMessage = error.message;
       }
-      
+
       console.log("JWT verification failed:", jwtErrorMessage);
-      
+
       // If JWT verification fails, try Google token
       try {
         const ticket = await googleClient.verifyIdToken({
@@ -90,10 +99,10 @@ export const authenticateToken = async (
         if (googleError instanceof Error) {
           googleErrorMessage = googleError.message;
         }
-        
+
         console.error("Token verification failed:", {
           jwtError: jwtErrorMessage,
-          googleError: googleErrorMessage
+          googleError: googleErrorMessage,
         });
         return res.status(403).json({ error: "Invalid token" });
       }
