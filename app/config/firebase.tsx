@@ -1,12 +1,17 @@
 // app/config/firebase.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 45 minutes
+// Time spent: 1 hour
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { 
+  getAuth, 
+  initializeAuth, 
+  getReactNativePersistence 
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,42 +26,21 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+let auth;
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+}
 
-// Initialize Auth
-const auth = getAuth(app);
-
-// Get other Firebase services
+// Initialize other Firebase services
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Manually implement token persistence
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      const token = await user.getIdToken();
-      await AsyncStorage.setItem('userToken', token);
-      await AsyncStorage.setItem('userId', user.uid);
-      
-      // Store minimal user info for offline access
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL
-      };
-      await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-    } catch (error) {
-      console.error('Error storing auth data:', error);
-    }
-  } else {
-    try {
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('auth_user');
-    } catch (error) {
-      console.error('Error removing auth data:', error);
-    }
-  }
-});
-
+// Export individual services to avoid "undefined" errors
 export { app, auth, db, storage };
+
+// Also export as default object
+export default { app, auth, db, storage };
