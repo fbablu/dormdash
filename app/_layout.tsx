@@ -9,6 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import PaymentProvider from "./context/PaymentContext";
 import AuthProvider, { useAuth } from "./context/AuthContext";
 import OrderProvider from "./context/OrderContext";
+import RestaurantInitializer from "@/components/RestaurantInitializer";
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -44,19 +45,24 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="restaurant/[id]"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
-      />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="restaurant/[id]"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+      </Stack>
+      
+      {/* Initialize restaurants if user is signed in */}
+      {isSignedIn && <RestaurantInitializer />}
+    </>
   );
 }
 

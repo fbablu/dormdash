@@ -14,13 +14,10 @@ import {
   ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import {
-  parseAndUploadMenuJson,
-  transformMenuToFirebaseFormat,
-  MenuCategory,
-} from "../../utils/menuParser";
-import { saveRestaurant } from "../../utils/menuIntegration";
+import { parseAndUploadMenuJson, transformMenuToFirebaseFormat, MenuCategory } from "@/app/utils/menuParser";
+import { saveRestaurant } from "@/app/utils/menuIntegration";
 import { Color } from "@/GlobalStyles";
+import { Location, Cuisine } from "@/app/types/restaurants";
 
 interface MenuUploaderProps {
   restaurantId?: string;
@@ -94,14 +91,73 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
       // Parse the JSON
       const menuData = JSON.parse(jsonText);
 
+      // Convert string location to Location enum type
+      let locationValue: Location = "HILLSBORO VILLAGE";
+      
+      // Try to match the entered location with one of the enum values
+      if (location) {
+        const normalizedLocation = location.toUpperCase();
+        const availableLocations: Location[] = [
+          "HILLSBORO VILLAGE", 
+          "MIDTOWN", 
+          "WEST END AVENUE", 
+          "ELLISTON PLACE", 
+          "ON-CAMPUS", 
+          "KOSHER/OUT OF CAMPUS RADIUS"
+        ];
+        
+        const matchedLocation = availableLocations.find(
+          loc => loc === normalizedLocation
+        );
+        
+        if (matchedLocation) {
+          locationValue = matchedLocation;
+        }
+      }
+
+      // Convert string cuisines to Cuisine enum array
+      const cuisineValues: Cuisine[] = [];
+      
+      if (cuisines) {
+        const cuisineStrings = cuisines.split(",").map(c => c.trim());
+        
+        const availableCuisines: Cuisine[] = [
+          "Vietnamese", "Asian", "Coffee", "Cafe", "American", "Breakfast", 
+          "BBQ", "Healthy", "Bowls", "Smoothies", "Sandwiches", "Burgers", 
+          "Ice Cream", "Desserts", "Noodles", "Chinese", "Japanese", "Sushi", 
+          "Mexican", "Tacos", "Juice", "Tex-Mex", "Pizza", "Italian", "Southern", 
+          "Chicken", "Hawaiian", "Poke", "Indian", "Fast Food", "Asian Fusion", 
+          "Diner", "Pasta", "Thai", "Bubble Tea", "Beverages", "Kosher", "Vegetarian"
+        ];
+        
+        cuisineStrings.forEach(cuisine => {
+          // Find matching cuisine or use the first available as fallback
+          const matchedCuisine = availableCuisines.find(
+            c => c.toLowerCase() === cuisine.toLowerCase()
+          );
+          
+          if (matchedCuisine) {
+            cuisineValues.push(matchedCuisine);
+          }
+        });
+        
+        // If no valid cuisines found, add a default one
+        if (cuisineValues.length === 0) {
+          cuisineValues.push("American");
+        }
+      } else {
+        // Default cuisine if none provided
+        cuisineValues.push("American");
+      }
+
       // Save restaurant information first
       await saveRestaurant(
         {
           name: restaurantName,
-          location: location || "NASHVILLE",
+          location: locationValue,
           address: address || "1600 21st Ave S, Nashville, TN 37212",
           website: website || "https://example.com",
-          cuisine: cuisines.split(",").map((c) => c.trim()),
+          cuisine: cuisineValues,
           acceptsCommodoreCash: true,
           image:
             "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
