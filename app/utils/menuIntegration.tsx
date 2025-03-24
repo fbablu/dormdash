@@ -1,15 +1,10 @@
 // app/utils/menuIntegration.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 3 hours
+// Time spent: 3.5 hours
 
-import {
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import React from 'react';
+import { View, Text } from 'react-native';
+import { collection, doc, setDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { Restaurant } from "../types/restaurants";
 
@@ -43,7 +38,6 @@ export const updateRestaurantMenu = async (
     const menuRef = collection(db, "restaurants", restaurantId, "menu");
     const menuSnapshot = await getDocs(menuRef);
     const existingCategories = new Map();
-
     menuSnapshot.forEach((doc) => {
       existingCategories.set(doc.data().name.toLowerCase(), doc.id);
     });
@@ -117,7 +111,6 @@ export const saveRestaurant = async (
 ): Promise<string> => {
   try {
     let restaurantId = id;
-
     if (!restaurantId) {
       // Generate ID from name if not provided
       restaurantId = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
@@ -159,7 +152,6 @@ export const parseRawMenuText = (menuText: string): MenuCategory[] => {
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-
     if (trimmedLine.length === 0) continue;
 
     // Check if this line is a category header (all caps)
@@ -167,7 +159,6 @@ export const parseRawMenuText = (menuText: string): MenuCategory[] => {
       if (currentCategory && currentCategory.items.length > 0) {
         categories.push(currentCategory);
       }
-
       currentCategory = {
         id: generateMenuItemId(trimmedLine),
         name: trimmedLine,
@@ -177,11 +168,9 @@ export const parseRawMenuText = (menuText: string): MenuCategory[] => {
     // Check if this line might be a menu item (contains a price)
     else if (currentCategory && trimmedLine.includes("$")) {
       const priceMatch = trimmedLine.match(/\$(\d+(\.\d+)?)/);
-
       if (priceMatch) {
         const price = parseFloat(priceMatch[1]);
         const nameAndDescription = trimmedLine.split("$")[0].trim();
-
         // Split into name and description if possible
         const parts = nameAndDescription.split(" - ");
         const name = parts[0].trim();
@@ -204,3 +193,14 @@ export const parseRawMenuText = (menuText: string): MenuCategory[] => {
 
   return categories;
 };
+
+// Required default export for Expo Router
+const MenuIntegration: React.FC = () => {
+  return (
+    <View style={{ display: 'none' }}>
+      <Text>Menu Integration Utilities</Text>
+    </View>
+  );
+};
+
+export default MenuIntegration;

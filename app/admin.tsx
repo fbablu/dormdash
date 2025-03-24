@@ -1,16 +1,9 @@
 // app/admin.tsx
 // Contributor: @Fardeen Bablu
-// Time spent: 1 hour
+// time spent: 15 minutes
 
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -18,39 +11,44 @@ import { useAuth } from "./context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import MenuUploader from "@/components/admin/MenuUploader";
 import MenuManager from "@/components/admin/MenuManager";
+import { isAdmin, isRestaurantOwner, getOwnedRestaurantId } from "./utils/adminAuth";
 
-// Admin emails 
-const ADMIN_EMAILS = [
-  "admin@gmail.com",
-  "dormdash.vu@gmail.com",
-];
-
-// Restaurant owner to restaurant mapping
-const RESTAURANT_OWNER_MAP: Record<string, string> = {
-  "taco-mama@gmail.com": "taco-mama",
-  "banh-mi-roll@gmail.com": "banh-mi-roll",
-};
-
+// Adding proper default export
 export default function AdminScreen() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("menu-upload");
+  const [activeTab, setActiveTab] = useState<string>("menu-editor");
 
-  // Check if current user is an admin
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  // Check user role on mount
+  useEffect(() => {
+    if (user && user.email) {
+      console.log(`User ${user.email} accessing admin panel`);
+      console.log(`Is admin: ${isAdmin(user)}`);
+      console.log(`Is restaurant owner: ${isRestaurantOwner(user)}`);
+    }
+  }, [user]);
 
-  // Check if current user is a restaurant owner
-  const isRestaurantOwner = user && user.email in RESTAURANT_OWNER_MAP;
+  // Get restaurant information with proper null handling
+  const rawRestaurantId = user ? getOwnedRestaurantId(user) : null;
+  const ownedRestaurantId = rawRestaurantId || undefined;
 
-  // Get owned restaurant ID if applicable
-  const ownedRestaurantId =
-    isRestaurantOwner && user ? RESTAURANT_OWNER_MAP[user.email] : undefined;
+  // Get restaurant name from ID
+  const restaurantName = ownedRestaurantId
+    ? ownedRestaurantId
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : undefined;
+
+  // Check if current user is an admin or restaurant owner
+  const userIsAdmin = user ? isAdmin(user) : false;
+  const userIsRestaurantOwner = user ? isRestaurantOwner(user) : false;
 
   const handleBackPress = () => {
     router.back();
   };
 
   // If not an admin or restaurant owner, show unauthorized message
-  if (!isAdmin && !isRestaurantOwner) {
+  if (!userIsAdmin && !userIsRestaurantOwner) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -60,7 +58,6 @@ export default function AdminScreen() {
           <Text style={styles.heading}>Admin Panel</Text>
           <View style={styles.placeholder} />
         </View>
-
         <View style={styles.unauthorizedContainer}>
           <Feather name="lock" size={64} color="#ccc" />
           <Text style={styles.unauthorizedTitle}>Unauthorized Access</Text>
@@ -87,41 +84,18 @@ export default function AdminScreen() {
         <Text style={styles.heading}>Admin Panel</Text>
         <View style={styles.placeholder} />
       </View>
-
       {/* User role banner */}
       <View style={styles.roleBanner}>
         <Feather name="shield" size={16} color="#fff" />
         <Text style={styles.roleText}>
-          {isAdmin ? "Admin Access" : "Restaurant Owner Access"}
+          {userIsAdmin ? "Admin Access" : "Restaurant Owner Access"}
         </Text>
-        {isRestaurantOwner && (
-          <Text style={styles.restaurantText}>
-            {RESTAURANT_OWNER_MAP[user!.email]}
-          </Text>
+        {userIsRestaurantOwner && restaurantName && (
+          <Text style={styles.restaurantText}>{restaurantName}</Text>
         )}
       </View>
-
       {/* Admin Tabs */}
       <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "menu-upload" && styles.activeTab]}
-          onPress={() => setActiveTab("menu-upload")}
-        >
-          <Feather
-            name="upload"
-            size={20}
-            color={activeTab === "menu-upload" ? Color.colorBurlywood : "#666"}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "menu-upload" && styles.activeTabText,
-            ]}
-          >
-            Upload Menu
-          </Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.tab, activeTab === "menu-editor" && styles.activeTab]}
           onPress={() => setActiveTab("menu-editor")}
@@ -137,11 +111,28 @@ export default function AdminScreen() {
               activeTab === "menu-editor" && styles.activeTabText,
             ]}
           >
-            Edit Menu
+            Menu Editor
           </Text>
         </TouchableOpacity>
-
-        {isAdmin && (
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "menu-upload" && styles.activeTab]}
+          onPress={() => setActiveTab("menu-upload")}
+        >
+          <Feather
+            name="upload"
+            size={20}
+            color={activeTab === "menu-upload" ? Color.colorBurlywood : "#666"}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "menu-upload" && styles.activeTabText,
+            ]}
+          >
+            JSON Upload
+          </Text>
+        </TouchableOpacity>
+        {userIsAdmin && (
           <TouchableOpacity
             style={[styles.tab, activeTab === "approvals" && styles.activeTab]}
             onPress={() => setActiveTab("approvals")}
@@ -162,48 +153,32 @@ export default function AdminScreen() {
           </TouchableOpacity>
         )}
       </View>
-
       {/* Tab Content */}
       <View style={styles.content}>
-        {activeTab === "menu-upload" && (
-          <MenuUploader
-            restaurantId={ownedRestaurantId}
-            restaurantName={
-              ownedRestaurantId &&
-              ownedRestaurantId
-                .split("-")
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ")
-            }
-            onComplete={() => {
-              Alert.alert("Success", "Menu uploaded successfully");
-            }}
-          />
-        )}
-
         {activeTab === "menu-editor" && (
           <MenuManager
             restaurantId={ownedRestaurantId}
-            restaurantName={
-              ownedRestaurantId &&
-              ownedRestaurantId
-                .split("-")
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ")
-            }
+            restaurantName={restaurantName}
             onComplete={() => {
               Alert.alert("Success", "Menu updated successfully");
             }}
           />
         )}
-
-        {activeTab === "approvals" && isAdmin && (
+        {activeTab === "menu-upload" && (
+          <MenuUploader
+            restaurantId={ownedRestaurantId}
+            restaurantName={restaurantName}
+            onComplete={() => {
+              Alert.alert("Success", "Menu uploaded successfully");
+            }}
+          />
+        )}
+        {activeTab === "approvals" && userIsAdmin && (
           <View style={styles.comingSoonContainer}>
             <Feather name="clipboard" size={64} color="#ddd" />
             <Text style={styles.comingSoonText}>Approval Management</Text>
             <Text style={styles.comingSoonSubtext}>
-              This feature is coming soon. You'll be able to review and approve
-              menu changes submitted by restaurant owners.
+              This feature is coming soon. You'll be able to review and approve menu changes submitted by restaurant owners.
             </Text>
           </View>
         )}

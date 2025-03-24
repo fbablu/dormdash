@@ -1,5 +1,5 @@
 // app/(tabs)/profile/favorites.tsx
-// Contributors: @Fardeen Bablu, @Yuening Li
+// Contributor: @Fardeen Bablu
 // Time spent: 3 hours
 
 import React, { useState, useEffect } from "react";
@@ -19,7 +19,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Color, FontSize } from "@/GlobalStyles";
 import { useAuth } from "@/app/context/AuthContext";
-import backendApi from "@/app/services/backendApi";
+import { userApi } from "@/app/services/backendApi";
 
 // Define the restaurant type
 interface Restaurant {
@@ -74,52 +74,26 @@ export default function FavoritesScreen() {
         console.log("No user found, cannot load favorites");
         setError("Please sign in to view favorites");
         setFavorites(MOCK_FAVORITES);
+        setLoading(false);
         return;
       }
 
-      // Use backendApi to fetch favorites (it will handle API and fallbacks)
+      // Always attempt to use the API first, without checking api_disabled flag
       try {
-        const { data } = await backendApi.user.getFavorites();
-
-        // Process data based on its format
-        if (Array.isArray(data)) {
-          if (typeof data[0] === "string") {
-            // Convert string array to Restaurant objects
-            const restaurantData = data.map((name) => ({
-              name,
-              rating: "4.5",
-              reviewCount: "100+",
-              deliveryTime: "15 min",
-              deliveryFee: "$3",
-              imageUrl:
-                "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-            }));
-            setFavorites(restaurantData);
-          } else {
-            // Already in Restaurant format
-            setFavorites(data as unknown as Restaurant[]);
+        const response = await userApi.getFavorites();
+        if (response && response.data) {
+          const apiData = response.data;
+          if (Array.isArray(apiData)) {
+            await loadFromAsyncStorage(); 
+            console.log("Successfully loaded favorites from API");
+            await AsyncStorage.removeItem("api_disabled"); 
+            return;
           }
-        } else {
-          throw new Error("Unexpected data format");
         }
+        throw new Error("Invalid response from API");
       } catch (apiError) {
-        console.log("API fetch failed, falling back to AsyncStorage", apiError);
-
-        // Fallback to AsyncStorage
-        const savedFavorites = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY,
-        );
-        if (savedFavorites) {
-          setFavorites(JSON.parse(savedFavorites));
-        } else {
-          // Use mock data if nothing is saved yet
-          setFavorites(MOCK_FAVORITES);
-          // Save mock data to AsyncStorage for future use
-          await AsyncStorage.setItem(
-            FAVORITES_STORAGE_KEY,
-            JSON.stringify(MOCK_FAVORITES),
-          );
-        }
+        console.log("API fetch failed, falling back to AsyncStorage:", apiError);
+        await loadFromAsyncStorage();
       }
     } catch (err) {
       console.error("Error loading favorites:", err);
@@ -127,6 +101,22 @@ export default function FavoritesScreen() {
       setFavorites(MOCK_FAVORITES);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to load favorites from AsyncStorage
+  const loadFromAsyncStorage = async () => {
+    const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    } else {
+      // Use mock data if nothing is saved yet
+      setFavorites(MOCK_FAVORITES);
+      // Save mock data to AsyncStorage for future use
+      await AsyncStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(MOCK_FAVORITES)
+      );
     }
   };
 
@@ -145,19 +135,24 @@ export default function FavoritesScreen() {
             style: "destructive",
             onPress: async () => {
               try {
-                // Use backendApi to remove favorite
-                await backendApi.user.toggleFavorite(restaurantName, "remove");
+                // Try to use the API first
+                try {
+                  await userApi.toggleFavorite(restaurantName, "remove");
+                  console.log("Successfully removed favorite via API");
+                } catch (apiError) {
+                  console.log("API removal failed, using local storage only:", apiError);
+                }
 
                 // Update UI immediately
                 const updatedFavorites = favorites.filter(
-                  (restaurant) => restaurant.name !== restaurantName,
+                  (restaurant) => restaurant.name !== restaurantName
                 );
                 setFavorites(updatedFavorites);
 
-                // Also update local storage as fallback
+                // Always update local storage
                 await AsyncStorage.setItem(
                   FAVORITES_STORAGE_KEY,
-                  JSON.stringify(updatedFavorites),
+                  JSON.stringify(updatedFavorites)
                 );
               } catch (error) {
                 console.error("Error removing favorite:", error);
@@ -165,7 +160,7 @@ export default function FavoritesScreen() {
               }
             },
           },
-        ],
+        ]
       );
     } catch (error) {
       console.error("Error with remove favorite dialog:", error);
@@ -181,9 +176,7 @@ export default function FavoritesScreen() {
     <View style={styles.restaurantCard}>
       <Image
         source={{
-          uri:
-            item.imageUrl ||
-            "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
+          uri: item.imageUrl || "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
         }}
         style={styles.restaurantImage}
         defaultSource={require("@/assets/icons/splash-icon-light.png")}
@@ -215,7 +208,6 @@ export default function FavoritesScreen() {
         <Text style={styles.heading}>Saved Restaurants</Text>
         <View style={styles.placeholder} />
       </View>
-
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Color.colorBurlywood} />
@@ -233,11 +225,9 @@ export default function FavoritesScreen() {
         <>
           <View style={styles.introContainer}>
             <Text style={styles.introText}>
-              Your favorite restaurants from Taste of Nashville are saved here
-              for quick access.
+              Your favorite restaurants from Taste of Nashville are saved here for quick access.
             </Text>
           </View>
-
           <FlatList
             data={favorites}
             renderItem={renderRestaurantCard}
@@ -251,8 +241,7 @@ export default function FavoritesScreen() {
                   No favorite restaurants yet
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Tap the heart icon on any restaurant to add it to your
-                  favorites
+                  Tap the heart icon on any restaurant to add it to your favorites
                 </Text>
                 <TouchableOpacity
                   style={styles.exploreButton}
@@ -265,7 +254,6 @@ export default function FavoritesScreen() {
               </View>
             }
           />
-
           {favorites.length > 0 && (
             <TouchableOpacity
               style={styles.orderButton}

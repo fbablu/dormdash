@@ -47,6 +47,9 @@ interface CategoryIconProps {
   onPress: () => void;
 }
 
+let hasLoggedAPIError = false;
+const LOG_THROTTLE_TIME = 10000;
+
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 // Add this interface near the top with your other interfaces

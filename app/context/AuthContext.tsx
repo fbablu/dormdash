@@ -1,6 +1,6 @@
 // app/context/AuthContext.tsx
 // Contributor: @Fardeen Bablu
-// time spent: 7 hours
+// time spent: 7.5 hours
 
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +19,7 @@ import { auth, db } from "../config/firebase";
 import authService from "../services/authService";
 import { configureGoogleSignIn } from "../utils/googleSignIn";
 import GoogleSignin from "../utils/googleSignIn";
+import { isAdmin, isRestaurantOwner, getOwnedRestaurantId } from "../utils/adminAuth";
 
 // Define user type
 export interface User {
@@ -30,6 +31,9 @@ export interface User {
   phone?: string;
   dormLocation?: string;
   createdAt: string;
+  isAdmin?: boolean;
+  isRestaurantOwner?: boolean;
+  ownedRestaurantId?: string;
 }
 
 interface AuthState {
@@ -46,6 +50,7 @@ interface AuthContextType extends AuthState {
   refreshUser: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   verifyDorm: (dormCode: string) => Promise<boolean>;
+  checkUserRole: () => void;
 }
 
 const defaultAuthContext: AuthContextType = {
@@ -59,6 +64,7 @@ const defaultAuthContext: AuthContextType = {
   refreshUser: async () => {},
   updateUser: async () => {},
   verifyDorm: async () => false,
+  checkUserRole: () => {},
 };
 
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
@@ -74,9 +80,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     user: null,
   });
 
+  // Check user roles (admin, restaurant owner)
+  const checkUserRole = () => {
+    if (!state.user) return;
+    
+    const userIsAdmin = isAdmin(state.user);
+    const userIsRestaurantOwner = isRestaurantOwner(state.user);
+    const ownedRestaurantId = userIsRestaurantOwner ? getOwnedRestaurantId(state.user) : null;
+    
+    if (userIsAdmin || userIsRestaurantOwner) {
+      setState(prev => ({
+        ...prev,
+        user: {
+          ...prev.user!,
+          isAdmin: userIsAdmin,
+          isRestaurantOwner: userIsRestaurantOwner,
+          ownedRestaurantId: ownedRestaurantId || undefined,
+        }
+      }));
+    }
+  };
+
   useEffect(() => {
     configureGoogleSignIn();
-    
+
     // Check if we have a stored user first
     const checkStoredAuth = async () => {
       try {
@@ -93,11 +120,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               isVerified: false,
               createdAt: new Date().toISOString(),
             };
+            
             setState({
               isLoading: false,
               isSignedIn: true,
               user: user,
             });
+            
+            // Check user roles after setting state
+            setTimeout(() => {
+              checkUserRole();
+            }, 100);
           } else {
             setState({
               isLoading: false,
@@ -129,8 +162,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (firebaseUser) {
         try {
           const user = await getOrCreateUserProfile(firebaseUser);
+          
           // Store user data for offline access
           await AsyncStorage.setItem("user_data", JSON.stringify(user));
+          
           // Save user token for API requests
           await AsyncStorage.setItem("userToken", await firebaseUser.getIdToken());
           await AsyncStorage.setItem("userId", user.id);
@@ -140,6 +175,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             isSignedIn: true,
             user,
           });
+          
+          // Check admin/restaurant owner status
+          setTimeout(() => {
+            checkUserRole();
+          }, 100);
         } catch (error) {
           console.error("Error processing authenticated user:", error);
           setState({
@@ -157,7 +197,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (error) {
           console.error("Error removing stored user:", error);
         }
-        
         setState({
           isLoading: false,
           isSignedIn: false,
@@ -177,7 +216,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (userSnap.exists()) {
         // Return existing user data
-        return userSnap.data() as User;
+        const userData = userSnap.data() as User;
+        // Check admin status
+        const userIsAdmin = isAdmin({...userData, email: firebaseUser.email || ''});
+        const userIsRestaurantOwner = isRestaurantOwner({...userData, email: firebaseUser.email || ''});
+        
+        // Only add ownedRestaurantId if the user is a restaurant owner
+        let updatedUserData: User = {
+          ...userData,
+          isAdmin: userIsAdmin,
+          isRestaurantOwner: userIsRestaurantOwner,
+        };
+        
+        // Only add ownedRestaurantId if user is a restaurant owner and we have a valid ID
+        if (userIsRestaurantOwner) {
+          const ownedId = getOwnedRestaurantId({...userData, email: firebaseUser.email || ''});
+          if (ownedId) { // Only add the field if it's not null
+            updatedUserData.ownedRestaurantId = ownedId;
+          }
+        }
+        
+        return updatedUserData;
       } else {
         // Create new user
         const newUser: User = {
@@ -189,9 +248,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           createdAt: new Date().toISOString(),
         };
         
+        // Check admin status for new user
+        const userIsAdmin = isAdmin(newUser);
+        const userIsRestaurantOwner = isRestaurantOwner(newUser);
+        
+        // Add role fields
+        if (userIsAdmin) {
+          newUser.isAdmin = true;
+        }
+        
+        if (userIsRestaurantOwner) {
+          newUser.isRestaurantOwner = true;
+          // Only add ownedRestaurantId if we have a valid ID
+          const ownedId = getOwnedRestaurantId(newUser);
+          if (ownedId) { // Only add the field if it's not null
+            newUser.ownedRestaurantId = ownedId;
+          }
+        }
+        
+        // Remove undefined fields before saving to Firestore
+        const userDataToSave = Object.fromEntries(
+          Object.entries(newUser).filter(([_, v]) => v !== undefined)
+        );
+        
         // Save to Firestore
         await setDoc(userRef, {
-          ...newUser,
+          ...userDataToSave,
           createdAt: serverTimestamp(),
         });
         
@@ -199,8 +281,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (error) {
       console.error("Error in getOrCreateUserProfile:", error);
-      // Fallback with minimal data if we can't reach Firestore
-      return {
+      
+      // Fallback with minimal data
+      const fallbackUser: User = {
         id: firebaseUser.uid,
         name: firebaseUser.displayName || "Vanderbilt Student",
         email: firebaseUser.email || "",
@@ -208,8 +291,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isVerified: false,
         createdAt: new Date().toISOString(),
       };
+      
+      // Check admin status
+      const userIsAdmin = isAdmin(fallbackUser);
+      const userIsRestaurantOwner = isRestaurantOwner(fallbackUser);
+      
+      if (userIsAdmin) {
+        fallbackUser.isAdmin = userIsAdmin;
+      }
+      
+      if (userIsRestaurantOwner) {
+        fallbackUser.isRestaurantOwner = userIsRestaurantOwner;
+        // Only add ownedRestaurantId if we have a valid ID
+        const ownedId = getOwnedRestaurantId(fallbackUser);
+        if (ownedId) { // Only add the field if it's not null
+          fallbackUser.ownedRestaurantId = ownedId;
+        }
+      }
+      
+      return fallbackUser;
     }
   };
+
+
+
+
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -217,7 +323,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Use Firebase for email/password sign in
       const userCredential = await signInWithEmailAndPassword(auth as Auth, email, password);
-      
       // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign in error:", error);
@@ -236,20 +341,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signUp = async (email: string, password: string, name: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-
+      
       // Create new user with Firebase
       const userCredential = await createUserWithEmailAndPassword(auth as Auth, email, password);
       
       // Update display name
-      await updateProfile(userCredential.user, {
-        displayName: name
-      });
-
+      await updateProfile(userCredential.user, { displayName: name });
+      
       // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-
+      
       if (error.code === "auth/email-already-in-use") {
         throw new Error("Email already in use");
       } else if (error.code === "auth/weak-password") {
@@ -267,6 +370,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await sendPasswordResetEmail(auth as Auth, email);
     } catch (error: any) {
       console.error("Password reset error:", error);
+      
       if (error.code === "auth/user-not-found") {
         throw new Error("No account found with this email");
       } else {
@@ -278,7 +382,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-
+      
       // Sign out from Firebase
       await firebaseSignOut(auth as Auth);
       
@@ -296,14 +400,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.log("Google Sign-In error:", error);
       }
-
+      
       // Set state first before navigation
       setState({
         isLoading: false,
         isSignedIn: false,
         user: null,
       });
-
+      
       // Don't use router.replace here as it causes issues
       // The navigation will be handled by the useEffect in _layout.tsx
       // which watches for the isSignedIn state
@@ -324,8 +428,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       if (userSnap.exists()) {
         const userData = userSnap.data() as User;
+        
+        // Check admin status
+        const userIsAdmin = isAdmin(userData);
+        const userIsRestaurantOwner = isRestaurantOwner(userData);
+        
+        if (userIsAdmin || userIsRestaurantOwner) {
+          userData.isAdmin = userIsAdmin;
+          userData.isRestaurantOwner = userIsRestaurantOwner;
+          if (userIsRestaurantOwner) {
+            userData.ownedRestaurantId = getOwnedRestaurantId(userData) || undefined;
+          }
+        }
+        
         // Update AsyncStorage
         await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+        
         setState((prev) => ({
           ...prev,
           user: userData,
@@ -339,9 +457,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUser = async (userData: Partial<User>) => {
     try {
       const authObj = auth as Auth;
-      if (!authObj.currentUser || !state.user)
-        throw new Error("User not authenticated");
-        
+      if (!authObj.currentUser || !state.user) throw new Error("User not authenticated");
+      
       const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
       
@@ -390,6 +507,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         refreshUser,
         updateUser,
         verifyDorm,
+        checkUserRole,
       }}
     >
       {children}

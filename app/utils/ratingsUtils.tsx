@@ -1,7 +1,9 @@
 // app/utils/ratingsUtils.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 1 hour
+// Time spent: 1.5 hours
 
+import React from 'react';
+import { View, Text } from 'react-native';
 import {
   collection,
   doc,
@@ -146,7 +148,6 @@ export const deleteReview = async (reviewId: string): Promise<void> => {
     }
 
     const restaurantId = reviewDoc.data().restaurantId;
-
     await deleteDoc(reviewRef);
 
     // Update restaurant rating average
@@ -176,14 +177,12 @@ export const getUserReviewForRestaurant = async (
     );
 
     const reviewsSnapshot = await getDocs(q);
-
     if (reviewsSnapshot.empty) {
       return null;
     }
 
     const doc = reviewsSnapshot.docs[0];
     const data = doc.data();
-
     return {
       id: doc.id,
       userId: data.userId,
@@ -213,7 +212,6 @@ export const updateRestaurantRating = async (
   try {
     const reviewsRef = collection(db, "reviews");
     const q = query(reviewsRef, where("restaurantId", "==", restaurantId));
-
     const reviewsSnapshot = await getDocs(q);
 
     if (reviewsSnapshot.empty) {
@@ -282,3 +280,14 @@ export const findTopRatedRestaurantsByCuisine = async (
     throw error;
   }
 };
+
+// Required default export for Expo Router
+const RatingsUtils: React.FC = () => {
+  return (
+    <View style={{ display: 'none' }}>
+      <Text>Ratings Utilities</Text>
+    </View>
+  );
+};
+
+export default RatingsUtils;

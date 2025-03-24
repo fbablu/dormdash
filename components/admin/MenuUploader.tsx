@@ -1,6 +1,6 @@
-// app/components/admin/MenuUploader.tsx
+// components/admin/MenuUploader.tsx
 // Contributor: @Fardeen Bablu
-// Time spent: 1.5 hours
+// Time spent: 2 hours
 
 import React, { useState } from "react";
 import {
@@ -12,12 +12,13 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { parseAndUploadMenuJson, transformMenuToFirebaseFormat, MenuCategory } from "@/app/utils/menuParser";
-import { saveRestaurant } from "@/app/utils/menuIntegration";
 import { Color } from "@/GlobalStyles";
-import { Location, Cuisine } from "@/app/types/restaurants";
+import * as DocumentPicker from 'expo-document-picker';
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/app/config/firebase";
 
 interface MenuUploaderProps {
   restaurantId?: string;
@@ -36,49 +37,45 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
   const [restaurantName, setRestaurantName] = useState<string>(
     initialRestaurantName || "",
   );
-  const [jsonText, setJsonText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [previewData, setPreviewData] = useState<MenuCategory[] | null>(null);
-  const [email, setEmail] = useState<string>("");
-  const [location, setLocation] = useState<string>("");
-  const [address, setAddress] = useState<string>("");
-  const [website, setWebsite] = useState<string>("");
-  const [cuisines, setCuisines] = useState<string>("");
+  const [adminEmail, setAdminEmail] = useState<string>("dormdash.vu@gmail.com");
+  const [pdfFile, setPdfFile] = useState<{name: string, uri: string} | null>(null);
 
-  // Preview the menu data
-  const handlePreview = () => {
+  // Select PDF menu
+  const handleSelectPdf = async () => {
     try {
-      if (!jsonText.trim()) {
-        Alert.alert("Error", "Please enter JSON data");
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        copyToCacheDirectory: true,
+      });
+      
+      if (result.canceled) {
+        console.log('Document picker canceled');
         return;
       }
-
-      // Parse the JSON
-      const menuData = JSON.parse(jsonText);
-
-      // Transform to Firebase format
-      const categories = transformMenuToFirebaseFormat(menuData);
-
-      setPreviewData(categories);
-      Alert.alert(
-        "Success",
-        `Parsed ${categories.length} menu categories successfully`,
-      );
+      
+      // DocumentPicker.getDocumentAsync returns an array of assets when multiple is true
+      const asset = result.assets[0];
+      console.log('Document selected:', asset);
+      setPdfFile({
+        name: asset.name,
+        uri: asset.uri
+      });
     } catch (error) {
-      console.error("JSON parsing error:", error);
-      Alert.alert("Error", "Invalid JSON format. Please check your data.");
+      console.error("Error selecting PDF:", error);
+      Alert.alert("Error", "Failed to select PDF file");
     }
   };
 
-  // Upload the menu data to Firebase
+  // Upload PDF request to database
   const handleUpload = async () => {
     if (!restaurantName.trim()) {
       Alert.alert("Error", "Please enter a restaurant name");
       return;
     }
 
-    if (!jsonText.trim()) {
-      Alert.alert("Error", "Please enter menu JSON data");
+    if (!pdfFile) {
+      Alert.alert("Error", "Please select a PDF menu file");
       return;
     }
 
@@ -88,118 +85,41 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
 
     setLoading(true);
     try {
-      // Parse the JSON
-      const menuData = JSON.parse(jsonText);
-
-      // Convert string location to Location enum type
-      let locationValue: Location = "HILLSBORO VILLAGE";
+      // In a real implementation, you would upload the PDF to Firebase Storage
+      // For now, we'll just simulate by saving a request to Firestore
       
-      // Try to match the entered location with one of the enum values
-      if (location) {
-        const normalizedLocation = location.toUpperCase();
-        const availableLocations: Location[] = [
-          "HILLSBORO VILLAGE", 
-          "MIDTOWN", 
-          "WEST END AVENUE", 
-          "ELLISTON PLACE", 
-          "ON-CAMPUS", 
-          "KOSHER/OUT OF CAMPUS RADIUS"
-        ];
-        
-        const matchedLocation = availableLocations.find(
-          loc => loc === normalizedLocation
-        );
-        
-        if (matchedLocation) {
-          locationValue = matchedLocation;
-        }
-      }
+      // Save menu request to Firestore
+      await setDoc(doc(db, "menu_requests", restId), {
+        restaurantId: restId,
+        restaurantName: restaurantName,
+        requestedAt: new Date().toISOString(),
+        status: "pending",
+        requestedBy: "restaurant_owner",
+        adminEmail: adminEmail,
+        fileName: pdfFile.name,
+        // fileUrl: would normally be a Firebase Storage URL
+      });
 
-      // Convert string cuisines to Cuisine enum array
-      const cuisineValues: Cuisine[] = [];
-      
-      if (cuisines) {
-        const cuisineStrings = cuisines.split(",").map(c => c.trim());
-        
-        const availableCuisines: Cuisine[] = [
-          "Vietnamese", "Asian", "Coffee", "Cafe", "American", "Breakfast", 
-          "BBQ", "Healthy", "Bowls", "Smoothies", "Sandwiches", "Burgers", 
-          "Ice Cream", "Desserts", "Noodles", "Chinese", "Japanese", "Sushi", 
-          "Mexican", "Tacos", "Juice", "Tex-Mex", "Pizza", "Italian", "Southern", 
-          "Chicken", "Hawaiian", "Poke", "Indian", "Fast Food", "Asian Fusion", 
-          "Diner", "Pasta", "Thai", "Bubble Tea", "Beverages", "Kosher", "Vegetarian"
-        ];
-        
-        cuisineStrings.forEach(cuisine => {
-          // Find matching cuisine or use the first available as fallback
-          const matchedCuisine = availableCuisines.find(
-            c => c.toLowerCase() === cuisine.toLowerCase()
-          );
-          
-          if (matchedCuisine) {
-            cuisineValues.push(matchedCuisine);
-          }
-        });
-        
-        // If no valid cuisines found, add a default one
-        if (cuisineValues.length === 0) {
-          cuisineValues.push("American");
-        }
-      } else {
-        // Default cuisine if none provided
-        cuisineValues.push("American");
-      }
-
-      // Save restaurant information first
-      await saveRestaurant(
-        {
-          name: restaurantName,
-          location: locationValue,
-          address: address || "1600 21st Ave S, Nashville, TN 37212",
-          website: website || "https://example.com",
-          cuisine: cuisineValues,
-          acceptsCommodoreCash: true,
-          image:
-            "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-          rating: 4.5,
-          reviewCount: "100+",
-          deliveryTime: "15-25 min",
-          deliveryFee: 3.99,
-        },
-        restId,
+      Alert.alert(
+        "Success",
+        `Menu PDF uploaded successfully! A request has been sent to ${adminEmail} for processing.`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setPdfFile(null);
+              if (onComplete) {
+                onComplete();
+              }
+            },
+          },
+        ]
       );
-
-      // Upload the menu data
-      const success = await parseAndUploadMenuJson(restId, menuData);
-
-      if (success) {
-        Alert.alert(
-          "Success",
-          `Menu uploaded successfully for ${restaurantName}`,
-        );
-        setRestaurantId(restId);
-
-        // Notify admin of pending approval if email is provided
-        if (email) {
-          console.log(`Sending approval notification to ${email}`);
-          // In a real implementation, this would send an email
-          Alert.alert(
-            "Admin Notification",
-            `An email notification would be sent to ${email} for approval.`,
-          );
-        }
-
-        if (onComplete) {
-          onComplete();
-        }
-      } else {
-        throw new Error("Failed to upload menu");
-      }
     } catch (error) {
-      console.error("Error uploading menu:", error);
+      console.error("Error uploading menu request:", error);
       Alert.alert(
         "Error",
-        "Failed to upload menu. Please check your data and try again.",
+        "Failed to upload menu request. Please try again."
       );
     } finally {
       setLoading(false);
@@ -210,26 +130,14 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
   const handleReset = () => {
     Alert.alert(
       "Reset Form",
-      "Are you sure you want to reset the form? All data will be cleared.",
+      "Are you sure you want to reset the form?",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Reset",
           style: "destructive",
           onPress: () => {
-            setJsonText("");
-            setPreviewData(null);
-            if (!initialRestaurantId) {
-              setRestaurantId(undefined);
-            }
-            if (!initialRestaurantName) {
-              setRestaurantName("");
-            }
-            setEmail("");
-            setLocation("");
-            setAddress("");
-            setWebsite("");
-            setCuisines("");
+            setPdfFile(null);
           },
         },
       ],
@@ -238,7 +146,7 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Restaurant Menu Uploader</Text>
+      <Text style={styles.title}>Menu PDF Uploader</Text>
 
       <ScrollView style={styles.scrollView}>
         {/* Restaurant Information Section */}
@@ -252,142 +160,86 @@ const MenuUploader: React.FC<MenuUploaderProps> = ({
               value={restaurantName}
               onChangeText={setRestaurantName}
               placeholder="Enter restaurant name"
+              editable={!initialRestaurantName}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Location</Text>
+            <Text style={styles.label}>Admin Email for Processing</Text>
             <TextInput
               style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="e.g. HILLSBORO VILLAGE, MIDTOWN"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={styles.input}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Enter restaurant address"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Website</Text>
-            <TextInput
-              style={styles.input}
-              value={website}
-              onChangeText={setWebsite}
-              placeholder="Enter restaurant website"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Cuisines (comma-separated)</Text>
-            <TextInput
-              style={styles.input}
-              value={cuisines}
-              onChangeText={setCuisines}
-              placeholder="e.g. Mexican, Tacos"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Admin Email for Approval</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter admin email for approval notifications"
+              value={adminEmail}
+              onChangeText={setAdminEmail}
+              placeholder="Enter admin email for processing"
               keyboardType="email-address"
+              editable={false}
             />
+            <Text style={styles.helperText}>
+              Your menu will be processed by the DormDash team
+            </Text>
           </View>
         </View>
 
-        {/* Menu JSON Section */}
+        {/* PDF Upload Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Menu JSON Data</Text>
+          <Text style={styles.sectionTitle}>Menu PDF Upload</Text>
           <Text style={styles.instructions}>
-            Enter the menu data in JSON format. The structure should match the
-            Taco Mama menu format.
+            Upload your restaurant menu as a PDF file. The DormDash team will process it
+            and add it to your restaurant profile.
           </Text>
 
-          <TextInput
-            style={styles.jsonInput}
-            value={jsonText}
-            onChangeText={setJsonText}
-            placeholder="Paste JSON menu data here..."
-            multiline
-            numberOfLines={10}
-          />
+          <TouchableOpacity 
+            style={styles.uploadArea}
+            onPress={handleSelectPdf}
+          >
+            {pdfFile ? (
+              <View style={styles.selectedFileContainer}>
+                <Feather name="file-text" size={32} color={Color.colorBurlywood} />
+                <Text style={styles.selectedFileName}>{pdfFile.name}</Text>
+                <TouchableOpacity 
+                  style={styles.removeFileButton}
+                  onPress={() => setPdfFile(null)}
+                >
+                  <Feather name="x" size={18} color="#ff6b6b" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.uploadPrompt}>
+                <Feather name="upload" size={32} color="#888" />
+                <Text style={styles.uploadText}>
+                  Tap to select a PDF menu file
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={[styles.button, styles.previewButton]}
-              onPress={handlePreview}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>Preview</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[styles.button, styles.resetButton]}
               onPress={handleReset}
-              disabled={loading}
+              disabled={loading || !pdfFile}
             >
-              <Text style={styles.buttonText}>Reset</Text>
+              <Text style={styles.buttonText}>Clear</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Preview Section */}
-        {previewData && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Preview</Text>
-
-            {previewData.map((category, index) => (
-              <View key={index} style={styles.previewCategory}>
-                <Text style={styles.categoryName}>{category.name}</Text>
-                <Text style={styles.itemCount}>
-                  {category.items.length} items
-                </Text>
-
-                {/* Show the first 3 items from each category */}
-                {category.items.slice(0, 3).map((item, itemIndex) => (
-                  <View key={itemIndex} style={styles.previewItem}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>
-                      ${item.price.toFixed(2)}
-                    </Text>
-                  </View>
-                ))}
-
-                {category.items.length > 3 && (
-                  <Text style={styles.moreItems}>
-                    + {category.items.length - 3} more items
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
       {/* Upload Button */}
       <TouchableOpacity
-        style={styles.uploadButton}
+        style={[
+          styles.uploadButton,
+          (!pdfFile || !restaurantName) && styles.disabledButton
+        ]}
         onPress={handleUpload}
-        disabled={loading}
+        disabled={loading || !pdfFile || !restaurantName}
       >
         {loading ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
           <>
-            <Feather name="upload-cloud" size={20} color="#fff" />
-            <Text style={styles.uploadButtonText}>Upload Menu to Database</Text>
+            <Feather name="send" size={20} color="#fff" />
+            <Text style={styles.uploadButtonText}>Submit Menu Request</Text>
           </>
         )}
       </TouchableOpacity>
@@ -424,12 +276,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   formGroup: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     fontSize: 16,
     marginBottom: 6,
     fontWeight: "500",
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+    fontStyle: "italic",
   },
   input: {
     borderWidth: 1,
@@ -437,81 +295,76 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    backgroundColor: "#f9f9f9",
   },
   instructions: {
-    marginBottom: 10,
+    marginBottom: 16,
     color: "#666",
     fontSize: 14,
     lineHeight: 20,
   },
-  jsonInput: {
-    borderWidth: 1,
+  uploadArea: {
+    borderWidth: 2,
     borderColor: "#ddd",
+    borderStyle: "dashed",
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    minHeight: 200,
-    textAlignVertical: "top",
-    fontFamily: "monospace",
+    padding: 20,
+    minHeight: 150,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fafafa",
+    marginBottom: 16,
+  },
+  uploadPrompt: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uploadText: {
+    marginTop: 12,
+    color: "#888",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  selectedFileContainer: {
+    alignItems: "center",
+    position: "relative",
+    width: "100%",
+  },
+  selectedFileName: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: "500",
+    color: Color.colorBurlywood,
+    textAlign: "center",
+    maxWidth: "80%",
+  },
+  removeFileButton: {
+    position: "absolute",
+    top: -10,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
   buttonGroup: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
   },
   button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 4,
     alignItems: "center",
-    marginHorizontal: 4,
-  },
-  previewButton: {
-    backgroundColor: "#4CAF50",
   },
   resetButton: {
-    backgroundColor: "#f44336",
+    backgroundColor: "#f1f1f1",
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  previewCategory: {
-    backgroundColor: "#f9f9f9",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
-  itemCount: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  previewItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  itemName: {
-    fontSize: 14,
-  },
-  itemPrice: {
-    fontSize: 14,
     fontWeight: "500",
-  },
-  moreItems: {
-    marginTop: 8,
     color: "#666",
-    fontStyle: "italic",
-    fontSize: 14,
   },
   uploadButton: {
     backgroundColor: Color.colorBurlywood,
@@ -520,8 +373,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  disabledButton: {
+    backgroundColor: "#d1c3a3",
+    opacity: 0.7,
   },
   uploadButtonText: {
     color: "#fff",

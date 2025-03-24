@@ -10,6 +10,7 @@ import PaymentProvider from "./context/PaymentContext";
 import AuthProvider, { useAuth } from "./context/AuthContext";
 import OrderProvider from "./context/OrderContext";
 import RestaurantInitializer from "@/components/RestaurantInitializer";
+import { initializeApiStatus } from "@/lib/api/config";
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -18,13 +19,15 @@ function RootLayoutNav() {
   const { isLoading, isSignedIn } = useAuth();
 
   useEffect(() => {
+    // Initialize API status at startup
+    initializeApiStatus();
+    
     // Hide splash screen once auth state is determined
     const hideSplash = async () => {
       if (!isLoading) {
         await SplashScreen.hideAsync();
       }
     };
-
     hideSplash();
   }, [isLoading]);
 
@@ -59,7 +62,6 @@ function RootLayoutNav() {
           }}
         />
       </Stack>
-      
       {/* Initialize restaurants if user is signed in */}
       {isSignedIn && <RestaurantInitializer />}
     </>

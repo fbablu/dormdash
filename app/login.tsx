@@ -1,6 +1,6 @@
 // app/login.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 1 hour
+// Time spent: 1.5 hours
 
 import React, { useState } from "react";
 import {
@@ -42,7 +42,19 @@ export default function LoginScreen() {
       await signIn(email, password);
       // On success, the AuthContext will handle navigation
     } catch (error: any) {
-      Alert.alert("Login Failed", error.message || "Failed to login");
+      console.error("Login error:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message || "Failed to login";
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+        errorMessage = "Invalid email or password. Please check your credentials.";
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
+      } else if (error.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+      
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -65,10 +77,19 @@ export default function LoginScreen() {
         "Check your inbox for instructions to reset your password",
       );
     } catch (error: any) {
-      Alert.alert(
-        "Reset Failed",
-        error.message || "Failed to send reset email",
-      );
+      console.error("Reset password error:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message || "Failed to send reset email";
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "No account found with this email address";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Please enter a valid email address";
+      } else if (error.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+      
+      Alert.alert("Reset Failed", errorMessage);
     } finally {
       setIsResetLoading(false);
     }
@@ -96,16 +117,17 @@ export default function LoginScreen() {
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Vanderbilt Email</Text>
+            <Text style={styles.label}>Email</Text>
             <View style={styles.inputWrapper}>
               <Feather name="mail" size={20} color="#888" />
               <TextInput
                 style={styles.input}
-                placeholder="you@vanderbilt.edu"
+                placeholder="your.email@example.com"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
               />
             </View>
           </View>
@@ -121,6 +143,7 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoComplete="password"
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}

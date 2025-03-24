@@ -1,24 +1,24 @@
-// server/src/routes/index.ts
-import { Router, Request, Response } from "express";
+// src/routes/index.ts
+// Contributor: @Fardeen Bablu
+// time spent: 10 minutes
+
+import { Router } from 'express';
+import authRoutes from './authRoutes';
+import userRoutes from './userRoutes';
+import restaurantRoutes from './restaurantRoutes';
+import orderRoutes from './orderRoutes';
 
 const router = Router();
 
-// Root route
-router.get("/", (req: Request, res: Response) => {
-  res.status(200).json({
-    message: "DormDash API is running",
-    version: "1.0.0",
-    endpoints: [
-      "/api/health",
-      "/api/auth/google",
-      "/api/user/profile",
-      "/api/restaurants",
-      "/api/orders",
-      "/api/user/orders",
-      "/api/delivery/requests",
-      "/api/users/favorites",
-    ],
-  });
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'DormDash API is running' });
 });
+
+// Mount routes
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/restaurants', restaurantRoutes);
+router.use('/orders', orderRoutes);
 
 export default router;

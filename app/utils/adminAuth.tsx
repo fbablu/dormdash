@@ -1,7 +1,9 @@
-// app/utils/adminAuth.ts
+// app/utils/adminAuth.tsx
 // Contributor: @Fardeen Bablu
-// Time spent: 30 minutes
+// Time spent: 45 minutes
 
+import React from 'react';
+import { View, Text } from 'react-native';
 import { User } from "../context/AuthContext";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
@@ -55,10 +57,20 @@ export const submitMenuForApproval = async (
     console.log(
       `Menu changes for ${restaurantId} submitted for approval to dormdash.vu@gmail.com`,
     );
-
     return true;
   } catch (error) {
     console.error("Error submitting menu for approval:", error);
     return false;
   }
 };
+
+// Default export component to satisfy router requirement
+const AdminAuth: React.FC = () => {
+  return (
+    <View style={{ display: 'none' }}>
+      <Text>Admin Authentication Utilities</Text>
+    </View>
+);
+};
+
+export default AdminAuth;
