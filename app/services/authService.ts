@@ -1,4 +1,7 @@
 // app/services/authService.ts
+// Contributor: @Fardeen Bablu
+// Time spent: 30 minutes
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   signInWithEmailAndPassword,

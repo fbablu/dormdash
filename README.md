@@ -18,6 +18,7 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 ## Tech Stack
 
 ### Frontend
+
 - **React Native with Expo**: Cross-platform mobile development
 - **TypeScript**: Type-safe code
 - **AsyncStorage**: Local data persistence
@@ -25,6 +26,7 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 - **Firebase Firestore**: Cloud database (with local fallback)
 
 ### Backend
+
 - **Express.js**: RESTful API backend
 - **MySQL**: Relational database for structured data
 - **JSON Web Tokens**: Secure authentication
@@ -32,15 +34,18 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js (v14+)
 - npm or yarn
 - Expo CLI
 - iOS Simulator or Android Emulator (for mobile testing)
 
 ### iOS Development Setup
+
 1. Install Xcode with the latest iOS simulator
    - XCode > Settings > Components > Ensure latest iOS version is installed
 2. Run the following commands:
+
 ```bash
 npm install
 npx expo prebuild --clean
@@ -48,19 +53,25 @@ npx expo run:ios
 ```
 
 ### Android Development Setup
+
 1. Install Android Studio: https://developer.android.com/studio
 2. Configure environment variables:
+
 ```bash
 # Add to ~/.zshrc or ~/.bash_profile
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export PATH=$PATH:$ANDROID_HOME/tools
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 ```
+
 3. Reload your terminal:
+
 ```bash
 source ~/.zshrc  # or source ~/.bash_profile
 ```
+
 4. Run the app:
+
 ```bash
 npm install
 npx expo prebuild --clean
@@ -80,4 +91,4 @@ npx expo run:android
 
 ## Support
 
-Contact dormdash.vu@gmail.com for any questions! 
+Contact dormdash.vu@gmail.com for any questions!
