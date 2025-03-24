@@ -138,11 +138,8 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
         throw new Error("API request failed");
       } catch (apiError) {
-        // Alert.alert(
-        //   `API call failed for favorites check, using AsyncStorage fallback, ${apiError}`,
-        // );
         console.log(
-          "API call failed for favorites check, using AsyncStorage fallback",
+          "API call failed for favorites check, using AsyncStorage fallback", apiError
         );
 
         // Fallback to AsyncStorage
