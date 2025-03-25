@@ -1,6 +1,9 @@
 // app/register.tsx
 // Contributors: @Fardeen Bablu
 // Time spent: 2.5 hours
+// app/register.tsx
+// Contributors: @Fardeen Bablu
+// Time spent: 2.5 hours
 
 import React, { useState } from "react";
 import {
@@ -14,6 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInputProps,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -22,7 +26,7 @@ import { useAuth } from "./context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import { ADMIN_EMAILS } from "./utils/adminAuth";
 
-export default function RegisterScreen() {
+export default function Register() {
   const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,6 +40,19 @@ export default function RegisterScreen() {
     password?: string;
     confirmPassword?: string;
   }>({});
+
+  // Special password props to prevent iOS autofill issues
+  const getPasswordInputProps = (): TextInputProps => {
+    if (Platform.OS === 'ios') {
+      return {
+        textContentType: 'oneTimeCode', // Prevents iOS password autofill
+        autoComplete: 'off',
+      } as TextInputProps;
+    }
+    return {
+      autoComplete: 'off',
+    } as TextInputProps;
+  };
 
   const validateForm = () => {
     const newErrors: {
@@ -124,6 +141,7 @@ export default function RegisterScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
@@ -151,7 +169,7 @@ export default function RegisterScreen() {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
-                  textContentType="name"
+                  autoCorrect={false}
                 />
               </View>
               {errors.name && (
@@ -173,7 +191,7 @@ export default function RegisterScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  textContentType="emailAddress"
+                  autoCorrect={false}
                   autoComplete="email"
                 />
               </View>
@@ -198,9 +216,7 @@ export default function RegisterScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  autoComplete="password-new"
-                  passwordRules="minlength: 8;"
+                  {...getPasswordInputProps()}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -234,8 +250,7 @@ export default function RegisterScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  autoComplete="password-new"
+                  {...getPasswordInputProps()}
                 />
               </View>
               {errors.confirmPassword && (
@@ -306,12 +321,6 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 30,
   },
   form: {
     flex: 1,
