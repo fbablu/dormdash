@@ -1,5 +1,4 @@
 // app/(tabs)/profile/favorites.tsx
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -10,135 +9,48 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  RefreshControl
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 import { Color } from "@/GlobalStyles";
 import { useAuth } from "@/app/context/AuthContext";
-import { userApi } from "@/app/services/backendApi";
+import favoritesApi, { FavoriteRestaurant } from "@/app/services/favoritesApi";
 
-// Define the restaurant type
-interface Restaurant {
-  name: string;
-  rating: string;
-  reviewCount: string;
-  deliveryTime: string;
-  deliveryFee: string;
-  imageUrl: string;
-}
-
-// Mock data in case API fails - Using Taste of Nashville restaurants from the app
-const MOCK_FAVORITES: Restaurant[] = [
-  {
-    name: "Bahn Mi & Roll",
-    rating: "4.1",
-    reviewCount: "200+",
-    deliveryTime: "10 min",
-    deliveryFee: "$2",
-    imageUrl:
-      "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-  },
-  {
-    name: "Sun & Fork",
-    rating: "4.5",
-    reviewCount: "400+",
-    deliveryTime: "15 min",
-    deliveryFee: "$5",
-    imageUrl:
-      "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-  },
-];
-
-const FAVORITES_STORAGE_KEY = "dormdash_favorites";
+// Image URL constant
+const FOOD_IMAGE_URL =
+  "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop";
 
 export default function FavoritesScreen() {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<Restaurant[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use this to refresh whenever the screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      loadFavorites();
-      return () => {};
-    }, [user?.id]),
-  );
-
-  // Also load on initial mount
   useEffect(() => {
-    const timer = setTimeout(() => loadFavorites(), 100);
-    return () => clearTimeout(timer);
-  }, [user?.id]);
+    loadFavorites();
+  }, []);
 
-  const loadFavorites = React.useCallback(async () => {
-    let active = true;
+  const loadFavorites = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      if (!user) {
-        console.log("No user found");
-        setError("Please sign in to view favorites");
-        setFavorites((prev) =>
-          JSON.stringify(prev) === JSON.stringify(MOCK_FAVORITES)
-            ? prev
-            : MOCK_FAVORITES,
-        );
-        return;
-      }
-
-      try {
-        const response = await userApi.getFavorites();
-        if (!active) return;
-
-        if (response?.data) {
-          const favoriteItems = response.data.map((name) => ({
-            name,
-            rating: "4.5",
-            reviewCount: "100+",
-            deliveryTime: "15 min",
-            deliveryFee: "$3",
-            imageUrl:
-              "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-          }));
-
-          setFavorites((prev) => {
-            if (JSON.stringify(prev) === JSON.stringify(favoriteItems))
-              return prev;
-            return favoriteItems;
-          });
-
-          await AsyncStorage.setItem(
-            FAVORITES_STORAGE_KEY,
-            JSON.stringify(favoriteItems),
-          );
-        }
-      } catch (apiError) {
-        if (!active) return;
-        console.log("API error, trying cache");
-
-        const saved = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setFavorites((prev) =>
-            JSON.stringify(prev) === JSON.stringify(parsed) ? prev : parsed,
-          );
-        } else {
-          setFavorites((prev) => (prev.length ? [] : prev));
-        }
-      }
+      // Use the dedicated favorites API
+      const favorites = await favoritesApi.getFavorites();
+      console.log("Loaded favorites:", favorites.length);
+      setFavorites(favorites);
+    } catch (err) {
+      console.error("Error loading favorites:", err);
+      setError("Failed to load favorites");
+      setFavorites([]);
     } finally {
-      if (active) setLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [user?.id]);
-
-  // Update the useEffect to remove the timeout
-  useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+  };
 
   const handleRemoveFavorite = async (restaurantName: string) => {
     try {
@@ -155,35 +67,28 @@ export default function FavoritesScreen() {
             style: "destructive",
             onPress: async () => {
               try {
-                // Try to use the API first
-                try {
-                  await userApi.toggleFavorite(restaurantName, "remove");
-                  console.log("Successfully removed favorite via API");
-                } catch (apiError) {
-                  console.log(
-                    "API removal failed, using local storage only:",
-                    apiError,
-                  );
-                }
-
                 // Update UI immediately
-                const updatedFavorites = favorites.filter(
-                  (restaurant) => restaurant.name !== restaurantName,
+                setFavorites(prev => 
+                  prev.filter(restaurant => restaurant.name !== restaurantName)
                 );
-                setFavorites(updatedFavorites);
 
-                // Always update local storage
-                await AsyncStorage.setItem(
-                  FAVORITES_STORAGE_KEY,
-                  JSON.stringify(updatedFavorites),
-                );
+                // Use the favorites API to remove
+                const success = await favoritesApi.removeFavorite(restaurantName);
+                
+                if (!success) {
+                  // If failed, reload to get accurate state
+                  loadFavorites();
+                  Alert.alert("Error", "Failed to remove favorite");
+                }
               } catch (error) {
                 console.error("Error removing favorite:", error);
+                // Reload to sync state
+                loadFavorites();
                 Alert.alert("Error", "Failed to remove favorite");
               }
             },
           },
-        ],
+        ]
       );
     } catch (error) {
       console.error("Error with remove favorite dialog:", error);
@@ -195,13 +100,16 @@ export default function FavoritesScreen() {
     router.back();
   };
 
-  const renderRestaurantCard = ({ item }: { item: Restaurant }) => (
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadFavorites();
+  };
+
+  const renderRestaurantCard = ({ item }: { item: FavoriteRestaurant }) => (
     <View style={styles.restaurantCard}>
       <Image
         source={{
-          uri:
-            item.imageUrl ||
-            "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
+          uri: item.imageUrl || FOOD_IMAGE_URL,
         }}
         style={styles.restaurantImage}
         defaultSource={require("@/assets/icons/splash-icon-light.png")}
@@ -233,7 +141,7 @@ export default function FavoritesScreen() {
         <Text style={styles.heading}>Saved Restaurants</Text>
         <View style={styles.placeholder} />
       </View>
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Color.colorBurlywood} />
           <Text style={styles.loadingText}>Loading favorites...</Text>
@@ -250,8 +158,7 @@ export default function FavoritesScreen() {
         <>
           <View style={styles.introContainer}>
             <Text style={styles.introText}>
-              Your favorite restaurants from Taste of Nashville are saved here
-              for quick access.
+              Your favorite restaurants from Taste of Nashville are saved here for quick access.
             </Text>
           </View>
           <FlatList
@@ -260,6 +167,14 @@ export default function FavoritesScreen() {
             keyExtractor={(item) => item.name}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[Color.colorBurlywood]}
+                tintColor={Color.colorBurlywood}
+              />
+            }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Feather name="heart" size={50} color="#ddd" />
@@ -267,8 +182,7 @@ export default function FavoritesScreen() {
                   No favorite restaurants yet
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Tap the heart icon on any restaurant to add it to your
-                  favorites
+                  Tap the heart icon on any restaurant to add it to your favorites
                 </Text>
                 <TouchableOpacity
                   style={styles.exploreButton}
@@ -289,13 +203,6 @@ export default function FavoritesScreen() {
               <Text style={styles.orderButtonText}>Order from favorites</Text>
             </TouchableOpacity>
           )}
-          {/* Add manual refresh button */}
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={loadFavorites}
-          >
-            <Feather name="refresh-cw" size={20} color="#fff" />
-          </TouchableOpacity>
         </>
       )}
     </SafeAreaView>
@@ -479,24 +386,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  refreshButton: {
-    position: "absolute",
-    right: 20,
-    bottom: 80,
-    backgroundColor: Color.colorBurlywood,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
 });

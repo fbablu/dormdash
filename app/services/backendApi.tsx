@@ -1,4 +1,6 @@
 // app/services/backendApi.ts
+import React from "react";
+import { View, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/lib/api/config";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -13,7 +15,6 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { View, Text } from "react-native";
 
 // Types for our models
 export interface User {
@@ -81,9 +82,11 @@ export interface Restaurant {
   deliveryFee?: number;
 }
 
+// Modify ApiResponse to include array properties for TypeScript compatibility
 export interface ApiResponse<T> {
   data: T;
   message?: string;
+  [key: string]: any;
 }
 
 // Helper functions for HTTP requests
@@ -98,7 +101,7 @@ const getAuthHeaders = async () => {
 async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
-): Promise<T> {
+): Promise<ApiResponse<T>> {
   try {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -116,7 +119,7 @@ async function fetchWithAuth<T>(
       );
     }
 
-    return await response.json();
+    return await response.json() as ApiResponse<T>;
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
 
@@ -134,7 +137,7 @@ async function fetchWithAuth<T>(
 async function handleFirestoreFallback<T>(
   endpoint: string,
   options: RequestInit,
-): Promise<T> {
+): Promise<ApiResponse<T>> {
   const method = options.method || "GET";
 
   // Offline handling for authentication
@@ -172,7 +175,7 @@ async function handleFirestoreFallback<T>(
 
       return {
         data: { token: mockToken, user: mockUser },
-      } as unknown as T;
+      } as ApiResponse<T>;
     } catch (error) {
       console.error("Firestore user creation error:", error);
       throw error;
@@ -192,17 +195,17 @@ async function handleFirestoreFallback<T>(
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
-        return { data: userDoc.data() } as unknown as T;
+        return { data: userDoc.data() } as ApiResponse<T>;
       } else {
         const userData = await AsyncStorage.getItem("currentUser");
         if (!userData) throw new Error("User not found");
-        return { data: JSON.parse(userData) } as unknown as T;
+        return { data: JSON.parse(userData) } as ApiResponse<T>;
       }
     } catch (error) {
       console.error("Firestore user fetch error:", error);
       const userData = await AsyncStorage.getItem("currentUser");
       if (!userData) throw new Error("User not found");
-      return { data: JSON.parse(userData) } as unknown as T;
+      return { data: JSON.parse(userData) } as ApiResponse<T>;
     }
   }
 
@@ -229,7 +232,7 @@ async function handleFirestoreFallback<T>(
         });
 
         if (orders.length > 0) {
-          return { data: orders } as unknown as T;
+          return { data: orders } as ApiResponse<T>;
         }
       } catch (firestoreError) {
         console.error("Firestore orders fetch error:", firestoreError);
@@ -244,7 +247,7 @@ async function handleFirestoreFallback<T>(
         (order: any) => order.customerId === userId,
       );
 
-      return { data: userOrders } as unknown as T;
+      return { data: userOrders } as ApiResponse<T>;
     } catch (error) {
       console.error("AsyncStorage orders fetch error:", error);
       throw error;
@@ -285,7 +288,7 @@ async function handleFirestoreFallback<T>(
             createdAt: order.createdAt,
           }));
 
-          return { data: deliveryRequests } as unknown as T;
+          return { data: deliveryRequests } as ApiResponse<T>;
         }
       } catch (firestoreError) {
         console.error(
@@ -319,7 +322,7 @@ async function handleFirestoreFallback<T>(
         createdAt: order.timestamp || order.createdAt,
       }));
 
-      return { data: deliveryRequests } as unknown as T;
+      return { data: deliveryRequests } as ApiResponse<T>;
     } catch (error) {
       console.error("AsyncStorage delivery requests fetch error:", error);
       throw error;
@@ -335,7 +338,7 @@ export const authApi = {
     idToken: string,
   ): Promise<ApiResponse<{ token: string; user: User }>> => {
     try {
-      return fetchWithAuth("/api/auth/google", {
+      return fetchWithAuth<{ token: string; user: User }>("/api/auth/google", {
         method: "POST",
         body: JSON.stringify({ idToken }),
       });
@@ -373,7 +376,7 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
-    return fetchWithAuth(`/api/users/${user.id}/profile`);
+    return fetchWithAuth<User>(`/api/users/${user.id}/profile`);
   },
 
   updateProfile: async (data: Partial<User>): Promise<ApiResponse<User>> => {
@@ -401,7 +404,7 @@ export const userApi = {
       console.error("Error updating user in Firestore:", error);
     }
 
-    return fetchWithAuth(`/api/users/${user.id}/profile`, {
+    return fetchWithAuth<User>(`/api/users/${user.id}/profile`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
@@ -413,7 +416,7 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
-    return fetchWithAuth(`/api/users/${user.id}/verify-dorm`, {
+    return fetchWithAuth<{ isVerified: boolean }>(`/api/users/${user.id}/verify-dorm`, {
       method: "POST",
       body: JSON.stringify({ dormCode }),
     });
@@ -479,7 +482,7 @@ export const userApi = {
       console.error("Error updating favorites in local storage:", error);
     }
 
-    return fetchWithAuth("/api/users/favorites", {
+    return fetchWithAuth<{ success: boolean }>("/api/users/favorites", {
       method: "POST",
       body: JSON.stringify({ userId: user.id, restaurantName, action }),
     });
@@ -489,13 +492,12 @@ export const userApi = {
     try {
       const user = await authApi.getCurrentUser();
       if (!user) {
-        return { data: [] };
+        return { data: [] } as ApiResponse<string[]>;
       }
-      const response = await fetchWithAuth(`/api/users/${user.id}/favorites`);
-      return response as ApiResponse<string[]>;
+      return fetchWithAuth<string[]>(`/api/users/${user.id}/favorites`);
     } catch (error) {
       console.log("Error fetching favorites:", error);
-      return { data: [] };
+      return { data: [] } as ApiResponse<string[]>;
     }
   },
 };
@@ -534,7 +536,7 @@ export const deliveryApi = {
             createdAt: order.createdAt,
           }));
 
-          return { data: deliveryRequests };
+          return { data: deliveryRequests } as ApiResponse<DeliveryRequest[]>;
         }
       } catch (firestoreError) {
         console.error(
@@ -569,14 +571,14 @@ export const deliveryApi = {
           createdAt: order.timestamp || order.createdAt,
         }));
 
-        return { data: deliveryRequests };
+        return { data: deliveryRequests } as ApiResponse<DeliveryRequest[]>;
       }
 
       // Try API last
-      return fetchWithAuth("/api/delivery/requests");
+      return fetchWithAuth<DeliveryRequest[]>("/api/delivery/requests");
     } catch (error) {
       console.error("Error getting delivery requests:", error);
-      return { data: [] };
+      return { data: [] } as ApiResponse<DeliveryRequest[]>;
     }
   },
 
@@ -597,7 +599,7 @@ export const deliveryApi = {
 
           // Verify order is still pending
           if (orderData.status !== "pending" || orderData.delivererId) {
-            return { data: { success: false } };
+            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
           }
 
           // Update order in Firestore
@@ -624,14 +626,14 @@ export const deliveryApi = {
           // Check if order exists and is still pending
           const orderIndex = orders.findIndex((o: any) => o.id === orderId);
           if (orderIndex === -1) {
-            return { data: { success: false } };
+            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
           }
 
           if (
             orders[orderIndex].status !== "pending" ||
             orders[orderIndex].delivererId
           ) {
-            return { data: { success: false } };
+            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
           }
 
           // Update order
@@ -650,12 +652,12 @@ export const deliveryApi = {
       }
 
       // Try API last
-      return fetchWithAuth(`/api/delivery/accept/${orderId}`, {
+      return fetchWithAuth<{ success: boolean }>(`/api/delivery/accept/${orderId}`, {
         method: "POST",
       });
     } catch (error) {
       console.error("Error accepting delivery request:", error);
-      return { data: { success: false } };
+      return { data: { success: false } } as ApiResponse<{ success: boolean }>;
     }
   },
 
@@ -663,7 +665,7 @@ export const deliveryApi = {
     try {
       const user = await authApi.getCurrentUser();
       if (!user) {
-        return { data: [] };
+        return { data: [] } as ApiResponse<Order[]>;
       }
 
       // Try Firestore first
@@ -682,7 +684,7 @@ export const deliveryApi = {
         });
 
         if (deliveries.length > 0) {
-          return { data: deliveries };
+          return { data: deliveries } as ApiResponse<Order[]>;
         }
       } catch (firestoreError) {
         console.error(
@@ -703,14 +705,14 @@ export const deliveryApi = {
             ["accepted", "picked_up"].includes(order.status),
         );
 
-        return { data: deliveries };
+        return { data: deliveries } as ApiResponse<Order[]>;
       }
 
       // Try API last
-      return fetchWithAuth("/api/user/deliveries");
+      return fetchWithAuth<Order[]>("/api/user/deliveries");
     } catch (error) {
       console.error("Error getting user deliveries:", error);
-      return { data: [] };
+      return { data: [] } as ApiResponse<Order[]>;
     }
   },
 };
@@ -718,15 +720,15 @@ export const deliveryApi = {
 // Restaurant API
 export const restaurantApi = {
   getAllRestaurants: async (): Promise<ApiResponse<Restaurant[]>> => {
-    return fetchWithAuth("/api/restaurants");
+    return fetchWithAuth<Restaurant[]>("/api/restaurants");
   },
 
   getRestaurantById: async (id: string): Promise<ApiResponse<Restaurant>> => {
-    return fetchWithAuth(`/api/restaurants/${id}`);
+    return fetchWithAuth<Restaurant>(`/api/restaurants/${id}`);
   },
 
   getRestaurantMenu: async (id: string): Promise<ApiResponse<any>> => {
-    return fetchWithAuth(`/api/restaurants/${id}/menu`);
+    return fetchWithAuth<any>(`/api/restaurants/${id}/menu`);
   },
 };
 
@@ -772,12 +774,12 @@ export const orderApi = {
         JSON.stringify(updatedOrders),
       );
 
-      return { data: { orderId } };
+      return { data: { orderId } } as ApiResponse<{ orderId: string }>;
     } catch (error) {
       console.error("Error saving order to AsyncStorage:", error);
 
       // Attempt to use the API anyway
-      return fetchWithAuth("/api/orders", {
+      return fetchWithAuth<{ orderId: string }>("/api/orders", {
         method: "POST",
         body: JSON.stringify({
           ...orderData,
@@ -790,7 +792,7 @@ export const orderApi = {
   getUserOrders: async (): Promise<ApiResponse<Order[]>> => {
     const user = await authApi.getCurrentUser();
     if (!user) {
-      return { data: [] };
+      return { data: [] } as ApiResponse<Order[]>;
     }
 
     try {
@@ -809,7 +811,7 @@ export const orderApi = {
         });
 
         if (orders.length > 0) {
-          return { data: orders };
+          return { data: orders } as ApiResponse<Order[]>;
         }
       } catch (firestoreError) {
         console.error("Error getting orders from Firestore:", firestoreError);
@@ -825,15 +827,15 @@ export const orderApi = {
           (order: any) => order.customerId === user.id,
         );
 
-        return { data: userOrders };
+        return { data: userOrders } as ApiResponse<Order[]>;
       }
 
-      return { data: [] };
+      return { data: [] } as ApiResponse<Order[]>;
     } catch (error) {
       console.error("Error getting orders from AsyncStorage:", error);
 
       // Try API as last resort
-      return fetchWithAuth("/api/user/orders");
+      return fetchWithAuth<Order[]>("/api/user/orders");
     }
   },
 
@@ -845,7 +847,7 @@ export const orderApi = {
         const orderDoc = await getDoc(orderRef);
 
         if (orderDoc.exists()) {
-          return { data: { id: orderDoc.id, ...orderDoc.data() } as Order };
+          return { data: { id: orderDoc.id, ...orderDoc.data() } as Order } as ApiResponse<Order>;
         }
       } catch (firestoreError) {
         console.error("Error getting order from Firestore:", firestoreError);
@@ -858,12 +860,12 @@ export const orderApi = {
         const order = orders.find((o: any) => o.id === id);
 
         if (order) {
-          return { data: order as Order };
+          return { data: order as Order } as ApiResponse<Order>;
         }
       }
 
       // If still not found, try the API
-      return fetchWithAuth(`/api/orders/${id}`);
+      return fetchWithAuth<Order>(`/api/orders/${id}`);
     } catch (error) {
       console.error("Error getting order:", error);
       throw error;
@@ -876,7 +878,7 @@ export default function backendApi() {
   return (
     <View>
       <Text> </Text>
-      <Text> Restaurant Service Component</Text>
+      <Text> API Service Component</Text>
     </View>
   );
 }

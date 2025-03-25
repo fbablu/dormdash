@@ -1,7 +1,4 @@
 // src/middleware/auth.ts
-// Contributor: @Fardeen Bablu
-// time spent: 45 minutes
-
 import { Request, Response, NextFunction } from "express";
 import { auth } from "../config/firebase";
 
@@ -26,13 +23,13 @@ export const authenticateUser = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const authHeader = req.headers.authorization;
+  // Allow token from authorization header or query params for testing
+  const token = req.headers.authorization?.split("Bearer ")[1] 
+    || req.query.token as string;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json({ error: "Unauthorized - No token provided" });
   }
-
-  const token = authHeader.split("Bearer ")[1];
 
   try {
     // Verify the token with Firebase Admin
@@ -50,8 +47,14 @@ export const authenticateUser = async (
     };
 
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Authentication error:", error);
+    
+    // Handle token expiration specifically
+    if (error.code === "auth/id-token-expired") {
+      return res.status(401).json({ error: "Token expired" });
+    }
+    
     return res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
 };
