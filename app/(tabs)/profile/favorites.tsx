@@ -9,7 +9,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  RefreshControl
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -68,13 +68,16 @@ export default function FavoritesScreen() {
             onPress: async () => {
               try {
                 // Update UI immediately
-                setFavorites(prev => 
-                  prev.filter(restaurant => restaurant.name !== restaurantName)
+                setFavorites((prev) =>
+                  prev.filter(
+                    (restaurant) => restaurant.name !== restaurantName,
+                  ),
                 );
 
                 // Use the favorites API to remove
-                const success = await favoritesApi.removeFavorite(restaurantName);
-                
+                const success =
+                  await favoritesApi.removeFavorite(restaurantName);
+
                 if (!success) {
                   // If failed, reload to get accurate state
                   loadFavorites();
@@ -88,7 +91,7 @@ export default function FavoritesScreen() {
               }
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error("Error with remove favorite dialog:", error);
@@ -158,7 +161,8 @@ export default function FavoritesScreen() {
         <>
           <View style={styles.introContainer}>
             <Text style={styles.introText}>
-              Your favorite restaurants from Taste of Nashville are saved here for quick access.
+              Your favorite restaurants from Taste of Nashville are saved here
+              for quick access.
             </Text>
           </View>
           <FlatList
@@ -182,7 +186,8 @@ export default function FavoritesScreen() {
                   No favorite restaurants yet
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  Tap the heart icon on any restaurant to add it to your favorites
+                  Tap the heart icon on any restaurant to add it to your
+                  favorites
                 </Text>
                 <TouchableOpacity
                   style={styles.exploreButton}

@@ -24,8 +24,9 @@ export const authenticateUser = async (
   next: NextFunction,
 ) => {
   // Allow token from authorization header or query params for testing
-  const token = req.headers.authorization?.split("Bearer ")[1] 
-    || req.query.token as string;
+  const token =
+    req.headers.authorization?.split("Bearer ")[1] ||
+    (req.query.token as string);
 
   if (!token) {
     return res.status(401).json({ error: "Unauthorized - No token provided" });
@@ -49,12 +50,12 @@ export const authenticateUser = async (
     next();
   } catch (error: any) {
     console.error("Authentication error:", error);
-    
+
     // Handle token expiration specifically
     if (error.code === "auth/id-token-expired") {
       return res.status(401).json({ error: "Token expired" });
     }
-    
+
     return res.status(401).json({ error: "Unauthorized - Invalid token" });
   }
 };

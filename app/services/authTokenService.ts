@@ -8,7 +8,7 @@ class AuthTokenService {
     try {
       // First try to get token from AsyncStorage
       let token = await AsyncStorage.getItem("userToken");
-      
+
       // If no token or force refresh requested, try to get a fresh token
       if (!token || forceRefresh) {
         const currentUser = auth.currentUser;
@@ -22,7 +22,7 @@ class AuthTokenService {
           }
         }
       }
-      
+
       return token;
     } catch (error) {
       console.error("Error in getToken:", error);
@@ -33,10 +33,10 @@ class AuthTokenService {
   // Get auth headers for API requests
   async getAuthHeaders(): Promise<Record<string, string>> {
     const token = await this.getToken();
-    
+
     return {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 

@@ -119,7 +119,7 @@ async function fetchWithAuth<T>(
       );
     }
 
-    return await response.json() as ApiResponse<T>;
+    return (await response.json()) as ApiResponse<T>;
   } catch (error) {
     console.error(`API Error (${endpoint}):`, error);
 
@@ -416,10 +416,13 @@ export const userApi = {
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error("User not authenticated");
 
-    return fetchWithAuth<{ isVerified: boolean }>(`/api/users/${user.id}/verify-dorm`, {
-      method: "POST",
-      body: JSON.stringify({ dormCode }),
-    });
+    return fetchWithAuth<{ isVerified: boolean }>(
+      `/api/users/${user.id}/verify-dorm`,
+      {
+        method: "POST",
+        body: JSON.stringify({ dormCode }),
+      },
+    );
   },
 
   toggleFavorite: async (
@@ -599,7 +602,9 @@ export const deliveryApi = {
 
           // Verify order is still pending
           if (orderData.status !== "pending" || orderData.delivererId) {
-            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
+            return { data: { success: false } } as ApiResponse<{
+              success: boolean;
+            }>;
           }
 
           // Update order in Firestore
@@ -626,14 +631,18 @@ export const deliveryApi = {
           // Check if order exists and is still pending
           const orderIndex = orders.findIndex((o: any) => o.id === orderId);
           if (orderIndex === -1) {
-            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
+            return { data: { success: false } } as ApiResponse<{
+              success: boolean;
+            }>;
           }
 
           if (
             orders[orderIndex].status !== "pending" ||
             orders[orderIndex].delivererId
           ) {
-            return { data: { success: false } } as ApiResponse<{ success: boolean }>;
+            return { data: { success: false } } as ApiResponse<{
+              success: boolean;
+            }>;
           }
 
           // Update order
@@ -652,9 +661,12 @@ export const deliveryApi = {
       }
 
       // Try API last
-      return fetchWithAuth<{ success: boolean }>(`/api/delivery/accept/${orderId}`, {
-        method: "POST",
-      });
+      return fetchWithAuth<{ success: boolean }>(
+        `/api/delivery/accept/${orderId}`,
+        {
+          method: "POST",
+        },
+      );
     } catch (error) {
       console.error("Error accepting delivery request:", error);
       return { data: { success: false } } as ApiResponse<{ success: boolean }>;
@@ -847,7 +859,9 @@ export const orderApi = {
         const orderDoc = await getDoc(orderRef);
 
         if (orderDoc.exists()) {
-          return { data: { id: orderDoc.id, ...orderDoc.data() } as Order } as ApiResponse<Order>;
+          return {
+            data: { id: orderDoc.id, ...orderDoc.data() } as Order,
+          } as ApiResponse<Order>;
         }
       } catch (firestoreError) {
         console.error("Error getting order from Firestore:", firestoreError);

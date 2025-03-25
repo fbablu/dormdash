@@ -44,7 +44,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         setIsFavorite(status);
       }
     };
-    
+
     checkStatus();
   }, [restaurant.name, user]);
 
@@ -63,7 +63,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     try {
       // Update UI immediately for responsive feel
       setIsFavorite(!isFavorite);
-      
+
       // Add or remove from favorites
       let success = false;
       if (isFavorite) {
@@ -72,15 +72,18 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       } else {
         success = await favoritesApi.addFavorite({
           name: restaurant.name,
-          imageUrl: FOOD_IMAGE_URL
+          imageUrl: FOOD_IMAGE_URL,
         });
         console.log(`Added ${restaurant.name} to favorites:`, success);
       }
-      
+
       if (!success) {
         // If operation failed, revert UI state
         setIsFavorite(isFavorite);
-        Alert.alert("Error", `Failed to ${isFavorite ? "remove from" : "add to"} favorites`);
+        Alert.alert(
+          "Error",
+          `Failed to ${isFavorite ? "remove from" : "add to"} favorites`,
+        );
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
