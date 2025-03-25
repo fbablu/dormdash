@@ -552,7 +552,7 @@ export default function RestaurantMenuScreen() {
       Alert.alert(
         "Order Placed!",
         "Your order has been placed successfully. You can view it in your orders tab.",
-        [{ text: "OK", onPress: () => router.push("/(tabs)/orders") }],
+        [{ text: "OK", onPress: () => router.replace("/(tabs)/orders") }],
       );
     } catch (error) {
       console.error("Error placing order:", error);
