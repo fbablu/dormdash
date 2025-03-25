@@ -1,9 +1,6 @@
 // app/register.tsx
 // Contributors: @Fardeen Bablu
 // Time spent: 2.5 hours
-// app/register.tsx
-// Contributors: @Fardeen Bablu
-// Time spent: 2.5 hours
 
 import React, { useState } from "react";
 import {
