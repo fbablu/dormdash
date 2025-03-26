@@ -6,7 +6,7 @@ import path from "path";
 
 dotenv.config();
 
-interface Restaurant {
+export interface Restaurant {
   name: string;
   location: string;
   address: string;
@@ -15,19 +15,19 @@ interface Restaurant {
   acceptsCommodoreCash: boolean;
 }
 
-async function initializeDatabase() {
-  console.log("Initializing database...");
-
-  // Read restaurants data
-  const restaurantsData: Restaurant[] = JSON.parse(
+// break into smaller functions for testing
+export function readRestaurantData() {
+  let restaurantData = JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, "../../../ton_restaurants.json"),
+      path.join(__dirname, "../../data/ton_restaurants.json"),
       "utf8",
     ),
   );
+  return restaurantData;
+}
 
-  // Create connection pool
-  const pool = mysql.createPool({
+export function createConnectionPool() {
+  return mysql.createPool({
     host: process.env.DB_HOST || "localhost",
     user: process.env.DB_USER || "dormdash_user",
     password: process.env.DB_PASSWORD || "dormdash_VU",
@@ -36,9 +36,57 @@ async function initializeDatabase() {
     connectionLimit: 10,
     queueLimit: 0,
   });
+}
 
-  const connection = await pool.getConnection();
+export async function createCuisinesIfNotExists(connection: mysql.Connection) {
+  const [result] = await connection.execute(`
+    CREATE TABLE IF NOT EXISTS cuisines (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL UNIQUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  return result;
+}
 
+export async function createRestaurantsIfNotExists(connection: mysql.Connection) {
+  const [result] = await connection.execute(`
+    CREATE TABLE IF NOT EXISTS restaurants (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL UNIQUE,
+      location VARCHAR(255) NOT NULL,
+      address VARCHAR(255) NOT NULL,
+      website VARCHAR(255) NOT NULL,
+      accepts_commodore_cash BOOLEAN NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  return result;
+}
+
+export async function createRestaurantCuisinesTable(connection: mysql.Connection) {
+  const [result] = await connection.execute(`
+    CREATE TABLE IF NOT EXISTS restaurant_cuisines (
+      restaurant_id INT,
+      cuisine_id INT,
+      PRIMARY KEY (restaurant_id, cuisine_id),
+      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
+      FOREIGN KEY (cuisine_id) REFERENCES cuisines(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  return result;
+}
+
+
+export async function initializeDatabase(
+  pool: mysql.Pool,
+  connection: mysql.PoolConnection,
+  restaurantsData: Restaurant[],
+) {
   try {
     console.log("Connected to the database");
 
@@ -72,10 +120,13 @@ async function initializeDatabase() {
     // Insert restaurants and their cuisines
     console.log(`Inserting ${restaurantsData.length} restaurants`);
 
+    // store results for all restaurants
+    const allRestaurants = [];
+    const allRestaurantCuisines = [];
     for (const restaurant of restaurantsData) {
       // Insert restaurant
       const [result] = await connection.execute<mysql.ResultSetHeader>(
-        `INSERT INTO restaurants 
+        `INSERT IGNORE INTO restaurants 
         (name, location, address, website, accepts_commodore_cash) 
         VALUES (?, ?, ?, ?, ?)`,
         [
@@ -86,15 +137,21 @@ async function initializeDatabase() {
           restaurant.acceptsCommodoreCash ? 1 : 0,
         ],
       );
+      allRestaurants.push(result);
+      allRestaurantCuisines.push(restaurant.cuisine);
+    }
 
-      const restaurantId = result.insertId;
+    // inserting all restaurant cuisines
+    for (let i = 0; i < restaurantsData.length; i++) {
+      const restaurant = restaurantsData[i];
+      const restaurantId = allRestaurants[i].insertId;
 
       // Insert restaurant cuisines
       for (const cuisine of restaurant.cuisine) {
         const cuisineId = cuisineMap[cuisine];
         if (cuisineId) {
           await connection.execute(
-            "INSERT INTO restaurant_cuisines (restaurant_id, cuisine_id) VALUES (?, ?)",
+            "INSERT IGNORE INTO restaurant_cuisines (restaurant_id, cuisine_id) VALUES (?, ?)",
             [restaurantId, cuisineId],
           );
         }
@@ -113,12 +170,13 @@ async function initializeDatabase() {
   }
 }
 
-initializeDatabase()
-  .then(() => {
-    console.log("Database initialization completed");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("Database initialization failed:", err);
-    process.exit(1);
-  });
+// uncomment to initialize the database
+// initializeDatabase()
+//   .then(() => {
+//     console.log("Database initialization completed");
+//     process.exit(0);
+//   })
+//   .catch((err) => {
+//     console.error("Database initialization failed:", err);
+//     process.exit(1);
+//   });
