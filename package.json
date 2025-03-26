@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest --watchAll",
+    "test": "jest --watchAll --detectOpenHandles",
     "lint": "expo lint"
   },
   "jest": {
@@ -48,6 +48,7 @@
     "firebase": "^11.4.0",
     "jest": "~29.7.0",
     "jest-expo": "~52.0.6",
+    "mysql2": "^3.14.0",
     "prettier": "^3.4.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -68,6 +69,7 @@
     "@react-native-community/cli": "latest",
     "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.13",
     "@types/react": "~18.3.12",
     "@types/react-native-onboarding-swiper": "^1.1.9",
     "jest": "^29.2.1",
