@@ -407,7 +407,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
   // Update delivery status
   const updateDeliveryStatus = async (
     orderId: string,
-    newStatus: Order["status"]
+    newStatus: Order["status"],
   ): Promise<boolean> => {
     try {
       if (!isSignedIn || !user) return false;
@@ -422,26 +422,26 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
       const allOrders = JSON.parse(ordersJson) as Order[];
 
       // Find the order to get its customer ID
-      const orderToUpdate = allOrders.find(order => order.id === orderId);
+      const orderToUpdate = allOrders.find((order) => order.id === orderId);
       if (orderToUpdate) {
         customerId = orderToUpdate.customerId;
       }
 
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, status: newStatus } : order,
       );
 
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders)
+        JSON.stringify(updatedOrders),
       );
 
       // If delivered, remove from active deliveries
       if (newStatus === "delivered") {
         setActiveDeliveries((prev) =>
-          prev.filter((delivery) => delivery.id !== orderId)
+          prev.filter((delivery) => delivery.id !== orderId),
         );
         setSelectedDelivery(null);
         setShowMap(false);
@@ -451,14 +451,14 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
           prev.map((delivery) =>
             delivery.id === orderId
               ? { ...delivery, status: newStatus }
-              : delivery
-          )
+              : delivery,
+          ),
         );
 
         // Update selected delivery if it's the one being updated
         if (selectedDelivery && selectedDelivery.id === orderId) {
           setSelectedDelivery((prev) =>
-            prev ? { ...prev, status: newStatus } : null
+            prev ? { ...prev, status: newStatus } : null,
           );
         }
       }
@@ -476,7 +476,6 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
   const isUserDelivering = (): boolean => {
     return activeDeliveries.length > 0;
   };
-
 
   // Toggle delivery mode
   const toggleDeliveryMode = (isOnline: boolean) => {

@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/lib/api/config";
+import { mockGoogleSignin } from "../utils/mockAuth";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import {
   doc,
@@ -887,12 +888,7 @@ export const orderApi = {
   },
 };
 
-// Default export component to satisfy router requirement
-export default function backendApi() {
-  return (
-    <View>
-      <Text> </Text>
-      <Text> API Service Component</Text>
-    </View>
-  );
-}
+
+const backendApiDummy: React.FC = () => null;
+export default backendApiDummy;
+

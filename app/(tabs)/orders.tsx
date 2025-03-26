@@ -92,13 +92,13 @@ export default function OrdersScreen() {
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "cancelled" as const }
-          : order
+          : order,
       );
 
       // Save updated orders back to storage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders)
+        JSON.stringify(updatedOrders),
       );
 
       // Update local state

@@ -1,16 +1,9 @@
 // app/utils/googleSignIn.ts
-// Contributor: @Fardeen Bablu
-// Time spent: 15 minutes
 
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { mockGoogleSignin } from "./mockAuth";
 
 export const configureGoogleSignIn = () => {
-  GoogleSignin.configure({
-    iosClientId:
-      "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
-    webClientId:
-      "895573352563-bglvrv3e9visj279hc9g157787jd4on3.apps.googleusercontent.com",
-  });
+  console.log("Mock Google Sign-In configured for Expo Go");
 };
 
-export default GoogleSignin;
+export default mockGoogleSignin;

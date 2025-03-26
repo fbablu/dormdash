@@ -40,14 +40,14 @@ export default function Register() {
 
   // Special password props to prevent iOS autofill issues
   const getPasswordInputProps = (): TextInputProps => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       return {
-        textContentType: 'oneTimeCode', // Prevents iOS password autofill
-        autoComplete: 'off',
+        textContentType: "oneTimeCode", // Prevents iOS password autofill
+        autoComplete: "off",
       } as TextInputProps;
     }
     return {
-      autoComplete: 'off',
+      autoComplete: "off",
     } as TextInputProps;
   };
 

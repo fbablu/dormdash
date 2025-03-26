@@ -11,14 +11,14 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  Auth,
+  User as FirebaseUser,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
-  User as FirebaseUser,
-  Auth,
 } from "firebase/auth";
 import {
   doc,
@@ -90,6 +90,8 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+
+  
   const [state, setState] = useState<AuthState>({
     isLoading: true,
     isSignedIn: false,
@@ -252,7 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     firebaseUser: FirebaseUser,
   ): Promise<User> => {
     try {
-      const userRef = doc(db as Firestore, "users", firebaseUser.uid);
+      const userRef = doc(db, "users", firebaseUser.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
@@ -372,7 +374,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Use Firebase for email/password sign in
       const userCredential = await signInWithEmailAndPassword(
-        auth as Auth,
+        auth,
         email,
         password,
       );
@@ -485,7 +487,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const authObj = auth as Auth;
       if (!authObj.currentUser || !state.user) return;
 
-      const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
+      const userRef = doc(db, "users", authObj.currentUser.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
@@ -523,7 +525,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!authObj.currentUser || !state.user)
         throw new Error("User not authenticated");
 
-      const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
+      const userRef = doc(db, "users", authObj.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
 
       // Update display name if provided
