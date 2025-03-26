@@ -4,7 +4,6 @@ import { View, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/lib/api/config";
 import { mockGoogleSignin } from "../utils/mockAuth";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import {
   doc,
   collection,
@@ -144,7 +143,7 @@ async function handleFirestoreFallback<T>(
   // Offline handling for authentication
   if (endpoint === "/api/auth/google" && method === "POST") {
     const body = JSON.parse(options.body as string);
-    const googleUser = await GoogleSignin.getCurrentUser();
+    const googleUser = await mockGoogleSignin.getCurrentUser();
 
     if (!googleUser) throw new Error("Not signed in with Google");
 
@@ -352,7 +351,7 @@ export const authApi = {
   logout: async (): Promise<void> => {
     await AsyncStorage.removeItem("userToken");
     await AsyncStorage.removeItem("currentUser");
-    await GoogleSignin.signOut();
+    await mockGoogleSignin.signOut();
   },
 
   checkAuth: async (): Promise<boolean> => {
@@ -888,7 +887,5 @@ export const orderApi = {
   },
 };
 
-
-const backendApiDummy: React.FC = () => null;
-export default backendApiDummy;
-
+const backendApi: React.FC = () => null;
+export default backendApi;
