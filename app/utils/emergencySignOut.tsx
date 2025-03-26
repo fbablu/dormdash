@@ -1,9 +1,8 @@
-// app/utils/emergencySignOut.ts
+// app/utils/emergencySignOut.tsx
 // Contributor: @Fardeen Bablu
-// Time spent: 10 minutes
+// Time spent: 1 hour
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Alert } from "react-native";
 import { router } from "expo-router";
 
 /**
@@ -23,30 +22,14 @@ export const emergencySignOut = async () => {
     // Remove all keys in parallel
     await Promise.all(keysToRemove.map((key) => AsyncStorage.removeItem(key)));
 
-    // Notify user
-    Alert.alert(
-      "Signed Out Successfully",
-      "You have been signed out. Redirecting to onboarding...",
-      [
-        {
-          text: "OK",
-          onPress: () => {
-            // Force navigation to onboarding
-            setTimeout(() => {
-              router.replace("/onboarding");
-            }, 500);
-          },
-        },
-      ],
-    );
+    // Directly navigate to onboarding
+    router.replace("/onboarding");
 
     return true;
   } catch (error) {
     console.error("Force sign out error:", error);
-    Alert.alert(
-      "Error",
-      "Failed to sign out. Please close and restart the app.",
-    );
     return false;
   }
 };
+
+export default emergencySignOut;

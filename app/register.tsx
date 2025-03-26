@@ -184,6 +184,7 @@ export default function Register() {
                 <TextInput
                   style={styles.input}
                   placeholder="Your full name"
+                  placeholderTextColor={"#808080"}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -205,6 +206,7 @@ export default function Register() {
                 <TextInput
                   style={styles.input}
                   placeholder="you@vanderbilt.edu"
+                  placeholderTextColor={"#808080"}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -231,6 +233,7 @@ export default function Register() {
                 <TextInput
                   style={styles.input}
                   placeholder="Create a password"
+                  placeholderTextColor={"#808080"}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -265,6 +268,7 @@ export default function Register() {
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm your password"
+                  placeholderTextColor={"#808080"}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
@@ -368,6 +372,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginLeft: 8,
+    color: "#000",
   },
   visibilityToggle: {
     padding: 4,
