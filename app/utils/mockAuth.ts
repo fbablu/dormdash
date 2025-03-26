@@ -139,32 +139,34 @@ export const mockAuth = {
   createUserWithEmailAndPassword: async (email: string, password: string) => {
     // Check if user already exists
     const users = await getMockUsers();
-    const existingUser = users.find((u: { email: string; }) => u.email === email);
-    
+    const existingUser = users.find(
+      (u: { email: string }) => u.email === email,
+    );
+
     if (existingUser) {
       throw new Error("auth/email-already-in-use");
     }
-    
+
     // Create new user
     const newUser = {
       uid: `mock-${Date.now()}`,
       email,
-      password, 
+      password,
       displayName: "",
       photoURL: null,
       getIdToken: async () => `mock-token-${Date.now()}`,
       toJSON: () => ({}),
       _a: {
-        isProviderEnabled: () => true 
-      }
+        isProviderEnabled: () => true,
+      },
     };
-    
+
     // Add to mock database
     await addMockUser(newUser);
-    
+
     // Set as current user
     await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
-    
+
     console.log(`Created new mock user: ${email}`);
     return { user: newUser };
   },

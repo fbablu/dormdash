@@ -1,8 +1,8 @@
 // app/components/RestaurantInitializer.tsx
 // Contributor: @Fardeen Bablu
 // time spent: 30 minutes
-import React, { useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SAMPLE_RESTAURANTS = [
   {
@@ -21,33 +21,36 @@ const SAMPLE_RESTAURANTS = [
         {
           name: "Tacos",
           items: [
-            { 
-              id: "taco-1", 
-              name: "Chicken Taco", 
-              price: 3.99, 
-              description: "Grilled chicken with lettuce, cheese, and pico de gallo" 
+            {
+              id: "taco-1",
+              name: "Chicken Taco",
+              price: 3.99,
+              description:
+                "Grilled chicken with lettuce, cheese, and pico de gallo",
             },
-            { 
-              id: "taco-2", 
-              name: "Beef Taco", 
-              price: 4.99, 
-              description: "Ground beef with lettuce, cheese, and pico de gallo" 
-            }
-          ]
+            {
+              id: "taco-2",
+              name: "Beef Taco",
+              price: 4.99,
+              description:
+                "Ground beef with lettuce, cheese, and pico de gallo",
+            },
+          ],
         },
         {
           name: "Burritos",
           items: [
-            { 
-              id: "burrito-1", 
-              name: "Chicken Burrito", 
-              price: 8.99, 
-              description: "Grilled chicken with rice, beans, lettuce, cheese, and pico de gallo" 
-            }
-          ]
-        }
-      ]
-    }
+            {
+              id: "burrito-1",
+              name: "Chicken Burrito",
+              price: 8.99,
+              description:
+                "Grilled chicken with rice, beans, lettuce, cheese, and pico de gallo",
+            },
+          ],
+        },
+      ],
+    },
   },
   {
     id: "bahn-mi",
@@ -65,28 +68,29 @@ const SAMPLE_RESTAURANTS = [
         {
           name: "Sandwiches",
           items: [
-            { 
-              id: "sandwich-1", 
-              name: "Classic Bahn Mi", 
-              price: 6.99, 
-              description: "Vietnamese sandwich with pork, veggies, and special sauce" 
-            }
-          ]
+            {
+              id: "sandwich-1",
+              name: "Classic Bahn Mi",
+              price: 6.99,
+              description:
+                "Vietnamese sandwich with pork, veggies, and special sauce",
+            },
+          ],
         },
         {
           name: "Bowls",
           items: [
-            { 
-              id: "bowl-1", 
-              name: "Rice Bowl", 
-              price: 9.99, 
-              description: "Rice with your choice of protein and veggies" 
-            }
-          ]
-        }
-      ]
-    }
-  }
+            {
+              id: "bowl-1",
+              name: "Rice Bowl",
+              price: 9.99,
+              description: "Rice with your choice of protein and veggies",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 const RestaurantInitializer = () => {
@@ -95,18 +99,23 @@ const RestaurantInitializer = () => {
     const initializeRestaurants = async () => {
       try {
         // Check if we've already initialized
-        const initialized = await AsyncStorage.getItem('restaurants_initialized');
-        if (initialized === 'true') {
-          console.log('Restaurants already initialized');
+        const initialized = await AsyncStorage.getItem(
+          "restaurants_initialized",
+        );
+        if (initialized === "true") {
+          console.log("Restaurants already initialized");
           return;
         }
 
         // Store sample restaurants
-        await AsyncStorage.setItem('restaurants', JSON.stringify(SAMPLE_RESTAURANTS));
-        await AsyncStorage.setItem('restaurants_initialized', 'true');
-        console.log('Mock restaurants initialized successfully');
+        await AsyncStorage.setItem(
+          "restaurants",
+          JSON.stringify(SAMPLE_RESTAURANTS),
+        );
+        await AsyncStorage.setItem("restaurants_initialized", "true");
+        console.log("Mock restaurants initialized successfully");
       } catch (error) {
-        console.error('Error initializing restaurants:', error);
+        console.error("Error initializing restaurants:", error);
       }
     };
 

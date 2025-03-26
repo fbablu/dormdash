@@ -106,10 +106,9 @@ export default function Register() {
     if (!validateForm()) {
       return;
     }
-  
+
     setIsLoading(true);
     try {
-
       Alert.alert("Registration", "Creating account...");
       const newUser = {
         uid: `mock-${Date.now()}`,
@@ -119,23 +118,26 @@ export default function Register() {
         photoURL: null,
         getIdToken: async () => "mock-token-123",
       };
-      
+
       // Store in AsyncStorage with proper keys
       await AsyncStorage.setItem("mock_current_user", JSON.stringify(newUser));
       await AsyncStorage.setItem("userToken", "mock-token-123");
       await AsyncStorage.setItem("userId", newUser.uid);
-      
+
       // Also store user data for the app
-      await AsyncStorage.setItem("user_data", JSON.stringify({
-        id: newUser.uid,
-        name,
-        email,
-        createdAt: new Date().toISOString(),
-        isVerified: false,
-      }));
-      
+      await AsyncStorage.setItem(
+        "user_data",
+        JSON.stringify({
+          id: newUser.uid,
+          name,
+          email,
+          createdAt: new Date().toISOString(),
+          isVerified: false,
+        }),
+      );
+
       Alert.alert("Success", "Account created, redirecting...");
-      
+
       try {
         await signUp(email, password, name);
       } catch (error) {
@@ -146,7 +148,10 @@ export default function Register() {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      Alert.alert("Registration Failed", error.message || "An error occurred during registration");
+      Alert.alert(
+        "Registration Failed",
+        error.message || "An error occurred during registration",
+      );
     } finally {
       setIsLoading(false);
     }
