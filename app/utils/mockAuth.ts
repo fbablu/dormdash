@@ -147,7 +147,7 @@ export const mockAuth = {
       throw new Error("auth/email-already-in-use");
     }
 
-    // Create new user
+    // Create new user with getIdToken function properly defined
     const newUser = {
       uid: `mock-${Date.now()}`,
       email,
@@ -170,6 +170,7 @@ export const mockAuth = {
     console.log(`Created new mock user: ${email}`);
     return { user: newUser };
   },
+
   signOut: async () => {
     await AsyncStorage.removeItem(CURRENT_USER_KEY);
   },

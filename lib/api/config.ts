@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Define a flag to disable API calls completely if server is not running
-export const API_DISABLED = false;
+export const API_DISABLED = true;
 
 // Export the API base URL - configure properly for different platforms
 export const API_BASE_URL = Platform.select({
@@ -122,11 +122,12 @@ export async function apiRequest<T>(
   }
 }
 
-export const initializeApiStatus = () => {
+export const initializeApiStatus = async () => {
   const isExpoGo = true;
 
   if (isExpoGo) {
     console.log("API health checks disabled in Expo Go preview");
+    await AsyncStorage.setItem("api_disabled", "true");
     return;
   }
   checkApiHealth();

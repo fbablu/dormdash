@@ -256,6 +256,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const userJson = await AsyncStorage.getItem("user_data");
 
+      if (firebaseUser && !firebaseUser.getIdToken) {
+        firebaseUser.getIdToken = async () => `mock-token${Date.now()}`;
+      }
+
       if (userJson) {
         const userData = JSON.parse(userJson) as User;
         return userData;
