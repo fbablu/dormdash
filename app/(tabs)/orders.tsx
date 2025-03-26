@@ -20,6 +20,7 @@ import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import { Color } from "@/GlobalStyles";
+import OrderTrackingView from "@/components/OrderTrackingView";
 
 interface OrderItem {
   id: string;
@@ -91,13 +92,13 @@ export default function OrdersScreen() {
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "cancelled" as const }
-          : order,
+          : order
       );
 
       // Save updated orders back to storage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders),
+        JSON.stringify(updatedOrders)
       );
 
       // Update local state
@@ -252,79 +253,16 @@ export default function OrdersScreen() {
               </View>
             </View>
 
-            {selectedOrder && (
-              <View style={styles.receiptContent}>
-                <Text style={styles.receiptRestaurantName}>
-                  {selectedOrder.restaurantName}
-                </Text>
-                <Text style={styles.receiptDate}>
-                  {formatDate(selectedOrder.timestamp)}
-                </Text>
-
-                <View style={styles.itemsContainer}>
-                  {selectedOrder.items.map((item, index) => (
-                    <View key={index} style={styles.item}>
-                      <Text style={styles.itemName}>
-                        {item.quantity}x {item.name}
-                      </Text>
-                      <Text style={styles.itemPrice}>
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </Text>
-                    </View>
-                  ))}
+            {selectedOrder &&
+              selectedOrder.status !== "pending" &&
+              selectedOrder.status !== "cancelled" && (
+                <View style={styles.trackingContainer}>
+                  <OrderTrackingView
+                    status={selectedOrder.status}
+                    orderId={selectedOrder.id}
+                  />
                 </View>
-
-                <View style={styles.subtotalContainer}>
-                  <Text style={styles.subtotalLabel}>Subtotal:</Text>
-                  <Text style={styles.subtotalAmount}>
-                    $
-                    {(
-                      parseFloat(selectedOrder.totalAmount) -
-                      parseFloat(selectedOrder.deliveryFee)
-                    ).toFixed(2)}
-                  </Text>
-                </View>
-
-                <View style={styles.feeContainer}>
-                  <Text style={styles.feeLabel}>Delivery Fee:</Text>
-                  <Text style={styles.feeAmount}>
-                    ${selectedOrder.deliveryFee}
-                  </Text>
-                </View>
-
-                <View style={styles.totalContainer}>
-                  <Text style={styles.totalLabel}>Total:</Text>
-                  <Text style={styles.totalAmount}>
-                    ${selectedOrder.totalAmount}
-                  </Text>
-                </View>
-
-                <View style={styles.paymentContainer}>
-                  <Text style={styles.paymentLabel}>Payment Method:</Text>
-                  <Text style={styles.paymentMethod}>
-                    {selectedOrder.paymentMethod}
-                  </Text>
-                </View>
-
-                <View style={styles.modalButtonsContainer}>
-                  {selectedOrder.status === "pending" && (
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() => handleCancelOrder(selectedOrder.id)}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel Order</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity
-                    style={styles.orderAgainButton}
-                    onPress={() => handleOrderAgain(selectedOrder)}
-                  >
-                    <Text style={styles.orderAgainText}>Order Again</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+              )}
 
             <TouchableOpacity
               style={styles.closeButton}
@@ -607,5 +545,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+  },
+  trackingContainer: {
+    marginVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    paddingTop: 16,
   },
 });

@@ -67,6 +67,7 @@ interface OrderContextType {
   availableDeliveryRequests: DeliveryRequest[];
   isDeliveryLoading: boolean;
   isOnlineForDelivery: boolean;
+  isUserDelivering: () => boolean; // Add this line
 
   // Functions
   refreshOrders: () => Promise<void>;
@@ -79,6 +80,12 @@ interface OrderContextType {
     status: Order["status"],
   ) => Promise<boolean>;
   toggleDeliveryMode: (isOnline: boolean) => void;
+
+  // Missing state and functions - Assuming their types
+  selectedDelivery: Order | null;
+  setSelectedDelivery: React.Dispatch<React.SetStateAction<Order | null>>;
+  showMap: boolean;
+  setShowMap: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const defaultOrderContext: OrderContextType = {
@@ -88,6 +95,7 @@ const defaultOrderContext: OrderContextType = {
   availableDeliveryRequests: [],
   isDeliveryLoading: false,
   isOnlineForDelivery: false,
+  isUserDelivering: () => false, // Added default implementation
   refreshOrders: async () => {},
   refreshDeliveries: async () => {},
   placeOrder: async () => "",
@@ -95,6 +103,10 @@ const defaultOrderContext: OrderContextType = {
   acceptDelivery: async () => false,
   updateDeliveryStatus: async () => false,
   toggleDeliveryMode: () => {},
+  selectedDelivery: null,
+  setSelectedDelivery: () => {},
+  showMap: false,
+  setShowMap: () => {},
 };
 
 const OrderContext = createContext<OrderContextType>(defaultOrderContext);
@@ -113,6 +125,10 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
   >([]);
   const [isDeliveryLoading, setIsDeliveryLoading] = useState(false);
   const [isOnlineForDelivery, setIsOnlineForDelivery] = useState(false);
+
+  // State variables that were missing
+  const [selectedDelivery, setSelectedDelivery] = useState<Order | null>(null);
+  const [showMap, setShowMap] = useState<boolean>(false);
 
   // Load initial data when signed in
   useEffect(() => {
@@ -175,7 +191,6 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsOrdersLoading(false);
     }
   };
-
   // Refresh delivery information
   const refreshDeliveries = async () => {
     if (!isSignedIn || !isOnlineForDelivery || !user) return;
@@ -392,72 +407,76 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
   // Update delivery status
   const updateDeliveryStatus = async (
     orderId: string,
-    status: Order["status"],
+    newStatus: Order["status"]
   ): Promise<boolean> => {
-    if (!isSignedIn || !user) return false;
-
     try {
-      // Try to update in Firestore first
-      try {
-        const orderRef = doc(db, "orders", orderId);
-        const orderDoc = await getDoc(orderRef);
+      if (!isSignedIn || !user) return false;
 
-        if (orderDoc.exists()) {
-          const orderData = orderDoc.data();
-          // Check if this user is the deliverer
-          if (orderData.delivererId !== user.id) {
-            return false;
-          }
+      // Get affected order to find the customer ID
+      let customerId = null;
 
-          // Update status
-          await setDoc(
-            orderRef,
-            { status, updatedAt: new Date().toISOString() },
-            { merge: true },
-          );
-        }
-      } catch (firestoreError) {
-        console.error(
-          "Error updating delivery status in Firestore:",
-          firestoreError,
-        );
-      }
-
-      // Update in AsyncStorage as backup
+      // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const allOrders = JSON.parse(ordersJson) as Order[];
-        // Update the specific order
-        const updatedOrders = allOrders.map((order) =>
-          order.id === orderId ? { ...order, status } : order,
-        );
+      if (!ordersJson) return false;
 
-        // Save back to AsyncStorage
-        await AsyncStorage.setItem(
-          "dormdash_orders",
-          JSON.stringify(updatedOrders),
-        );
+      const allOrders = JSON.parse(ordersJson) as Order[];
+
+      // Find the order to get its customer ID
+      const orderToUpdate = allOrders.find(order => order.id === orderId);
+      if (orderToUpdate) {
+        customerId = orderToUpdate.customerId;
       }
+
+      // Update the specific order
+      const updatedOrders = allOrders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      );
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(
+        "dormdash_orders",
+        JSON.stringify(updatedOrders)
+      );
 
       // If delivered, remove from active deliveries
-      if (status === "delivered") {
+      if (newStatus === "delivered") {
         setActiveDeliveries((prev) =>
-          prev.filter((delivery) => delivery.id !== orderId),
+          prev.filter((delivery) => delivery.id !== orderId)
         );
+        setSelectedDelivery(null);
+        setShowMap(false);
       } else {
         // Otherwise update the status
         setActiveDeliveries((prev) =>
           prev.map((delivery) =>
-            delivery.id === orderId ? { ...delivery, status } : delivery,
-          ),
+            delivery.id === orderId
+              ? { ...delivery, status: newStatus }
+              : delivery
+          )
         );
+
+        // Update selected delivery if it's the one being updated
+        if (selectedDelivery && selectedDelivery.id === orderId) {
+          setSelectedDelivery((prev) =>
+            prev ? { ...prev, status: newStatus } : null
+          );
+        }
       }
+
+      // Refresh orders to ensure both customer and deliverer see updated status
+      refreshOrders();
+
       return true;
     } catch (error) {
       console.error("Error updating delivery status:", error);
       return false;
     }
   };
+
+  const isUserDelivering = (): boolean => {
+    return activeDeliveries.length > 0;
+  };
+
 
   // Toggle delivery mode
   const toggleDeliveryMode = (isOnline: boolean) => {
@@ -553,6 +572,11 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
         acceptDelivery,
         updateDeliveryStatus,
         toggleDeliveryMode,
+        isUserDelivering,
+        selectedDelivery,
+        setSelectedDelivery,
+        showMap,
+        setShowMap,
       }}
     >
       {children}

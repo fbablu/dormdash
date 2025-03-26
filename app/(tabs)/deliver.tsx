@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import OrderTrackingView from "@/components/OrderTrackingView";
 
 interface OrderItem {
   id: string;
@@ -140,38 +141,49 @@ export default function Deliver() {
     }
   };
 
-  // Accept a delivery request
+
+
+
   const handleAcceptDelivery = async (orderId: string) => {
     try {
+      // Check if user is already delivering an order
+      if (activeDeliveries.length > 0) {
+        Alert.alert(
+          "Delivery in Progress",
+          "You already have an active delivery. Please complete it before accepting a new one."
+        );
+        return false;
+      }
+  
       // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson || !user) return false;
-
+  
       const allOrders = JSON.parse(ordersJson) as Order[];
       const order = allOrders.find((o) => o.id === orderId);
-
+  
       // Double check this isn't the user's own order
       if (order && order.customerId === user.id) {
         Alert.alert("Error", "You cannot deliver your own order");
         return false;
       }
-
+  
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "accepted" as const, delivererId: user.id }
           : order
       );
-
+  
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
         JSON.stringify(updatedOrders)
       );
-
+  
       // Refresh the lists
       await fetchDeliveryData();
-
+  
       return true;
     } catch (error) {
       console.error("Error accepting delivery:", error);
@@ -245,106 +257,63 @@ export default function Deliver() {
     setShowMap(false);
   };
 
-  // Render the delivery map
+
+
   const renderDeliveryMap = () => {
     if (!selectedDelivery) return null;
-
-    // Get mock coordinates for restaurant and delivery address
-    const restaurantCoords = getLocationForPlace(selectedDelivery.restaurantId);
-
-    // Delivery location is a random offset from Vanderbilt for demo purposes
-    const deliveryCoords = {
-      latitude: MOCK_LOCATIONS.default.latitude + (Math.random() - 0.5) * 0.01,
-      longitude:
-        MOCK_LOCATIONS.default.longitude + (Math.random() - 0.5) * 0.01,
-    };
-
-    // Current location (deliverer) is between restaurant and delivery location
-    const progress = selectedDelivery.status === "picked_up" ? 0.6 : 0.2;
-    const currentCoords = {
-      latitude:
-        restaurantCoords.latitude +
-        (deliveryCoords.latitude - restaurantCoords.latitude) * progress,
-      longitude:
-        restaurantCoords.longitude +
-        (deliveryCoords.longitude - restaurantCoords.longitude) * progress,
-    };
-
+  
     return (
       <View style={styles.mapContainer}>
         <View style={styles.mapHeader}>
           <Text style={styles.mapTitle}>
-            Delivery Route - {selectedDelivery.restaurantName}
+            Delivery Progress - {selectedDelivery.restaurantName}
           </Text>
           <TouchableOpacity style={styles.closeButton} onPress={handleCloseMap}>
             <Feather name="x" size={24} color="#000" />
           </TouchableOpacity>
         </View>
-
+  
         <View style={styles.mapContent}>
-          <View
-            style={[
-              styles.mapPlaceholder,
-              {
-                backgroundColor: "#E0E0E0",
-                justifyContent: "center",
-                alignItems: "center",
-              },
-            ]}
-          >
-            <Feather name="map" size={50} color="gray" />
+          {/* Replace the MapPlaceholder with the OrderTrackingView */}
+          <OrderTrackingView 
+            status={selectedDelivery.status} 
+            orderId={selectedDelivery.id}
+          />
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Order #:</Text>
+            <Text style={styles.infoValue}>
+              {selectedDelivery.id.substring(6, 12)}
+            </Text>
           </View>
-
-          {/* In a real app, this would be a MapView component with actual coordinates */}
-          <View style={styles.mapOverlay}>
-            <View style={styles.deliveryProgress}>
-              <View style={[styles.progressStep, styles.completedStep]}>
-                <Text style={styles.stepNumber}>1</Text>
-              </View>
-              <View
-                style={[
-                  styles.progressLine,
-                  selectedDelivery.status === "picked_up"
-                    ? styles.completedLine
-                    : styles.pendingLine,
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressStep,
-                  selectedDelivery.status === "picked_up"
-                    ? styles.completedStep
-                    : styles.pendingStep,
-                ]}
-              >
-                <Text style={styles.stepNumber}>2</Text>
-              </View>
-              <View style={[styles.progressLine, styles.pendingLine]} />
-              <View style={[styles.progressStep, styles.pendingStep]}>
-                <Text style={styles.stepNumber}>3</Text>
-              </View>
-            </View>
-
-            <View style={styles.deliverySteps}>
-              <Text style={styles.stepText}>Order Accepted</Text>
-              <Text style={styles.stepText}>Picked Up</Text>
-              <Text style={styles.stepText}>Delivered</Text>
-            </View>
-
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Restaurant:</Text>
+            <Text style={styles.infoValue}>{selectedDelivery.restaurantName}</Text>
+          </View>
+  
+          {selectedDelivery.deliveryAddress && (
             <View style={styles.deliveryInfo}>
-              <Text style={styles.infoLabel}>Order #:</Text>
-              <Text style={styles.infoValue}>
-                {selectedDelivery.id.substring(6, 12)}
-              </Text>
+              <Text style={styles.infoLabel}>Delivery to:</Text>
+              <Text style={styles.infoValue}>{selectedDelivery.deliveryAddress}</Text>
             </View>
-
+          )}
+  
+          {selectedDelivery.notes && (
             <View style={styles.deliveryInfo}>
-              <Text style={styles.infoLabel}>Estimated arrival:</Text>
-              <Text style={styles.infoValue}>10-15 minutes</Text>
+              <Text style={styles.infoLabel}>Notes:</Text>
+              <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
             </View>
+          )}
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Estimated arrival:</Text>
+            <Text style={styles.infoValue}>
+              {selectedDelivery.status === "picked_up" ? "10-15 minutes" : "25-30 minutes"}
+            </Text>
           </View>
         </View>
-
+  
         <View style={styles.mapActions}>
           {selectedDelivery.status === "accepted" ? (
             <TouchableOpacity
@@ -354,7 +323,7 @@ export default function Deliver() {
               }
             >
               <Feather name="package" size={20} color="#fff" />
-              <Text style={styles.statusUpdateButtonText}>Picked Up</Text>
+              <Text style={styles.statusUpdateButtonText}>Mark as Picked Up</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -373,6 +342,10 @@ export default function Deliver() {
       </View>
     );
   };
+  
+
+
+
 
   // Render an available delivery request item
   const renderAvailableRequest = ({ item }: { item: Order }) => {
@@ -841,6 +814,7 @@ const styles = StyleSheet.create({
   mapContent: {
     flex: 1,
     position: "relative",
+    padding: 16
   },
   mapPlaceholder: {
     width: Dimensions.get("window").width,
@@ -936,5 +910,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     marginLeft: 8,
-  },
+  }
 });
