@@ -15,7 +15,10 @@
         "tinted": "./assets/icons/ios-tinted.png"
       },
       "useFrameworks": "static",
-      "bundleIdentifier": "com.anonymous.dormdash"
+      "bundleIdentifier": "com.anonymous.dormdash",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -62,6 +65,20 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "134fae3a-2dff-4495-81c8-59deb4ff7768"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/134fae3a-2dff-4495-81c8-59deb4ff7768"
     }
   }
 }
