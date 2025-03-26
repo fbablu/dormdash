@@ -109,7 +109,6 @@ export default function Register() {
 
     setIsLoading(true);
     try {
-      Alert.alert("Registration", "Creating account...");
       const newUser = {
         uid: `mock-${Date.now()}`,
         email,
@@ -135,8 +134,6 @@ export default function Register() {
           isVerified: false,
         }),
       );
-
-      Alert.alert("Success", "Account created, redirecting...");
 
       try {
         await signUp(email, password, name);
