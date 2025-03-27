@@ -153,8 +153,8 @@ const OrderTrackingView = ({ status, orderId }: OrderTrackingViewProps) => {
             <Feather name="map-pin" size={20} color="#fff" />
           </View>
           <Text style={[styles.mapLabel, styles.destinationLabel]}>
-            {deliveryAddress?.name ||
-              order?.deliveryAddress ||
+            {order?.deliveryAddress ||
+              deliveryAddress?.name ||
               "Delivery Location"}
           </Text>
         </View>

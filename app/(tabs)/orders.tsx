@@ -39,6 +39,7 @@ interface Order {
   status: "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
   timestamp: string;
   paymentMethod: string;
+  deliveryAddress?: string;
 }
 
 export default function OrdersScreen() {
@@ -160,29 +161,41 @@ export default function OrdersScreen() {
   };
 
   const renderOrder = ({ item }: { item: Order }) => (
-    <TouchableOpacity
-      style={styles.orderItem}
-      onPress={() => handleOrderPress(item)}
-    >
-      <View style={styles.orderHeader}>
-        <Text style={styles.orderNumber}>
-          Order #{item.id.substring(6, 12)}
-        </Text>
-        <Text style={styles.orderDate}>{formatDate(item.timestamp)}</Text>
-      </View>
-
-      <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-
-      <View style={styles.orderDetailsRow}>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(item.status) },
-          ]}
-        >
-          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+    <TouchableOpacity>
+      <View style={styles.orderItem}>
+        <View style={styles.orderHeader}>
+          <Text style={styles.orderNumber}>
+            Order #
+            {item.id.includes("-")
+              ? item.id.split("-")[1]
+              : item.id.substring(6, 12)}
+          </Text>
+          <Text style={styles.orderDate}>{formatDate(item.timestamp)}</Text>
         </View>
-        <Text style={styles.orderAmount}>${item.totalAmount}</Text>
+
+        <Text style={styles.restaurantName}>{item.restaurantName}</Text>
+
+        {/* Only show if deliveryAddress exists on item */}
+        {item.deliveryAddress && (
+          <View style={styles.deliveryAddressContainer}>
+            <Feather name="map-pin" size={14} color="#666" />
+            <Text style={styles.deliveryAddressText}>
+              Delivering to: {item.deliveryAddress}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.orderDetailsRow}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item.status) },
+            ]}
+          >
+            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+          </View>
+          <Text style={styles.orderAmount}>${item.totalAmount}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -551,5 +564,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
     paddingTop: 16,
+  },
+  deliveryAddressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  deliveryAddressText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: "#666",
   },
 });

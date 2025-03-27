@@ -532,9 +532,18 @@ export default function RestaurantMenuScreen() {
     }
 
     try {
-      // Save order to AsyncStorage (in a real app, this would be a Firebase call)
+      const deliveryAddress =
+        (await AsyncStorage.getItem("dormdash_current_address")) ||
+        "Vanderbilt Campus";
+      const currentOrderNumber =
+        (await AsyncStorage.getItem("dormdash_order_number")) || "1000";
+      const nextOrderNumber = (parseInt(currentOrderNumber) + 1).toString();
+      await AsyncStorage.setItem("dormdash_order_number", nextOrderNumber);
+
+      const orderId = `order-${nextOrderNumber}`;
+
       const order = {
-        id: `order-${Date.now()}`,
+        id: orderId,
         restaurantId: id,
         restaurantName: restaurant?.name,
         items: cart,
@@ -544,34 +553,10 @@ export default function RestaurantMenuScreen() {
         timestamp: new Date().toISOString(),
         paymentMethod: paymentMethod,
         customerId: user?.id,
+        deliveryAddress: deliveryAddress,
       };
-
-      // Get existing orders
-      const existingOrdersJson = await AsyncStorage.getItem("dormdash_orders");
-      const existingOrders = existingOrdersJson
-        ? JSON.parse(existingOrdersJson)
-        : [];
-
-      // Add new order and save
-      const updatedOrders = [order, ...existingOrders];
-      await AsyncStorage.setItem(
-        "dormdash_orders",
-        JSON.stringify(updatedOrders),
-      );
-
-      // Clear cart
-      await AsyncStorage.removeItem(`cart_${id}`);
-      setCart([]);
-
-      // Show success and navigate
-      Alert.alert(
-        "Order Placed!",
-        "Your order has been placed successfully. You can view it in your orders tab.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/orders") }],
-      );
-    } catch (error) {
-      console.error("Error placing order:", error);
-      Alert.alert("Error", "Failed to place order. Please try again.");
+    } catch (err: any) {
+      console.log("Error: ", err);
     }
   };
 
