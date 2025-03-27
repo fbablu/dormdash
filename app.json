@@ -15,8 +15,8 @@
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
       },
-      "useFrameworks": "static",
-      "bundleIdentifier": "com.anonymous.dormdash"
+      "bundleIdentifier": "com.anonymous.dormdash",
+      "useFrameworks": "static"
     },
     "android": {
       "adaptiveIcon": {

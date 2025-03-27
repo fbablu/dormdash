@@ -20,7 +20,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
-import MapView, { Marker, Polyline } from "react-native-maps";
 import OrderTrackingView from "@/components/OrderTrackingView";
 
 interface OrderItem {
