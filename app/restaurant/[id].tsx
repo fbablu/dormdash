@@ -522,7 +522,6 @@ export default function RestaurantMenuScreen() {
       return;
     }
 
-    // Check if the user is currently delivering any orders
     if (activeDeliveries.length > 0) {
       Alert.alert(
         "Delivery in Progress",
@@ -532,6 +531,7 @@ export default function RestaurantMenuScreen() {
     }
 
     try {
+      setLoading(true);
       const deliveryAddress =
         (await AsyncStorage.getItem("dormdash_current_address")) ||
         "Vanderbilt Campus";
@@ -544,7 +544,7 @@ export default function RestaurantMenuScreen() {
 
       const order = {
         id: orderId,
-        restaurantId: id,
+        restaurantId: id as string,
         restaurantName: restaurant?.name,
         items: cart,
         totalAmount: orderTotal.toFixed(2),
@@ -555,11 +555,34 @@ export default function RestaurantMenuScreen() {
         customerId: user?.id,
         deliveryAddress: deliveryAddress,
       };
-    } catch (err: any) {
-      console.log("Error: ", err);
+
+      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+      const existingOrders = ordersJson ? JSON.parse(ordersJson) : [];
+      const updatedOrders = [order, ...existingOrders];
+      await AsyncStorage.setItem(
+        "dormdash_orders",
+        JSON.stringify(updatedOrders),
+      );
+      await AsyncStorage.removeItem(`cart_${id}`);
+      setCart([]);
+
+      Alert.alert("Order Placed!", "Your order has been successfully placed.", [
+        {
+          text: "View Orders",
+          onPress: () => router.push("/orders"),
+        },
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (err) {
+      console.error("Error placing order:", err);
+      Alert.alert("Error", "Failed to place your order. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
-
   const handleGoBack = () => {
     router.back();
   };

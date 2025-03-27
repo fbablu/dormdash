@@ -76,9 +76,9 @@ const LocationHeader = ({
   <View style={styles.locationHeaderContainer}>
     <View style={styles.locationHeader}>
       <AddressSelector onAddressChange={onAddressChange} />
-      <TouchableOpacity style={styles.cartButton}>
+      {/* <TouchableOpacity style={styles.cartButton}>
         <Feather name="shopping-cart" size={24} color="black" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
     <View style={styles.searchBar}>
       <Feather name="search" size={20} color="gray" />

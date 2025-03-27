@@ -36,6 +36,7 @@ import {
   isRestaurantOwner,
   getOwnedRestaurantId,
 } from "../utils/adminAuth";
+import { router } from "expo-router";
 
 // Define user type
 export interface User {
@@ -485,42 +486,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
+      await AsyncStorage.removeItem("api_disabled");
 
-      // Sign out from Firebase
-      await firebaseSignOut(auth as Auth);
+      // Remove user data from AsyncStorage
+      const keysToRemove = [
+        "user_data",
+        "userToken",
+        "userId",
+        "mock_current_user",
+      ];
+      await Promise.all(
+        keysToRemove.map((key) => AsyncStorage.removeItem(key)),
+      );
 
-      // Clear local storage
-      await AsyncStorage.removeItem("user_data");
-      await AsyncStorage.removeItem("userToken");
-      await AsyncStorage.removeItem("userId");
-
-      // Also sign out from Google if signed in
-      try {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        if (currentUser) {
-          await GoogleSignin.signOut();
-        }
-      } catch (error) {
-        console.log("Google Sign-In error:", error);
-      }
-
-      // Set state first before navigation
-      setAuthState({
+      // Update state
+      setState({
         isLoading: false,
         isSignedIn: false,
         user: null,
       });
 
-      // Don't use router.replace here as it causes issues
-      // The navigation will be handled by the useEffect in _layout.tsx
-      // which watches for the isSignedIn state
+      // Navigate to onboarding screen
+      setTimeout(() => {
+        router.replace("/onboarding");
+      }, 100);
     } catch (error) {
       console.error("Sign out error:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
-      throw error;
+      setState({
+        isLoading: false,
+        isSignedIn: false,
+        user: null,
+      });
     }
   };
-
   const refreshUser = async () => {
     try {
       const authObj = auth as Auth;

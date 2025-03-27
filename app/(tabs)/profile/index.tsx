@@ -1,6 +1,6 @@
 // app/(tabs)/profile/index.tsx
 // Contributor: @Fardeen Bablu
-// Time spent: 15 minutes (for the fix)
+// Time spent: 3.5 hours
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -22,6 +22,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { usePayment } from "@/app/context/PaymentContext";
 import { isAdmin, isRestaurantOwner } from "@/app/utils/adminAuth";
 import { userApi } from "@/app/services/backendApi";
+import { emergencySignOut } from "@/app/utils/emergencySignOut";
 
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
@@ -45,7 +46,7 @@ const ProfileScreen = () => {
   useEffect(() => {
     const initializeProfile = async () => {
       try {
-        await AsyncStorage.removeItem("api_disabled"); // Clear any API disabled flag on component mount
+        await AsyncStorage.removeItem("api_disabled");
         await refreshPaymentMethod();
         await fetchUserProfile();
         await fetchDefaultAddress();
@@ -164,11 +165,7 @@ const ProfileScreen = () => {
 
       // First, perform the sign out operation
       await signOut();
-
-      // Don't immediately navigate - instead set a timeout to ensure
-      // React component state updates have propagated first
       setTimeout(() => {
-        // Use replace so user can't navigate back to profile after signing out
         router.replace("/onboarding");
       }, 100);
     } catch (error) {
@@ -177,7 +174,6 @@ const ProfileScreen = () => {
     }
   };
 
-  // Define menu item component to keep main JSX cleaner
   interface MenuItemProps {
     icon: keyof typeof Feather.glyphMap;
     title: string;
@@ -306,7 +302,6 @@ const ProfileScreen = () => {
             </View>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push("/profile/payment")}
@@ -329,20 +324,21 @@ const ProfileScreen = () => {
             </View>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
-
           <MenuItem
             icon="bell"
             title="Notifications"
             onPress={() => router.push("/profile/notifications")}
           />
-
           <MenuItem
             icon="help-circle"
             title="Support"
             onPress={() => router.replace("https://dormdash.github.io/support")}
           />
-
-          <MenuItem icon="log-out" title="Sign Out" onPress={handleSignOut} />
+          <TouchableOpacity style={styles.menuItem} onPress={emergencySignOut}>
+            <Feather name="log-out" size={24} color="#000" />
+            <Text style={styles.menuItemText}>Sign Out</Text>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>{" "}
         </View>
 
         {/* Developer options (only visible in development) */}
