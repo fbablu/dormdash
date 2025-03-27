@@ -47,6 +47,9 @@ interface CategoryIconProps {
   onPress: () => void;
 }
 
+let hasLoggedAPIError = false;
+const LOG_THROTTLE_TIME = 10000;
+
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 // Add this interface near the top with your other interfaces
@@ -131,8 +134,11 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         );
 
         if (response.ok) {
-          const favorites = await response.json();
-          setIsFavorite(favorites.includes(restaurant.name));
+          const responseData = await response.json();
+          const favorites = responseData.data || [];
+          if (Array.isArray(favorites)) {
+            setIsFavorite(favorites.includes(restaurant.name));
+          }
           return;
         }
 
@@ -140,6 +146,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       } catch (apiError) {
         console.log(
           "API call failed for favorites check, using AsyncStorage fallback",
+          apiError,
         );
 
         // Fallback to AsyncStorage

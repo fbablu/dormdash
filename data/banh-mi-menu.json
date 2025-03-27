@@ -1,0 +1,108 @@
+{
+  "menu": {
+    "starters": [
+      {
+        "name": "Fresh Rolls - Goi Cuon",
+        "description": "Lettuce, fresh herbs, woven vermicelli noodle with house-made peanut sauce.",
+        "price": 6,
+        "protein_options": ["BBQ Pork", "5-Spice Chicken", "Shrimp", "Tofu"]
+      },
+      {
+        "name": "Steamed Wonton",
+        "description": "Mixed in our spicy sweet and chili soy sauce, green onion, fried shallot.",
+        "price": 8
+      },
+      {
+        "name": "Fried Wonton",
+        "description": "Served with sweet and sour chili sauce.",
+        "price": 8
+      }
+    ],
+    "banh_mi": [
+      {
+        "name": "Saigonese",
+        "description": "Fresh Vietnamese baguette with cucumber, pickled carrot + radish, jalapeno, cilantro, green onion, house-made hollandaise.",
+        "price": 13,
+        "protein_options": [
+          "BBQ Pork + Pork Roll + Cold Cuts + Chicken Floss + Pate",
+          "Chicken + Pork Roll + Cold Cuts + Chicken Floss + Pate"
+        ]
+      },
+      {
+        "name": "Banh Mi Pho",
+        "description": "Fresh Vietnamese baguette with confit of beef kofta, cucumber, fresh herbs, jalapeno, cilantro, scallion, hoisin sriracha, house-made hollandaise. Served with a side of beef bone broth.",
+        "price": 13
+      },
+      {
+        "name": "BBQ Pork Banh Mi",
+        "description": "Fresh Vietnamese baguette with BBQ pork, cucumber, pickled carrot + radish, jalapeno, cilantro, green onion, house-made hollandaise.",
+        "price": 11
+      },
+      {
+        "name": "5-Spices Chicken Banh Mi",
+        "description": "Fresh Vietnamese baguette with 5-spices chicken, cucumber, pickled carrot + radish, jalapeno, cilantro, green onion, sriracha mayo.",
+        "price": 11
+      },
+      {
+        "name": "Soy Braised Tofu Banh Mi",
+        "description": "Fresh Vietnamese baguette with soy braised tofu, cucumber, pickled carrot + radish, jalapeno, cilantro, green onion, mayo.",
+        "price": 10
+      },
+      {
+        "name": "Cold Cuts Banh Mi",
+        "description": "Fresh Vietnamese baguette with cucumber, pickled carrots + radish, jalapeno, cilantro, green onion, house-made hollandaise, chicken floss, pate.",
+        "price": 11
+      }
+    ],
+    "bun_vermicelli_bowl": [
+      {
+        "name": "Bun - Vermicelli Noodle Bowl",
+        "description": "Woven vermicelli noodle with cucumber, pickled carrot + radish, fresh herbs, peanut, spring mix, house-made fish sauce.",
+        "price": 13,
+        "protein_options": ["BBQ Pork", "5-Spices Chicken", "Soy Braised Tofu"]
+      }
+    ],
+    "sides": [
+      {"name": "Pickled Carrot + Radish", "price": 4},
+      {"name": "Dipping Sauce", "price": 0.75},
+      {"name": "Prawn Chips", "price": 4},
+      {"name": "Bone Broth Cup", "description": "Beef broth with Vietnamese garnish.", "price": 5, "gluten_free": true}
+    ],
+    "drinks": {
+      "milk_tea": [
+        {"name": "Black Milk Tea", "price": {"medium": 5.5, "large": 6.5}},
+        {"name": "Thai Tea", "price": {"medium": 5.5, "large": 6.5}},
+        {"name": "Hokkaido", "price": {"medium": 5.5, "large": 6.5}},
+        {"name": "Oolong Milk Tea", "price": {"medium": 5.5, "large": 6.5}},
+        {"name": "Zen De Green Tea", "price": {"medium": 5.5, "large": 6.5}}
+      ],
+      "fresh_fruit_tea": [
+        {"name": "Four Seasons Fresh", "price": 6.5},
+        {"name": "Strawberry Snow with Cream Cheese Milk Foam", "price": 6.5},
+        {"name": "Nashville Spring with Fresh Fruits", "price": 6.5},
+        {"name": "Peach Garden with Cream Cheese Milk Foam & Peach Slices", "price": 6.5}
+      ],
+      "milk_tea_plus": [
+        {"name": "Uji Matcha with Cream Cheese Milk Foam", "price": 6.5},
+        {"name": "Cacao Obsessive with Cream Cheese Milk Foam & Oreo", "price": 6.5},
+        {"name": "Taro Harvest with Whipped Taro", "price": 6.5},
+        {"name": "Winter Melon Debut with Cream Cheese Milk Foam", "price": 6.5}
+      ],
+      "tiger_drinks": [
+        {"name": "Tiger Drink", "description": "Black sugar, fresh milk, warmed boba or grass jelly.", "price": {"medium": 6, "large": 6.5}},
+        {"name": "Wild Tiger Drink", "description": "Black sugar, fresh milk, warmed boba or grass jelly, topped with cream cheese milk foam.", "price": {"medium": 6.5, "large": 7}}
+      ],
+      "extras": [
+        {"name": "Bottle Water or Soft Drinks", "price": 2},
+        {"name": "Extra Topping", "price": 0.75, "options": ["Tapioca Pearls", "Popping Boba (Mango, Strawberry, Lychee, Yogurt)", "Crystal Boba", "Rainbow Boba", "Grass Jelly", "Fresh Fruit (Fruit Tea Only)", "Whipped Taro", "Oreo Cookie", "Cream Cheese Milk Foam"]}
+      ]
+    },
+    "contact": {
+      "phone": "615-649-8015",
+      "email": "hello@banhmiandrollplus.com",
+      "website": "www.banhmiandrollplus.com",
+      "address": "1808 20th Ave S, Ste 101, Nashville, TN 37212",
+      "hours": "Mon - Sat, 11AM-8PM; Sun 11AM-6PM"
+    }
+  }
+}

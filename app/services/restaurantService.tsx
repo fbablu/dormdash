@@ -2,6 +2,8 @@
 // Contributors: @Fardeen Bablu
 // Time spent: 3 hours
 
+import React from "react";
+import { View, Text } from "react-native";
 import {
   collection,
   doc,
@@ -47,11 +49,9 @@ export const getRestaurantById = async (
   try {
     const restaurantRef = doc(db, "restaurants", id);
     const restaurantSnap = await getDoc(restaurantRef);
-
     if (!restaurantSnap.exists()) {
       return null;
     }
-
     return {
       id: restaurantSnap.id,
       ...(restaurantSnap.data() as Omit<Restaurant, "id">),
@@ -67,7 +67,6 @@ export const getAllRestaurants = async (): Promise<Restaurant[]> => {
   try {
     const restaurantsRef = collection(db, "restaurants");
     const restaurantsSnap = await getDocs(restaurantsRef);
-
     const restaurants: Restaurant[] = [];
     restaurantsSnap.forEach((doc) => {
       restaurants.push({
@@ -75,7 +74,6 @@ export const getAllRestaurants = async (): Promise<Restaurant[]> => {
         ...(doc.data() as Omit<Restaurant, "id">),
       });
     });
-
     return restaurants;
   } catch (error) {
     console.error("Error fetching restaurants:", error);
@@ -90,7 +88,6 @@ export const getRestaurantMenu = async (
   try {
     const menuRef = collection(db, "restaurants", restaurantId, "menu");
     const menuSnap = await getDocs(menuRef);
-
     const categories: MenuCategory[] = [];
     menuSnap.forEach((doc) => {
       categories.push({
@@ -98,7 +95,6 @@ export const getRestaurantMenu = async (
         ...(doc.data() as Omit<MenuCategory, "id">),
       });
     });
-
     return categories;
   } catch (error) {
     console.error("Error fetching restaurant menu:", error);
@@ -163,3 +159,13 @@ export const updateMenuCategory = async (
     throw error;
   }
 };
+
+// Default export component to satisfy router requirement
+export default function RestaurantService() {
+  return (
+    <View>
+      <Text> </Text>
+      <Text> Restaurant Service Component</Text>
+    </View>
+  );
+}

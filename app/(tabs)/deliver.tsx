@@ -1,25 +1,27 @@
 // app/(tabs)/deliver.tsx
 // Contributors: @Albert Castrejon, @Fardeen Bablu
-// Time spent: 6 hours
-// app/(tabs)/deliver.tsx
-import React, { useState, useEffect, useRef } from "react";
+// Time spent: 8 hours
+
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   FlatList,
   Alert,
   ActivityIndicator,
   RefreshControl,
-  Animated,
+  Image,
+  Dimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
+import MapView, { Marker, Polyline } from "react-native-maps";
+import OrderTrackingView from "@/components/OrderTrackingView";
 
 interface OrderItem {
   id: string;
@@ -41,50 +43,72 @@ interface Order {
   paymentMethod: string;
   delivererId?: string;
   notes?: string;
+  deliveryAddress?: string;
 }
+
+// Mock coordinates - in a real app these would come from location services
+const MOCK_LOCATIONS: Record<string, { latitude: number; longitude: number }> =
+  {
+    default: { latitude: 36.1447, longitude: -86.8027 }, // Vanderbilt
+    "taco-mama": { latitude: 36.1375, longitude: -86.8033 }, // Taco Mama
+    "banh-mi-roll": { latitude: 36.1358, longitude: -86.8047 }, // Banh Mi & Roll
+    chilis: { latitude: 36.1426, longitude: -86.8079 }, // Chili's
+  };
+
+// Get default location for an address
+const getLocationForPlace = (restaurantId: string) => {
+  return MOCK_LOCATIONS[restaurantId] || MOCK_LOCATIONS.default;
+};
 
 export default function Deliver() {
   const { user } = useAuth();
-
-  const [isOnlineForDelivery, setIsOnlineForDelivery] =
-    useState<boolean>(false);
   const [activeDeliveries, setActiveDeliveries] = useState<Order[]>([]);
-  const [availableDeliveryRequests, setAvailableDeliveryRequests] = useState<
-    Order[]
-  >([]);
-  const [isDeliveryLoading, setIsDeliveryLoading] = useState<boolean>(false);
+  const [availableRequests, setAvailableRequests] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [selectedDelivery, setSelectedDelivery] = useState<Order | null>(null);
+  const [showMap, setShowMap] = useState<boolean>(false);
 
-  // Toggle visibility options
-  const toggleVisibilityOptions = () => {
-    setIsVisible((prev) => !prev);
+  // Auto-refresh interval (5 minutes)
+  useEffect(() => {
+    fetchDeliveryData();
+
+    const refreshInterval = setInterval(
+      () => {
+        fetchDeliveryData(false);
+      },
+      5 * 60 * 1000
+    ); // refresh every 5 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, []);
+
+  // Format the last refreshed time
+  const getRefreshTimeString = () => {
+    const now = new Date();
+    const diffMs = now.getTime() - lastRefreshed.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins === 1) return "1 minute ago";
+    return `${diffMins} minutes ago`;
   };
 
-  // Toggle online status
-  const toggleOnline = () => {
-    setIsOnlineForDelivery(true);
-    setIsVisible(false);
-  };
+  // Fetch delivery requests and active deliveries
+  const fetchDeliveryData = async (showLoadingIndicator = true) => {
+    if (!user) return;
 
-  // Toggle offline status
-  const toggleOffline = () => {
-    setIsOnlineForDelivery(false);
-    setIsVisible(false);
-  };
-
-  // Fetch delivery requests from AsyncStorage
-  const fetchDeliveryRequests = async () => {
-    if (!isOnlineForDelivery || !user) return;
-
-    setRefreshing(true);
-    setIsDeliveryLoading(true);
+    if (showLoadingIndicator) {
+      setRefreshing(true);
+      setIsLoading(true);
+    }
 
     try {
       // Get all orders from AsyncStorage
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson) {
-        setAvailableDeliveryRequests([]);
+        setAvailableRequests([]);
         setActiveDeliveries([]);
         return;
       }
@@ -92,54 +116,74 @@ export default function Deliver() {
       const orders = JSON.parse(ordersJson) as Order[];
 
       // Filter for pending orders (available for delivery)
+      // Filter out user's own orders from available requests
       const pendingOrders = orders.filter(
-        (order) => order.status === "pending",
+        (order) => order.status === "pending" && order.customerId !== user.id
       );
 
       // Filter for orders the user is delivering
       const userDeliveries = orders.filter(
         (order) =>
           (order.status === "accepted" || order.status === "picked_up") &&
-          order.delivererId === user.id,
+          order.delivererId === user.id
       );
 
-      // Set states
-      setAvailableDeliveryRequests(pendingOrders);
+      // Update state
+      setAvailableRequests(pendingOrders);
       setActiveDeliveries(userDeliveries);
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error("Error fetching delivery data:", error);
       Alert.alert("Error", "Failed to fetch delivery requests");
     } finally {
-      setIsDeliveryLoading(false);
+      setIsLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Accept a delivery request
+
+
+
   const handleAcceptDelivery = async (orderId: string) => {
     try {
+      // Check if user is already delivering an order
+      if (activeDeliveries.length > 0) {
+        Alert.alert(
+          "Delivery in Progress",
+          "You already have an active delivery. Please complete it before accepting a new one."
+        );
+        return false;
+      }
+  
       // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson || !user) return false;
-
+  
       const allOrders = JSON.parse(ordersJson) as Order[];
-
+      const order = allOrders.find((o) => o.id === orderId);
+  
+      // Double check this isn't the user's own order
+      if (order && order.customerId === user.id) {
+        Alert.alert("Error", "You cannot deliver your own order");
+        return false;
+      }
+  
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "accepted" as const, delivererId: user.id }
-          : order,
+          : order
       );
-
+  
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders),
+        JSON.stringify(updatedOrders)
       );
-
+  
       // Refresh the lists
-      await fetchDeliveryRequests();
-
+      await fetchDeliveryData();
+  
       return true;
     } catch (error) {
       console.error("Error accepting delivery:", error);
@@ -150,7 +194,7 @@ export default function Deliver() {
   // Update delivery status
   const handleUpdateStatus = async (
     orderId: string,
-    newStatus: Order["status"],
+    newStatus: Order["status"]
   ) => {
     try {
       // Get all orders
@@ -161,29 +205,38 @@ export default function Deliver() {
 
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order,
+        order.id === orderId ? { ...order, status: newStatus } : order
       );
 
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders),
+        JSON.stringify(updatedOrders)
       );
 
       // If delivered, remove from active deliveries
       if (newStatus === "delivered") {
         setActiveDeliveries((prev) =>
-          prev.filter((delivery) => delivery.id !== orderId),
+          prev.filter((delivery) => delivery.id !== orderId)
         );
+        setSelectedDelivery(null);
+        setShowMap(false);
       } else {
         // Otherwise update the status
         setActiveDeliveries((prev) =>
           prev.map((delivery) =>
             delivery.id === orderId
               ? { ...delivery, status: newStatus }
-              : delivery,
-          ),
+              : delivery
+          )
         );
+
+        // Update selected delivery if it's the one being updated
+        if (selectedDelivery && selectedDelivery.id === orderId) {
+          setSelectedDelivery((prev) =>
+            prev ? { ...prev, status: newStatus } : null
+          );
+        }
       }
 
       return true;
@@ -193,63 +246,174 @@ export default function Deliver() {
     }
   };
 
-  // Fetch delivery requests when going online
-  useEffect(() => {
-    if (isOnlineForDelivery) {
-      fetchDeliveryRequests();
-    } else {
-      // Clear delivery data when going offline
-      setAvailableDeliveryRequests([]);
-    }
-  }, [isOnlineForDelivery]);
-
-  // Handle refresh
-  const onRefresh = () => {
-    fetchDeliveryRequests();
+  // Handle order selection for map view
+  const handleSelectDelivery = (order: Order) => {
+    setSelectedDelivery(order);
+    setShowMap(true);
   };
 
-  // Render an available delivery request item
-  const renderAvailableDeliveryItem = ({ item }: { item: Order }) => {
-    // Check if this is the user's own order
-    const isOwnOrder = item.customerId === user?.id;
+  // Close map view
+  const handleCloseMap = () => {
+    setShowMap(false);
+  };
 
+
+
+  const renderDeliveryMap = () => {
+    if (!selectedDelivery) return null;
+  
+    return (
+      <View style={styles.mapContainer}>
+        <View style={styles.mapHeader}>
+          <Text style={styles.mapTitle}>
+            Delivery Progress - {selectedDelivery.restaurantName}
+          </Text>
+          <TouchableOpacity style={styles.closeButton} onPress={handleCloseMap}>
+            <Feather name="x" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+  
+        <View style={styles.mapContent}>
+          {/* Replace the MapPlaceholder with the OrderTrackingView */}
+          <OrderTrackingView 
+            status={selectedDelivery.status} 
+            orderId={selectedDelivery.id}
+          />
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Order #:</Text>
+            <Text style={styles.infoValue}>
+              {selectedDelivery.id.substring(6, 12)}
+            </Text>
+          </View>
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Restaurant:</Text>
+            <Text style={styles.infoValue}>{selectedDelivery.restaurantName}</Text>
+          </View>
+  
+          {selectedDelivery.deliveryAddress && (
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Delivery to:</Text>
+              <Text style={styles.infoValue}>{selectedDelivery.deliveryAddress}</Text>
+            </View>
+          )}
+  
+          {selectedDelivery.notes && (
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Notes:</Text>
+              <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
+            </View>
+          )}
+  
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Estimated arrival:</Text>
+            <Text style={styles.infoValue}>
+              {selectedDelivery.status === "picked_up" ? "10-15 minutes" : "25-30 minutes"}
+            </Text>
+          </View>
+        </View>
+  
+        <View style={styles.mapActions}>
+          {selectedDelivery.status === "accepted" ? (
+            <TouchableOpacity
+              style={styles.statusUpdateButton}
+              onPress={() =>
+                handleUpdateStatus(selectedDelivery.id, "picked_up")
+              }
+            >
+              <Feather name="package" size={20} color="#fff" />
+              <Text style={styles.statusUpdateButtonText}>Mark as Picked Up</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.statusUpdateButton, styles.deliveredButton]}
+              onPress={() =>
+                handleUpdateStatus(selectedDelivery.id, "delivered")
+              }
+            >
+              <Feather name="check-circle" size={20} color="#fff" />
+              <Text style={styles.statusUpdateButtonText}>
+                Mark as Delivered
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+  
+
+
+
+
+  // Render an available delivery request item
+  const renderAvailableRequest = ({ item }: { item: Order }) => {
     return (
       <View style={styles.deliveryItem}>
-        {isOwnOrder && (
-          <View style={styles.ownOrderBadge}>
-            <Text style={styles.ownOrderText}>Your Order</Text>
-          </View>
-        )}
-
         <View style={styles.deliveryHeader}>
           <Text style={styles.restaurantName}>{item.restaurantName}</Text>
           <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
         </View>
 
-        <Text style={styles.deliveryAddress}>
-          Order #{item.id.substring(6, 12)}
-        </Text>
+        <View style={styles.deliveryContent}>
+          <View style={styles.deliveryDetails}>
+            <Text style={styles.orderNumber}>
+              Order #{item.id.substring(6, 12)}
+            </Text>
+            {item.deliveryAddress && (
+              <Text style={styles.deliveryAddress} numberOfLines={1}>
+                <Feather name="map-pin" size={14} color="#666" />{" "}
+                {item.deliveryAddress}
+              </Text>
+            )}
+            {item.notes && (
+              <Text style={styles.deliveryNotes} numberOfLines={1}>
+                <Feather name="message-square" size={14} color="#666" />{" "}
+                {item.notes}
+              </Text>
+            )}
+          </View>
 
-        {item.notes && (
-          <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
-        )}
+          <View style={styles.itemPreview}>
+            {item.items.slice(0, 2).map((orderItem, index) => (
+              <Text key={index} style={styles.itemText}>
+                {orderItem.quantity}x {orderItem.name}
+              </Text>
+            ))}
+            {item.items.length > 2 && (
+              <Text style={styles.itemText}>+{item.items.length - 2} more</Text>
+            )}
+          </View>
+        </View>
 
         <View style={styles.deliveryFooter}>
           <Text style={styles.deliveryFee}>
             Delivery Fee: ${item.deliveryFee}
           </Text>
-
-          {!isOwnOrder && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.viewButton}
+              onPress={() => handleSelectDelivery(item)}
+            >
+              <Feather name="map" size={16} color="#666" />
+              <Text style={styles.viewButtonText}>View</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.acceptButton}
               onPress={() => {
                 handleAcceptDelivery(item.id).then((success) => {
                   if (success) {
                     Alert.alert("Success", "Delivery request accepted!");
+                    handleSelectDelivery({
+                      ...item,
+                      status: "accepted",
+                      delivererId: user?.id,
+                    });
                   } else {
                     Alert.alert(
                       "Error",
-                      "Failed to accept delivery. Please try again.",
+                      "Failed to accept delivery. Please try again."
                     );
                   }
                 });
@@ -257,259 +421,139 @@ export default function Deliver() {
             >
               <Text style={styles.acceptButtonText}>Accept</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
       </View>
     );
   };
 
   // Render an active delivery item
-  const renderActiveDeliveryItem = ({ item }: { item: Order }) => (
+  const renderActiveDelivery = ({ item }: { item: Order }) => (
     <View style={styles.activeDeliveryItem}>
       <View style={styles.deliveryHeader}>
         <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-        <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
+        <View style={styles.statusChip}>
+          <Text style={styles.statusChipText}>
+            {item.status === "accepted" ? "Pickup" : "In Transit"}
+          </Text>
+        </View>
       </View>
 
-      <Text style={styles.deliveryAddress}>
-        Order #{item.id.substring(6, 12)}
-      </Text>
+      <View style={styles.deliveryContent}>
+        <View style={styles.deliveryDetails}>
+          <Text style={styles.orderNumber}>
+            Order #{item.id.substring(6, 12)}
+          </Text>
+          {item.deliveryAddress && (
+            <Text style={styles.deliveryAddress} numberOfLines={1}>
+              <Feather name="map-pin" size={14} color="#666" />{" "}
+              {item.deliveryAddress}
+            </Text>
+          )}
+        </View>
+      </View>
 
-      {item.notes && (
-        <Text style={styles.deliveryNotes}>Notes: {item.notes}</Text>
-      )}
-
-      <View style={styles.statusButtons}>
+      <View style={styles.deliveryFooter}>
+        <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
         <TouchableOpacity
-          style={[
-            styles.statusButton,
-            item.status === "picked_up" && styles.activeStatusButton,
-          ]}
-          onPress={() => {
-            handleUpdateStatus(item.id, "picked_up").then((success) => {
-              if (success) {
-                Alert.alert("Success", "Order marked as picked up!");
-              } else {
-                Alert.alert(
-                  "Error",
-                  "Failed to update status. Please try again.",
-                );
-              }
-            });
-          }}
+          style={styles.trackButton}
+          onPress={() => handleSelectDelivery(item)}
         >
-          <Text style={styles.statusButtonText}>Picked Up</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.statusButton, styles.deliveredButton]}
-          onPress={() => {
-            handleUpdateStatus(item.id, "delivered").then((success) => {
-              if (success) {
-                Alert.alert("Success", "Delivery marked as completed!");
-              } else {
-                Alert.alert(
-                  "Error",
-                  "Failed to update status. Please try again.",
-                );
-              }
-            });
-          }}
-        >
-          <Text style={styles.statusButtonText}>Delivered</Text>
+          <Feather name="map" size={16} color="#fff" />
+          <Text style={styles.trackButtonText}>Track</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const DeliveryToggle = ({
-    isOnline,
-    onToggle,
-  }: {
-    isOnline: boolean;
-    onToggle: () => void;
-  }) => {
-    const switchAnimation = useRef(
-      new Animated.Value(isOnline ? 1 : 0),
-    ).current;
-
-    useEffect(() => {
-      Animated.spring(switchAnimation, {
-        toValue: isOnline ? 1 : 0,
-        useNativeDriver: true,
-        tension: 30,
-        friction: 7,
-      }).start();
-    }, [isOnline]);
-
+  // If the map is showing, render the map view
+  if (showMap) {
     return (
-      <TouchableOpacity
-        onPress={onToggle}
-        activeOpacity={0.8}
-        style={styles.switchContainer}
-      >
-        <Animated.View
-          style={[
-            styles.switchTrack,
-            {
-              backgroundColor: isOnline ? "#4CAF50" : "#ddd",
-            },
-          ]}
-        >
-          <Animated.View
-            style={[
-              styles.switchKnob,
-              {
-                transform: [
-                  {
-                    translateX: switchAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 40],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Feather
-              name={isOnline ? "truck" : "moon"}
-              size={24}
-              color={isOnline ? "#4CAF50" : "#666"}
-            />
-          </Animated.View>
-        </Animated.View>
-      </TouchableOpacity>
+      <SafeAreaView style={styles.container}>
+        {renderDeliveryMap()}
+      </SafeAreaView>
     );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Page header */}
       <View style={styles.header}>
         <Text style={styles.heading}>Deliver</Text>
-      </View>
-
-      {/* Status indicator and toggle */}
-      <View style={styles.statusContainer}>
-        <DeliveryToggle
-          isOnline={isOnlineForDelivery}
-          onToggle={() => {
-            if (isOnlineForDelivery) {
-              toggleOffline();
-            } else {
-              toggleOnline();
-            }
-          }}
-        />
-        <Text style={styles.switchText}>
-          {isOnlineForDelivery ? "Ready to Deliver!" : "Offline"}
-        </Text>
-      </View>
-
-      {/* Status indicator */}
-      <View style={styles.statusIndicator}>
-        <Text style={styles.statusText}>
-          Status: {isOnlineForDelivery ? "Online" : "Offline"}
-        </Text>
-        <View
-          style={[
-            styles.statusDot,
-            isOnlineForDelivery ? styles.onlineDot : styles.offlineDot,
-          ]}
-        />
-      </View>
-
-      {isOnlineForDelivery ? (
-        <View style={styles.contentContainer}>
-          {isDeliveryLoading && !refreshing ? (
-            <ActivityIndicator
-              size="large"
-              color="#cfae70"
-              style={styles.loader}
-            />
-          ) : (
-            <>
-              {/* Active Deliveries Section */}
-              {activeDeliveries.length > 0 && (
-                <View style={styles.sectionContainer}>
-                  <Text style={styles.sectionTitle}>Active Deliveries</Text>
-                  <FlatList
-                    data={activeDeliveries}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderActiveDeliveryItem}
-                    contentContainerStyle={styles.listContent}
-                  />
-                </View>
-              )}
-
-              {/* Available Requests Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Available Requests</Text>
-                {availableDeliveryRequests.length > 0 ? (
-                  <FlatList
-                    data={availableDeliveryRequests}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderAvailableDeliveryItem}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                      <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                      />
-                    }
-                  />
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>
-                      No delivery requests available
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.refreshButton}
-                      onPress={onRefresh}
-                    >
-                      <Text style={styles.refreshButtonText}>Refresh</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            </>
-          )}
-        </View>
-      ) : (
-        <View style={styles.offlineMessage}>
-          <Text style={styles.offlineText}>You are currently offline</Text>
-          <Text style={styles.offlineSubtext}>
-            Go online to view and accept delivery requests
+        <View style={styles.statusContainer}>
+          <View style={styles.statusIndicator}>
+            <View style={styles.statusDot} />
+          </View>
+          <Text style={styles.refreshText}>
+            Last refreshed: {getRefreshTimeString()}
           </Text>
         </View>
-      )}
+      </View>
 
-      {/* Visibility options */}
-      {isVisible && (
-        <View style={styles.visibilityOptions}>
-          <TouchableOpacity style={styles.item} onPress={toggleOnline}>
-            <Text style={styles.visibilityText}>Go Online</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.item} onPress={toggleOffline}>
-            <Text style={styles.visibilityText}>Go Offline</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={styles.contentContainer}>
+        {isLoading && !refreshing ? (
+          <ActivityIndicator
+            size="large"
+            color="#cfae70"
+            style={styles.loader}
+          />
+        ) : (
+          <>
+            {/* Active Deliveries Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Active Deliveries</Text>
+              {activeDeliveries.length > 0 ? (
+                <FlatList
+                  data={activeDeliveries}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderActiveDelivery}
+                  contentContainerStyle={styles.listContent}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                />
+              ) : (
+                <View style={styles.emptyActiveState}>
+                  <Feather name="package" size={32} color="#ddd" />
+                  <Text style={styles.emptyStateText}>
+                    No active deliveries
+                  </Text>
+                </View>
+              )}
+            </View>
 
-      {/* Bottom button */}
-      <TouchableOpacity
-        style={styles.VisibilityConfigButton}
-        onPress={toggleVisibilityOptions}
-      >
-        <Text style={styles.buttonText}>
-          {isOnlineForDelivery ? "You are Online" : "You are Offline"}
-        </Text>
-        <Image
-          style={styles.visibilityConfig}
-          resizeMode="contain"
-          source={require("../../assets/deliver-page/VisibilityConfig.png")}
-        />
-      </TouchableOpacity>
+            {/* Available Requests Section */}
+            <View style={styles.availableSection}>
+              <Text style={styles.sectionTitle}>Available Requests</Text>
+              {availableRequests.length > 0 ? (
+                <FlatList
+                  data={availableRequests}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderAvailableRequest}
+                  contentContainerStyle={styles.listContent}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={() => fetchDeliveryData()}
+                      colors={["#cfae70"]}
+                      tintColor="#cfae70"
+                    />
+                  }
+                />
+              ) : (
+                <View style={styles.emptyState}>
+                  <Feather name="inbox" size={64} color="#ddd" />
+                  <Text style={styles.emptyStateText}>
+                    No delivery requests available
+                  </Text>
+                  <Text style={styles.emptyStateSubText}>
+                    Pull down to refresh
+                  </Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -525,260 +569,346 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 10,
-    marginBottom: 10,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   heading: {
     fontSize: 24,
     fontWeight: "bold",
   },
   statusContainer: {
-    alignItems: "center",
-    marginVertical: 5,
-  },
-  switchContainer: {
-    padding: 8,
-  },
-  switchTrack: {
-    width: 80,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    padding: 4,
-    borderWidth: 2,
-    borderColor: "#eee",
-  },
-  switchKnob: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  switchText: {
-    marginTop: 8,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  statusIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 10,
   },
-  statusText: {
-    fontSize: 16,
-    fontWeight: "bold",
+  statusIndicator: {
     marginRight: 8,
   },
   statusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-  },
-  onlineDot: {
     backgroundColor: "#4CAF50",
   },
-  offlineDot: {
-    backgroundColor: "#F44336",
+  refreshText: {
+    fontSize: 12,
+    color: "#666",
   },
   contentContainer: {
     flex: 1,
     width: "100%",
-    paddingHorizontal: 16,
   },
   sectionContainer: {
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  availableSection: {
     flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  ownOrderBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#ff9800",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyActiveState: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#f8f8f8",
     borderRadius: 12,
-    zIndex: 1,
+    height: 120,
   },
-  ownOrderText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#888",
+    marginTop: 12,
+  },
+  emptyStateSubText: {
+    fontSize: 14,
+    color: "#aaa",
+    marginTop: 4,
+  },
+  listContent: {
+    paddingBottom: 16,
   },
   deliveryItem: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#cfae70",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
   },
   activeDeliveryItem: {
-    backgroundColor: "#E8F5E9",
-    borderRadius: 8,
+    backgroundColor: "#f8f9ff",
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#4CAF50",
+    marginRight: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e6e8f0",
+    width: 280,
   },
   deliveryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 12,
   },
   restaurantName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+    flex: 1,
   },
   deliveryAmount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+    color: Color.colorBurlywood,
+  },
+  deliveryContent: {
+    marginBottom: 12,
+  },
+  deliveryDetails: {
+    marginBottom: 8,
+  },
+  orderNumber: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
   },
   deliveryAddress: {
     fontSize: 14,
-    marginBottom: 8,
+    color: "#666",
+    marginBottom: 4,
   },
   deliveryNotes: {
     fontSize: 14,
-    marginBottom: 8,
+    color: "#666",
     fontStyle: "italic",
+  },
+  itemPreview: {
+    marginTop: 8,
+  },
+  itemText: {
+    fontSize: 13,
+    color: "#666",
   },
   deliveryFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
   },
   deliveryFee: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "500",
+    color: "#666",
+  },
+  actionButtons: {
+    flexDirection: "row",
+  },
+  viewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 8,
+    backgroundColor: "#f5f5f5",
+  },
+  viewButtonText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 4,
   },
   acceptButton: {
-    backgroundColor: "#cfae70",
+    backgroundColor: Color.colorBurlywood,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 4,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
   },
   acceptButtonText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 14,
   },
-  statusButtons: {
+  trackButton: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  statusButton: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    flex: 1,
-    marginHorizontal: 4,
     alignItems: "center",
+    backgroundColor: "#4a6fa5",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
   },
-  activeStatusButton: {
-    backgroundColor: "#8BC34A",
-  },
-  deliveredButton: {
-    backgroundColor: "#4CAF50",
-  },
-  statusButtonText: {
+  trackButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "500",
+    fontSize: 14,
+    marginLeft: 4,
   },
-  listContent: {
-    paddingBottom: 100,
+  statusChip: {
+    backgroundColor: "#e3f2fd",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
   },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#757575",
-    marginBottom: 12,
-  },
-  refreshButton: {
-    backgroundColor: "#cfae70",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-  },
-  refreshButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  offlineMessage: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  offlineText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  offlineSubtext: {
-    fontSize: 16,
-    color: "#757575",
-    textAlign: "center",
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#1976d2",
   },
   loader: {
     flex: 1,
     justifyContent: "center",
   },
-  visibilityOptions: {
-    position: "absolute",
-    bottom: 105,
-    width: "90%",
-    borderRadius: 8,
-    overflow: "hidden",
-    alignSelf: "center",
+  mapContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
-  item: {
-    backgroundColor: "#D9D9D9",
-    padding: 20,
-    marginVertical: 1,
+  mapHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  visibilityText: {
+  mapTitle: {
     fontSize: 18,
     fontWeight: "bold",
   },
-  visibilityConfig: {
-    position: "absolute",
-    right: 20,
+  closeButton: {
+    padding: 8,
   },
-  VisibilityConfigButton: {
+  mapContent: {
+    flex: 1,
+    position: "relative",
+    padding: 16
+  },
+  mapPlaceholder: {
+    width: Dimensions.get("window").width,
+    height: "100%",
+  },
+  mapOverlay: {
     position: "absolute",
-    bottom: 20,
-    backgroundColor: "#D9D9D9",
-    width: "90%",
-    height: 75,
-    borderColor: "#897A7A",
-    borderWidth: 5,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  deliveryProgress: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  progressStep: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
-    alignSelf: "center",
   },
-  buttonText: {
-    fontSize: 20,
+  completedStep: {
+    backgroundColor: "#4CAF50",
+  },
+  pendingStep: {
+    backgroundColor: "#ddd",
+  },
+  progressLine: {
+    flex: 1,
+    height: 3,
+  },
+  completedLine: {
+    backgroundColor: "#4CAF50",
+  },
+  pendingLine: {
+    backgroundColor: "#ddd",
+  },
+  stepNumber: {
+    color: "#fff",
     fontWeight: "bold",
   },
+  deliverySteps: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  stepText: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+    width: "33%",
+  },
+  deliveryInfo: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    width: 120,
+  },
+  infoValue: {
+    fontSize: 14,
+  },
+  mapActions: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  statusUpdateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4a6fa5",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  deliveredButton: {
+    backgroundColor: "#4CAF50",
+  },
+  statusUpdateButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 8,
+  }
 });

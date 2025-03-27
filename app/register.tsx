@@ -1,6 +1,6 @@
 // app/register.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 2 hours
+// Time spent: 2.5 hours
 
 import React, { useState } from "react";
 import {
@@ -14,14 +14,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInputProps,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "./context/AuthContext";
 import { Color } from "@/GlobalStyles";
+import { ADMIN_EMAILS } from "./utils/adminAuth";
 
-export default function RegisterScreen() {
+export default function Register() {
   const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,6 +37,19 @@ export default function RegisterScreen() {
     password?: string;
     confirmPassword?: string;
   }>({});
+
+  // Special password props to prevent iOS autofill issues
+  const getPasswordInputProps = (): TextInputProps => {
+    if (Platform.OS === 'ios') {
+      return {
+        textContentType: 'oneTimeCode', // Prevents iOS password autofill
+        autoComplete: 'off',
+      } as TextInputProps;
+    }
+    return {
+      autoComplete: 'off',
+    } as TextInputProps;
+  };
 
   const validateForm = () => {
     const newErrors: {
@@ -58,9 +73,13 @@ export default function RegisterScreen() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = "Please enter a valid email address";
       isValid = false;
-    } else if (!email.toLowerCase().endsWith("vanderbilt.edu")) {
-      newErrors.email = "Please use your Vanderbilt email (@vanderbilt.edu)";
-      isValid = false;
+    } else {
+      // Special case for admin emails - don't require vanderbilt.edu domain
+      const isAdminEmail = ADMIN_EMAILS.includes(email.toLowerCase());
+      if (!isAdminEmail && !email.toLowerCase().endsWith("vanderbilt.edu")) {
+        newErrors.email = "Please use your Vanderbilt email (@vanderbilt.edu)";
+        isValid = false;
+      }
     }
 
     // Validate password
@@ -92,10 +111,23 @@ export default function RegisterScreen() {
       await signUp(email, password, name);
       // Success! The AuthContext will handle navigation after successful signup
     } catch (error: any) {
-      Alert.alert(
-        "Registration Failed",
-        error.message || "An error occurred during registration",
-      );
+      console.error("Registration error:", error);
+
+      // Show more specific error messages
+      let errorMessage =
+        error.message || "An error occurred during registration";
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage =
+          "This email is already in use. Please try signing in instead.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "The email address is improperly formatted.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "The password is too weak. Choose a stronger password.";
+      } else if (error.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+
+      Alert.alert("Registration Failed", errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +138,7 @@ export default function RegisterScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
@@ -133,6 +166,7 @@ export default function RegisterScreen() {
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
+                  autoCorrect={false}
                 />
               </View>
               {errors.name && (
@@ -142,7 +176,7 @@ export default function RegisterScreen() {
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Vanderbilt Email</Text>
+              <Text style={styles.label}>Email Address</Text>
               <View
                 style={[styles.inputWrapper, errors.email && styles.inputError]}
               >
@@ -154,6 +188,8 @@ export default function RegisterScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
                 />
               </View>
               {errors.email && (
@@ -177,6 +213,7 @@ export default function RegisterScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  {...getPasswordInputProps()}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -210,6 +247,7 @@ export default function RegisterScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
+                  {...getPasswordInputProps()}
                 />
               </View>
               {errors.confirmPassword && (
@@ -280,12 +318,6 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 30,
   },
   form: {
     flex: 1,

@@ -1,6 +1,6 @@
 // app/(tabs)/profile/index.tsx
-// Contributors: @Fardeen Bablu, @Yuening Li
-// Time spent: 3 hours
+// Contributor: @Fardeen Bablu
+// Time spent: 3.5 hours
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -20,14 +20,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePayment } from "@/app/context/PaymentContext";
-import backendApi from "@/app/services/backendApi";
+import { isAdmin, isRestaurantOwner } from "@/app/utils/adminAuth";
+import { userApi } from "@/app/services/backendApi";
 
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
 const ProfileScreen = () => {
   const { paymentMethod, refreshPaymentMethod } = usePayment();
-  const { user, refreshUser } = useAuth();
-
+  const { user, refreshUser, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
@@ -38,13 +38,33 @@ const ProfileScreen = () => {
   const [favoriteCount, setFavoriteCount] = useState<number>(0);
   const [loadingFavorites, setLoadingFavorites] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [userIsAdmin, setUserIsAdmin] = useState<boolean>(false);
+  const [userIsRestaurantOwner, setUserIsRestaurantOwner] =
+    useState<boolean>(false);
 
   useEffect(() => {
-    refreshPaymentMethod();
-    fetchUserProfile();
-    fetchDefaultAddress();
-    fetchFavoriteCount();
-  }, []);
+    const initializeProfile = async () => {
+      try {
+        await AsyncStorage.removeItem("api_disabled"); // Clear any API disabled flag on component mount
+        await refreshPaymentMethod();
+        await fetchUserProfile();
+        await fetchDefaultAddress();
+        await fetchFavoriteCount();
+
+        // Check if user has admin privileges
+        if (user) {
+          setUserIsAdmin(isAdmin(user));
+          setUserIsRestaurantOwner(isRestaurantOwner(user));
+        }
+      } catch (err) {
+        console.error("Error initializing profile:", err);
+        // Ensure loading state is turned off even if there's an error
+        setIsLoading(false);
+      }
+    };
+
+    initializeProfile();
+  }, [user]);
 
   // Refresh data when the screen comes into focus
   useFocusEffect(
@@ -56,47 +76,32 @@ const ProfileScreen = () => {
 
   const fetchUserProfile = async () => {
     try {
-      setIsLoading(true);
-
       if (!user) {
         console.log("No user found in AuthContext");
+        setIsLoading(false);
         return;
       }
 
-      // Try to get profile from backend API
+      // Use user data from AuthContext
+      setUserProfile({
+        name: user.name || "Vanderbilt Student",
+        email: user.email || "",
+        phoneNumber: "",
+        defaultAddress: "",
+      });
+
+      // Try to refresh user data from Firebase
       try {
-        const { data } = await backendApi.user.getProfile();
-        setUserProfile({
-          name: data.name || user.name || "Vanderbilt Student",
-          email: data.email || user.email || "",
-          phoneNumber: data.phone || "",
-          defaultAddress: data.dormLocation || "",
-        });
-      } catch (apiError) {
-        console.log(
-          "API call failed, using user data from AuthContext",
-          apiError,
-        );
-
-        // Use user data from AuthContext as fallback
-        setUserProfile({
-          name: user.name || "Vanderbilt Student",
-          email: user.email || "",
-          phoneNumber: "",
-          defaultAddress: "",
-        });
-
-        // Try to refresh user data from Firebase
-        try {
-          await refreshUser();
-        } catch (refreshError) {
-          console.error("Error refreshing user data:", refreshError);
-        }
+        await refreshUser();
+      } catch (refreshError) {
+        // Log error but continue - this shouldn't block profile from loading
+        console.error("Error refreshing user data:", refreshError);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       Alert.alert("Error", "Failed to load profile data");
     } finally {
+      // Always set loading to false
       setIsLoading(false);
     }
   };
@@ -118,26 +123,31 @@ const ProfileScreen = () => {
   const fetchFavoriteCount = async () => {
     setLoadingFavorites(true);
     try {
-      // Use backendApi which handles both API calls and fallbacks
+      // Always try API first, without checking if it's disabled
       try {
-        const { data } = await backendApi.user.getFavorites();
-        setFavoriteCount(Array.isArray(data) ? data.length : 0);
+        const response = await userApi.getFavorites();
+        if (response && response.data) {
+          const favorites = response.data;
+          setFavoriteCount(Array.isArray(favorites) ? favorites.length : 0);
+          console.log("Successfully fetched favorites from API");
+          setLoadingFavorites(false);
+          return;
+        }
       } catch (apiError) {
         console.log(
-          "API fetch failed for favorites, using AsyncStorage",
+          "API fetch failed, falling back to AsyncStorage:",
           apiError,
         );
+        // Don't set api_disabled flag
+      }
 
-        // Fallback to AsyncStorage
-        const savedFavorites = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY,
-        );
-        if (savedFavorites) {
-          const favorites = JSON.parse(savedFavorites);
-          setFavoriteCount(favorites.length);
-        } else {
-          setFavoriteCount(0);
-        }
+      // Fallback to AsyncStorage
+      const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (savedFavorites) {
+        const favorites = JSON.parse(savedFavorites);
+        setFavoriteCount(favorites.length);
+      } else {
+        setFavoriteCount(0);
       }
     } catch (error) {
       console.error("Error fetching favorite count:", error);
@@ -149,13 +159,38 @@ const ProfileScreen = () => {
 
   const handleSignOut = async () => {
     try {
-      await backendApi.auth.logout();
-      router.replace("/onboarding");
+      // Remove api_disabled flag before signing out
+      await AsyncStorage.removeItem("api_disabled");
+
+      // First, perform the sign out operation
+      await signOut();
+
+      // Don't immediately navigate - instead set a timeout to ensure
+      // React component state updates have propagated first
+      setTimeout(() => {
+        // Use replace so user can't navigate back to profile after signing out
+        router.replace("/onboarding");
+      }, 100);
     } catch (error) {
       console.error("Error signing out:", error);
       Alert.alert("Error", "Failed to sign out. Please try again.");
     }
   };
+
+  // Define menu item component to keep main JSX cleaner
+  interface MenuItemProps {
+    icon: keyof typeof Feather.glyphMap;
+    title: string;
+    onPress: () => void;
+  }
+
+  const MenuItem = ({ icon, title, onPress }: MenuItemProps) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <Feather name={icon} size={24} color="#000" />
+      <Text style={styles.menuItemText}>{title}</Text>
+      <Feather name="chevron-right" size={24} color="#666" />
+    </TouchableOpacity>
+  );
 
   if (isLoading) {
     return (
@@ -175,7 +210,14 @@ const ProfileScreen = () => {
           <Text style={styles.heading}>Profile</Text>
           <TouchableOpacity
             style={styles.settingsButton}
-            onPress={() => console.log("Settings")}
+            onPress={async () => {
+              // Add a Reset API Connection button when in development
+              await AsyncStorage.removeItem("api_disabled");
+              Alert.alert(
+                "API Connection Reset",
+                "API connection has been reset.",
+              );
+            }}
           >
             <Feather name="settings" size={24} color="black" />
           </TouchableOpacity>
@@ -231,6 +273,15 @@ const ProfileScreen = () => {
             title={userProfile.email}
             onPress={() => console.log("Email")}
           />
+
+          {/* Admin Panel - Only show for admins and restaurant owners */}
+          {(userIsAdmin || userIsRestaurantOwner) && (
+            <MenuItem
+              icon="shield"
+              title="Admin Panel"
+              onPress={() => router.push("/admin")}
+            />
+          )}
         </View>
 
         {/* Account Settings Section */}
@@ -278,36 +329,44 @@ const ProfileScreen = () => {
             </View>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
+
           <MenuItem
             icon="bell"
             title="Notifications"
             onPress={() => router.push("/profile/notifications")}
           />
+
           <MenuItem
             icon="help-circle"
             title="Support"
             onPress={() => router.replace("https://dormdash.github.io/support")}
           />
+
           <MenuItem icon="log-out" title="Sign Out" onPress={handleSignOut} />
+        </View>
+
+        {/* Developer options (only visible in development) */}
+        <Text style={styles.sectionHeading}>Developer Options</Text>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={async () => {
+              await AsyncStorage.removeItem("api_disabled");
+              Alert.alert(
+                "API Connection Reset",
+                "API connection has been reset.",
+              );
+            }}
+          >
+            <Feather name="refresh-cw" size={24} color="#000" />
+            <Text style={styles.menuItemText}>Reset API Connection</Text>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
-
-interface MenuItemProps {
-  icon: keyof typeof Feather.glyphMap;
-  title: string;
-  onPress: () => void;
-}
-
-const MenuItem = ({ icon, title, onPress }: MenuItemProps) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <Feather name={icon} size={24} color="#000" />
-    <Text style={styles.menuItemText}>{title}</Text>
-    <Feather name="chevron-right" size={24} color="#666" />
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: {

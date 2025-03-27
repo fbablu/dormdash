@@ -1,0 +1,147 @@
+{
+  "menu": {
+    "build_your_own": [
+      {
+        "name": "Tacos",
+        "description": "2 soft flour, soft corn, or crispy corn tortillas filled with your toppings. Comes with chips and salsa + a side."
+      },
+      {
+        "name": "Burrito Bowl",
+        "description": "Just like a burrito but served in a bowl without a tortilla.",
+        "extras": ["Double Protein +$3"]
+      },
+      {
+        "name": "Burrito",
+        "description": "Your choice of fresh toppings wrapped in a flour tortilla and served with chips and salsa + a side."
+      },
+      {
+        "name": "Jorge's Nachos",
+        "description": "Your toppings piled high on fresh-made tortilla chips.",
+        "extras": ["Double Protein +$3"]
+      },
+      {
+        "name": "Quesadilla",
+        "description": "Grilled with cheese & your choice of meat - served with chips & salsa."
+      }
+    ],
+    "proteins": [
+      { "name": "Chicken", "price": 15.5 },
+      { "name": "Barbacoa", "price": 15.5 },
+      { "name": "Grilled Shrimp", "price": 15.5 },
+      {
+        "name": "Ahi Tuna",
+        "price": 16.5,
+        "note": "Limited amount each day, first come first serve."
+      },
+      { "name": "Flounder", "price": 15.5 },
+      { "name": "Ground Beef", "price": 14.5 },
+      { "name": "Steak", "price": 16.5 },
+      { "name": "Chorizo", "price": 15.5 },
+      { "name": "Veggie Mix", "price": 12.5 },
+      { "name": "Tofu", "price": 14.5 }
+    ],
+    "fresh_free_toppings": [
+      "Cilantro-Lime Rice",
+      "Tomatoes",
+      "Avocado",
+      "Chorizo",
+      "Refried Beans",
+      "Roasted Corn",
+      "Cilantro",
+      "Sour Cream",
+      "Black Beans",
+      "Black Olives",
+      "Guacamole",
+      "Grilled Onions",
+      "Pico de Gallo",
+      "Shredded Cheddar",
+      "Pickled Jalapenos",
+      "Ancho Chile Slaw",
+      "Shredded Mozzarella",
+      "Grilled Jalapenos",
+      "Sriracha Slaw",
+      "Queso Fresco",
+      "Fresh Jalapenos",
+      "Shredded Lettuce",
+      "Queso",
+      "Onions"
+    ],
+    "salsa_sauces": [
+      "Fresh Salsa Ranchera (Mild)",
+      "Fresh Tomatillo Salsa (Hot!)",
+      "Roasted Poblano Tartar",
+      "Chipotle-Ranch",
+      "Cilantro-Lime Vinaigrette",
+      "Mama's Chipotle BBQ Sauce",
+      "Red-Chile Butter Sauce"
+    ],
+    "taco_baskets": [
+      { "name": "Classico Beef", "price": 14.5 },
+      { "name": "Justice is Served", "price": 15.5 },
+      { "name": "Cheezy Beef", "price": 15.5 },
+      { "name": "The Sizzler", "price": 16.5 },
+      { "name": "Alabama Redneck", "price": 15.5 },
+      { "name": "The Mayor", "price": 15.5 },
+      { "name": "Mama's Chorizo", "price": 15.5 },
+      { "name": "Ahi Tuna-Si!!", "price": 16.5 },
+      { "name": "Mix & Match", "price": "Market Price" },
+      { "name": "Add Single Taco", "price": 4 }
+    ],
+    "burrito_baskets": [
+      { "name": "Yo Mama", "price": 14.5 },
+      { "name": "Q-Burrito", "price": 15.5 },
+      { "name": "The Big Client", "price": 15.5 },
+      { "name": "The Fat Boy", "price": 16.5 },
+      { "name": "The Judge", "price": 15.5 },
+      { "name": "The Hippie Fisherman", "price": 15.5 },
+      { "name": "The Tree Hugger", "price": 12.5 }
+    ],
+    "drinks": {
+      "beer": {
+        "imports": 6.0,
+        "domestic": 4.5
+      },
+      "wine": {
+        "options": [
+          "Prosecco",
+          "Chardonnay",
+          "Pinot Grigio",
+          "Marques de Caceres (Spanish Red)"
+        ],
+        "price": 10
+      },
+      "margaritas": {
+        "flavors": {
+          "Mi Casa": 10.5,
+          "Frozen": 10.5,
+          "Skinny": 12.5,
+          "Pomegranate": 12.5,
+          "Mercedes": 12.5,
+          "Jalapeno": 12.5,
+          "Prosecco Fizz": 12.5,
+          "La Playa": 12.5,
+          "The Real Deal": 12.5,
+          "Cucumber": 12.5,
+          "Blood Orange (Seasonal)": 12.5,
+          "Watermelon (Seasonal)": 12.5,
+          "Sangrita": 12.5,
+          "The Paula Sangria": 10.5,
+          "The Guillermo (Ranch Water)": 12.5
+        }
+      }
+    },
+    "catering": {
+      "taco_nacho_bar": { "price_per_person": 15 },
+      "happy_family_meal": { "price": 54 },
+      "happiest_family_meal": {
+        "margarita_mix": { "half_gallon": 10, "one_gallon": 20 }
+      },
+      "margarita_mix": { "half_gallon": 10, "one_gallon": 20 }
+    },
+    "contact": {
+      "order_online": "tacomamaonline.com",
+      "catering_email": "hillsborocatering@tacomamaonline.com",
+      "phone": "615-600-4420"
+    }
+  }
+}

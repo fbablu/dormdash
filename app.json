@@ -14,7 +14,11 @@
         "light": "./assets/icons/ios-light.png",
         "tinted": "./assets/icons/ios-tinted.png"
       },
-      "bundleIdentifier": "com.anonymous.dormdash"
+      "useFrameworks": "static",
+      "bundleIdentifier": "com.anonymous.dormdash",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -49,10 +53,32 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.895573352563-bglvrv3e9visj279hc9g157787jd4on3"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "134fae3a-2dff-4495-81c8-59deb4ff7768"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/134fae3a-2dff-4495-81c8-59deb4ff7768"
     }
   }
 }

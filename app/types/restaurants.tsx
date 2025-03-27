@@ -1,6 +1,9 @@
-// app/types/restaurants.ts
+// app/types/restaurants.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 30 mins
+// Time spent: 45 mins
+
+import React from "react";
+import { View, Text } from "react-native";
 
 export type Location =
   | "HILLSBORO VILLAGE"
@@ -50,13 +53,28 @@ export type Cuisine =
   | "Kosher"
   | "Vegetarian";
 
-export default interface Restaurant {
+export interface Restaurant {
+  id?: string;
   name: string;
   location: Location;
   address: string;
   website: string;
   cuisine: Cuisine[];
   acceptsCommodoreCash: boolean;
+  image?: string;
+  rating?: number;
+  reviewCount?: string;
+  deliveryTime?: string;
+  deliveryFee?: number;
 }
 
-type Restaurants = Restaurant[];
+export type Restaurants = Restaurant[];
+
+// Default export component to satisfy router requirement
+export default function RestaurantTypes() {
+  return (
+    <View>
+      <Text>Restaurant Types Component</Text>
+    </View>
+  );
+}
