@@ -67,7 +67,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  // Add these options for better error handling
+  // Add these two options for better error handling
   connectTimeout: 10000,
   debug: process.env.NODE_ENV !== "production",
 });
