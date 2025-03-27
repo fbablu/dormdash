@@ -1,5 +1,5 @@
 // app/restaurant/[id].tsx
-// Contributors: Fardeen Bablu
+// Contributors: Fardeen Bablu, Rushi Patel
 // Time spent: 9 hours
 
 import React, { useState, useEffect } from "react";

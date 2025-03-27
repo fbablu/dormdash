@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx
-// Contributors: @Fardeen Bablu
+// Contributors: @Fardeen Bablu @Rushi Patel
 // Time spent: 3 hours
 
 import React, { useState, useEffect } from "react";
@@ -23,6 +23,8 @@ import { API_BASE_URL } from "@/lib/api/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+
 
 const { width } = Dimensions.get("window");
 
@@ -267,7 +269,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         console.log(
           `Navigating to restaurant: ${restaurant.name} with ID: ${id}`,
         );
-        router.push(`/restaurant/${id}`);
+        router.push(`../app/restaurant/[id].tsx`);
       }}
     >
       <Image
@@ -304,6 +306,8 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredRestaurants, setFilteredRestaurants] = useState(restaurants);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { cartItems } = useCart();
+
 
   useEffect(() => {
     filterRestaurants();
@@ -380,6 +384,22 @@ export default function Page() {
             onPress={() => setSelectedCategory(null)}
           />
         </View>
+
+        <View style={{ padding: 16 }}>
+  <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
+    Cart Preview
+  </Text>
+  {cartItems.length === 0 ? (
+    <Text style={{ color: "gray" }}>Your cart is empty.</Text>
+  ) : (
+    cartItems.map((item, index) => (
+      <Text key={index}>
+        {item.quantity}x {item.name} - ${item.price.toFixed(2)}
+      </Text>
+    ))
+  )}
+</View>
+
 
         <View style={styles.restaurantsSection}>
           <Text style={styles.sectionTitle}>

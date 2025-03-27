@@ -19,8 +19,10 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext"; // Add this import
 import { Color } from "@/GlobalStyles";
 import OrderTrackingView from "@/components/OrderTrackingView";
+
 
 interface OrderItem {
   id: string;
@@ -47,6 +49,7 @@ export default function OrdersScreen() {
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { addItemsToCart } = useCart(); // Add this line to use cart context
 
   useEffect(() => {
     loadOrders();
@@ -75,10 +78,22 @@ export default function OrdersScreen() {
     setReceiptModalVisible(true);
   };
 
-  const handleOrderAgain = (order: Order) => {
-    setReceiptModalVisible(false);
-    router.push(`/restaurant/${order.restaurantId}`);
-  };
+  
+
+const handleOrderAgain = (order: Order) => {
+  const cartItems = order.items.map(item => ({
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity
+  }));
+
+  addItemsToCart(cartItems);
+  setReceiptModalVisible(false);
+  router.push({
+    pathname: "../restaurant/[id]",
+    params: { id: order.restaurantId }
+  } as const);
+};
 
   const handleCancelOrder = async (orderId: string) => {
     try {
@@ -142,7 +157,6 @@ export default function OrdersScreen() {
   };
 
   const getStatusColor = (status: Order["status"]) => {
-    // Based off of the deliver.tsx status options
     switch (status) {
       case "pending":
         return "#f39c12";
@@ -270,6 +284,18 @@ export default function OrdersScreen() {
             >
               <Ionicons name="close" size={24} color="black" />
             </TouchableOpacity>
+
+            {/* Order Again button */}
+            {selectedOrder && selectedOrder.status === "delivered" && (
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.orderAgainButton} 
+                  onPress={() => handleOrderAgain(selectedOrder)}
+                >
+                  <Text style={styles.orderAgainText}>Order Again</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
