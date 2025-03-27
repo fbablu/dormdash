@@ -1,12 +1,12 @@
 // server/src/config/initDb.ts
 // Contributors: @Fardeen Bablu
 // Time spent: 1 hour
-
+import mysql from "mysql2/promise";
 import pool from "./db";
 
 async function initDatabase() {
   try {
-    const connection = await pool.getConnection();
+    let connection: mysql.PoolConnection = await pool.getConnection();
     try {
       // Create user_favorites table
       await connection.query(`
@@ -32,7 +32,9 @@ async function initDatabase() {
 
       console.log("Database tables verified/created");
     } finally {
-      connection.release();
+      if (connection) {
+        connection.release();
+      }
     }
   } catch (error) {
     console.error("Database initialization failed:", error);
