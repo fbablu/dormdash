@@ -1,5 +1,5 @@
 // app/restaurant/[id].tsx
-// Contributors: Fardeen Bablu, Rushi Patel
+// Contributors: Fardeen Bablu
 // Time spent: 9 hours
 
 import React, { useState, useEffect } from "react";
@@ -33,6 +33,7 @@ import { db } from "@/app/config/firebase";
 import restaurants from "@/data/ton_restaurants.json";
 import { useOrders } from "../context/OrderContext";
 import { useAuth } from "../context/AuthContext";
+
 
 const { width } = Dimensions.get("window");
 
@@ -302,6 +303,7 @@ export default function RestaurantMenuScreen() {
 
   const { activeDeliveries } = useOrders();
 
+
   // Calculate total price
   const cartTotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -513,39 +515,31 @@ export default function RestaurantMenuScreen() {
     });
   };
 
+
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
       Alert.alert(
         "Empty Cart",
-        "Please add items to your cart before checking out.",
+        "Please add items to your cart before checking out."
       );
       return;
     }
-
+  
     // Check if the user is currently delivering any orders
     if (activeDeliveries.length > 0) {
       Alert.alert(
         "Delivery in Progress",
-        "You cannot place orders while you are delivering an order. Please complete your current delivery first.",
+        "You cannot place orders while you are delivering an order. Please complete your current delivery first."
       );
       return;
     }
-
+  
     try {
-      setLoading(true);
-      const deliveryAddress =
-        (await AsyncStorage.getItem("dormdash_current_address")) ||
-        "Vanderbilt Campus";
-      const currentOrderNumber =
-        (await AsyncStorage.getItem("dormdash_order_number")) || "1000";
-      const nextOrderNumber = (parseInt(currentOrderNumber) + 1).toString();
-      await AsyncStorage.setItem("dormdash_order_number", nextOrderNumber);
-
-      const orderId = `order-${nextOrderNumber}`;
-
+      // Save order to AsyncStorage (in a real app, this would be a Firebase call)
       const order = {
-        id: orderId,
-        restaurantId: id as string,
+        id: `order-${Date.now()}`,
+        restaurantId: id,
         restaurantName: restaurant?.name,
         items: cart,
         totalAmount: orderTotal.toFixed(2),
@@ -555,35 +549,37 @@ export default function RestaurantMenuScreen() {
         paymentMethod: paymentMethod,
         customerId: user?.id,
       };
-
+  
       // Get existing orders
       const existingOrdersJson = await AsyncStorage.getItem("dormdash_orders");
       const existingOrders = existingOrdersJson
         ? JSON.parse(existingOrdersJson)
         : [];
-
+  
       // Add new order and save
       const updatedOrders = [order, ...existingOrders];
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders),
+        JSON.stringify(updatedOrders)
       );
-
+  
       // Clear cart
       await AsyncStorage.removeItem(`cart_${id}`);
       setCart([]);
-
+  
       // Show success and navigate
       Alert.alert(
         "Order Placed!",
         "Your order has been placed successfully. You can view it in your orders tab.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/orders") }],
+        [{ text: "OK", onPress: () => router.replace("/(tabs)/orders") }]
       );
     } catch (error) {
       console.error("Error placing order:", error);
       Alert.alert("Error", "Failed to place order. Please try again.");
     }
   };
+
+
 
   const handleGoBack = () => {
     router.back();
