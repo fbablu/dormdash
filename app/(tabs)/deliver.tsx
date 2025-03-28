@@ -185,11 +185,9 @@ export default function Deliver() {
         return false;
       }
 
-
       // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson || !user) return false;
-
 
       const allOrders = JSON.parse(ordersJson) as Order[];
       const order = allOrders.find((o) => o.id === orderId);
@@ -878,5 +876,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     marginLeft: 8,
-  }
+  },
 });

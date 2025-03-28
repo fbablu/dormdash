@@ -166,7 +166,6 @@ const OrderTrackingView = ({ status, orderId }: OrderTrackingViewProps) => {
     <View style={styles.container}>
       <Text style={styles.orderId}>Order #{orderId.substring(6, 12)}</Text>
 
-
       <View style={styles.progressContainer}>
         {/* Step 1: Order Accepted */}
         <View style={styles.stepContainer}>

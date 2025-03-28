@@ -531,7 +531,6 @@ export default function RestaurantMenuScreen() {
       return;
     }
 
-
     try {
       setLoading(true);
       const deliveryAddress =

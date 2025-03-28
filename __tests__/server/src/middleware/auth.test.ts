@@ -73,7 +73,6 @@ describe("Authentication Middleware - Black Box Testing", () => {
       expect(mockNext).toHaveBeenCalled();
     });
 
-
     // Expired token (boundary)
     it("should handle token expiration error", async () => {
       const mockToken = "expired-token";
