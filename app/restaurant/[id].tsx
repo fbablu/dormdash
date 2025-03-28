@@ -531,11 +531,22 @@ export default function RestaurantMenuScreen() {
       return;
     }
 
+
     try {
-      // Save order to AsyncStorage (in a real app, this would be a Firebase call)
+      setLoading(true);
+      const deliveryAddress =
+        (await AsyncStorage.getItem("dormdash_current_address")) ||
+        "Vanderbilt Campus";
+      const currentOrderNumber =
+        (await AsyncStorage.getItem("dormdash_order_number")) || "1000";
+      const nextOrderNumber = (parseInt(currentOrderNumber) + 1).toString();
+      await AsyncStorage.setItem("dormdash_order_number", nextOrderNumber);
+
+      const orderId = `order-${nextOrderNumber}`;
+
       const order = {
-        id: `order-${Date.now()}`,
-        restaurantId: id,
+        id: orderId,
+        restaurantId: id as string,
         restaurantName: restaurant?.name,
         items: cart,
         totalAmount: orderTotal.toFixed(2),

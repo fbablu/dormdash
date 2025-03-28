@@ -24,6 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import AddressSelector from "@/components/AddressSelector";
 
 const { width } = Dimensions.get("window");
 
@@ -67,20 +68,18 @@ interface FavoriteRestaurant {
 const LocationHeader = ({
   searchQuery,
   setSearchQuery,
+  onAddressChange,
 }: {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onAddressChange?: (address: string) => void;
 }) => (
   <View style={styles.locationHeaderContainer}>
     <View style={styles.locationHeader}>
-      <View style={styles.locationSelector}>
-        <Feather name="map-pin" size={20} color="black" />
-        <Text style={styles.locationText}>Vanderbilt Campus</Text>
-        <Feather name="chevron-down" size={20} color="black" />
-      </View>
-      <TouchableOpacity style={styles.cartButton}>
+      <AddressSelector onAddressChange={onAddressChange} />
+      {/* <TouchableOpacity style={styles.cartButton}>
         <Feather name="shopping-cart" size={24} color="black" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
     <View style={styles.searchBar}>
       <Feather name="search" size={20} color="gray" />

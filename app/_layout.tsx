@@ -1,9 +1,8 @@
 // app/_layout.tsx
 // Contributors: @Fardeen Bablu
-// Time spent: 2 hours (ended up having to restart ide and clean cache to remove random tab)
-
+// Time spent: 2 hours
 import { Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import PaymentProvider from "./context/PaymentContext";
@@ -12,40 +11,31 @@ import OrderProvider from "./context/OrderContext";
 import RestaurantInitializer from "@/components/RestaurantInitializer";
 import { initializeApiStatus } from "@/lib/api/config";
 
-// Prevent the splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const MemoizedRestaurantInitializer = memo(RestaurantInitializer);
 
 function RootLayoutNav() {
   const { isLoading, isSignedIn } = useAuth();
-
   useEffect(() => {
-    // Initialize API status at startup
     initializeApiStatus();
 
-    // Hide splash screen once auth state is determined
-    const hideSplash = async () => {
-      if (!isLoading) {
-        await SplashScreen.hideAsync();
-      }
-    };
-    hideSplash();
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(console.warn);
+    }
   }, [isLoading]);
 
   useEffect(() => {
-    // Redirect based on auth state
-    if (!isLoading) {
-      if (isSignedIn) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/onboarding");
-      }
-    }
+    if (isLoading) return;
+
+    const timer = setTimeout(() => {
+      router.replace(isSignedIn ? "/(tabs)" : "/onboarding");
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, [isLoading, isSignedIn]);
 
-  // If still loading, return nothing
-  if (isLoading) {
-    return null;
-  }
+  if (isLoading) return null;
 
   return (
     <>
@@ -62,8 +52,7 @@ function RootLayoutNav() {
           }}
         />
       </Stack>
-      {/* Initialize restaurants if user is signed in */}
-      {isSignedIn && <RestaurantInitializer />}
+      {isSignedIn && <MemoizedRestaurantInitializer />}
     </>
   );
 }

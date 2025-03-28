@@ -17,6 +17,7 @@ import {
 import { db } from "../config/firebase";
 import { useAuth } from "./AuthContext";
 import { v4 as uuidv4 } from "uuid";
+import { router } from "expo-router";
 
 // Define order interfaces
 interface OrderItem {
@@ -171,7 +172,8 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
       } catch (firestoreError) {
-        console.error("Firestore orders query failed:", firestoreError);
+        router.replace("/");
+        // console.error("Firestore orders query failed:", firestoreError);
       }
 
       // Fallback to AsyncStorage

@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Define a flag to disable API calls completely if server is not running
-export const API_DISABLED = false;
+export const API_DISABLED = true;
 
 // Export the API base URL - configure properly for different platforms
 export const API_BASE_URL = Platform.select({
@@ -50,48 +50,10 @@ export const favoritesApi = {
   },
 };
 
-// Helper to check if API server is available - will set a flag in storage
-export const checkApiHealth = async (): Promise<boolean> => {
-  // If API is disabled by config, return false immediately
-  if (API_DISABLED) {
-    await AsyncStorage.setItem("api_disabled", "true");
-    return false;
-  }
-
-  try {
-    // Use an AbortController to set a timeout for the request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
-
-    const response = await fetch(`${API_BASE_URL}/api/health`, {
-      signal: controller.signal,
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    });
-
-    clearTimeout(timeoutId);
-
-    // Store API status in AsyncStorage
-    if (response.ok) {
-      await AsyncStorage.setItem("api_disabled", "false");
-      return true;
-    } else {
-      await AsyncStorage.setItem("api_disabled", "true");
-      return false;
-    }
-  } catch (error) {
-    console.error("API health check failed");
-    // Don't log the full error stack to reduce console noise
-
-    // Store API status in AsyncStorage
-    await AsyncStorage.setItem("api_disabled", "true");
-    return false;
-  }
+export const checkApiHealth = () => {
+  // Return fake healthy status for Expo Go
+  return Promise.resolve({ status: "healthy" });
 };
-
 /**
  * Generic API request function that first checks if the API is disabled
  * to avoid making requests when we know they'll fail
@@ -161,11 +123,12 @@ export async function apiRequest<T>(
 }
 
 export const initializeApiStatus = async () => {
-  // On app start, set the API status based on configuration
-  if (API_DISABLED) {
+  const isExpoGo = true;
+
+  if (isExpoGo) {
+    console.log("API health checks disabled in Expo Go preview");
     await AsyncStorage.setItem("api_disabled", "true");
-  } else {
-    // Attempt to check API health
-    await checkApiHealth();
+    return;
   }
+  checkApiHealth();
 };

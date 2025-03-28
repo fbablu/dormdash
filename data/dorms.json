@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Warren College",
+    "address": "2101 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.14904680223302, -86.80238460949082"
+  },
+  {
+    "name": "Mayfield House",
+    "address": "1412 25th Ave S, Nashville, TN 37212",
+    "coordinates": "36.14005967286168, -86.80550751711645"
+  },
+  {
+    "name": "Moore College",
+    "address": "2101 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.149057474181035, -86.80237344886196"
+  },
+  {
+    "name": "Lewis House",
+    "address": "1410 25th Ave S, Nashville, TN 37212",
+    "coordinates": "36.14052748723847, -86.80586301831843"
+  },
+  {
+    "name": "E. Bronson Ingram College",
+    "address": "2211 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.14873628184237, -86.80359695161549"
+  },
+  {
+    "name": "Morgan House",
+    "address": "1408 25th Ave S, Nashville, TN 37212",
+    "coordinates": "36.1410243883876, -86.80630231730261"
+  },
+  {
+    "name": "Cole Hall",
+    "address": "2304 Vanderbilt Place, Nashville, TN 37203",
+    "coordinates": "36.146545645391356, -86.80434176851199"
+  },
+  {
+    "name": "Chaffin House",
+    "address": "1410 25th Ave S, Nashville, TN 37203",
+    "coordinates": "36.140526518134884, -86.80585017863791"
+  },
+  {
+    "name": "McGill Hall",
+    "address": "310 West Side Row, Nashville, TN 37203",
+    "coordinates": "36.14774098364789, -86.80476552965804"
+  },
+  {
+    "name": "Hank Ingram House",
+    "address": "1401 18th Ave S, Nashville, TN 37203",
+    "coordinates": "36.1406515130026, -86.79633354510953"
+  },
+  {
+    "name": "Tolman Hall",
+    "address": "320 West Side Row, Nashville, TN 37203",
+    "coordinates": "36.14713849535271, -86.80432679413926"
+  },
+  {
+    "name": "Crawford House",
+    "address": "1900 South Dr, Nashville, TN 37203",
+    "coordinates": "36.1410550770543, -86.7981873265148"
+  },
+  {
+    "name": "McTyeire Hall",
+    "address": "414 24th Ave S, Nashville, TN 37203",
+    "coordinates": "36.14387958177117, -86.80324228363881"
+  },
+  {
+    "name": "East House",
+    "address": "1920 South Dr, Nashville, TN 37203",
+    "coordinates": "36.140412701364845, -86.79839160469837"
+  },
+  {
+    "name": "Carmichael Towers 1",
+    "address": "2321 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.14785182413352, -86.80579622844708"
+  },
+  {
+    "name": "Gillette House",
+    "address": "1900 South Dr, Nashville, TN 37203",
+    "coordinates": "36.14110424667238, -86.7981790731204"
+  },
+  {
+    "name": "Carmichael Towers 2",
+    "address": "2321 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.14788217039283, -86.80576704127552"
+  },
+  {
+    "name": "Memorial House",
+    "address": "1910 South Dr, Nashville, TN 37203",
+    "coordinates": "36.14010569125063, -86.79776976042658"
+  },
+  {
+    "name": "Rothschild College",
+    "address": "2401 West End Ave, Nashville, TN 37203",
+    "coordinates": "36.147888527628666, -86.80579633734901"
+  },
+  {
+    "name": "Murray House",
+    "address": "1427-1507 18th Ave S, Nashville, TN 37212",
+    "coordinates": "36.139829303976455, -86.79692144984841"
+  },
+  {
+    "name": "Lupton House",
+    "address": "2401 Vanderbilt Place, Nashville, TN 37203",
+    "coordinates": "36.14528667453794, -86.8053153729197"
+  },
+  {
+    "name": "North House",
+    "address": "1300 21st Ave S, Nashville, TN 37203",
+    "coordinates": "36.1411411759634, -86.79951883439227"
+  },
+  {
+    "name": "Stapleton House",
+    "address": "315 24th Ave S, Nashville, TN 37203",
+    "coordinates": "36.14457564043622, -86.80463247102139"
+  },
+  {
+    "name": "Stambaugh House",
+    "address": "1405 18th Ave S, Nashville, TN 37203",
+    "coordinates": "36.140374975955794, -86.79730292585005"
+  },
+  {
+    "name": "Vaughn House",
+    "address": "313 24th Ave S, Nashville, TN 37203",
+    "coordinates": "36.14477786622888, -86.80515791868316"
+  },
+  {
+    "name": "Sutherland House",
+    "address": "1900 South Dr, Nashville, TN 37203",
+    "coordinates": "36.14104693206553, -86.79816919946681"
+  },
+  {
+    "name": "Blakemore House",
+    "address": "2818 Vanderbilt Place, Nashville, TN 37203",
+    "coordinates": "36.14311258280543, -86.81169297398957"
+  },
+  {
+    "name": "West House",
+    "address": "1400 21st Ave S, Nashville, TN 37203",
+    "coordinates": "36.14046354307255, -86.79962932523674"
+  },
+  {
+    "name": "Zeppos College",
+    "address": "2417 West End Ave, Nashville, TN 37240",
+    "coordinates": "36.14696358585224, -86.80752072190168"
+  },
+  {
+    "name": "Featheringill Hall",
+    "address": "400 24th Ave S, Nashville, TN 37240",
+    "coordinates": "36.14465267057043, -86.80321828197036"
+  }
+]

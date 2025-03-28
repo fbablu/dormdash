@@ -1,64 +1,126 @@
 // app/components/RestaurantInitializer.tsx
 // Contributor: @Fardeen Bablu
 // time spent: 30 minutes
+import React, { useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/app/config/firebase";
-import { uploadTacoMamaMenu } from "@/app/utils/menuParser";
-import { Color } from "@/GlobalStyles";
+const SAMPLE_RESTAURANTS = [
+  {
+    id: "taco-mama",
+    name: "Taco Mama",
+    location: "HILLSBORO VILLAGE",
+    address: "1920 Belcourt Ave",
+    cuisines: ["Mexican", "Tex-Mex"],
+    acceptsCommodoreCash: true,
+    imageUrl: "https://randomuser.me/api/portraits/men/1.jpg", // Placeholder
+    openTime: "11:00 AM",
+    closeTime: "9:00 PM",
+    rating: 4.5,
+    menu: {
+      categories: [
+        {
+          name: "Tacos",
+          items: [
+            {
+              id: "taco-1",
+              name: "Chicken Taco",
+              price: 3.99,
+              description:
+                "Grilled chicken with lettuce, cheese, and pico de gallo",
+            },
+            {
+              id: "taco-2",
+              name: "Beef Taco",
+              price: 4.99,
+              description:
+                "Ground beef with lettuce, cheese, and pico de gallo",
+            },
+          ],
+        },
+        {
+          name: "Burritos",
+          items: [
+            {
+              id: "burrito-1",
+              name: "Chicken Burrito",
+              price: 8.99,
+              description:
+                "Grilled chicken with rice, beans, lettuce, cheese, and pico de gallo",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "bahn-mi",
+    name: "Bahn Mi & Roll",
+    location: "HILLSBORO VILLAGE",
+    address: "2057 Scarritt Pl",
+    cuisines: ["Vietnamese", "Asian"],
+    acceptsCommodoreCash: true,
+    imageUrl: "https://randomuser.me/api/portraits/women/1.jpg", // Placeholder
+    openTime: "10:00 AM",
+    closeTime: "8:00 PM",
+    rating: 4.7,
+    menu: {
+      categories: [
+        {
+          name: "Sandwiches",
+          items: [
+            {
+              id: "sandwich-1",
+              name: "Classic Bahn Mi",
+              price: 6.99,
+              description:
+                "Vietnamese sandwich with pork, veggies, and special sauce",
+            },
+          ],
+        },
+        {
+          name: "Bowls",
+          items: [
+            {
+              id: "bowl-1",
+              name: "Rice Bowl",
+              price: 9.99,
+              description: "Rice with your choice of protein and veggies",
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
 
-const RestaurantInitializer: React.FC = () => {
-  const [initialized, setInitialized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+const RestaurantInitializer = () => {
+  // Initialize restaurants for Expo Go
   useEffect(() => {
-    const initializeTacoMama = async () => {
+    const initializeRestaurants = async () => {
       try {
-        // Check if Taco Mama exists
-        const restaurantRef = doc(db, "restaurants", "taco-mama");
-        const restaurantDoc = await getDoc(restaurantRef);
-
-        if (!restaurantDoc.exists()) {
-          // Create Taco Mama restaurant document
-          await setDoc(restaurantRef, {
-            name: "Taco Mama",
-            location: "HILLSBORO VILLAGE",
-            address: "1612 21st Ave S, Nashville, TN 37212",
-            website: "https://tacomamaonline.com/",
-            image:
-              "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-            cuisines: ["Mexican", "Tacos"],
-            acceptsCommodoreCash: true,
-            rating: 4.5,
-            reviewCount: "200+",
-            deliveryTime: "15-25 min",
-            deliveryFee: 3.99,
-            createdAt: new Date().toISOString(),
-          });
-
-          // Upload menu
-          await uploadTacoMamaMenu();
-          console.log("Taco Mama restaurant initialized successfully");
-        } else {
-          console.log("Taco Mama restaurant already exists");
+        // Check if we've already initialized
+        const initialized = await AsyncStorage.getItem(
+          "restaurants_initialized",
+        );
+        if (initialized === "true") {
+          console.log("Restaurants already initialized");
+          return;
         }
 
-        setInitialized(true);
-      } catch (err) {
-        console.error("Error initializing restaurant:", err);
-        setError(String(err));
-      } finally {
-        setLoading(false);
+        // Store sample restaurants
+        await AsyncStorage.setItem(
+          "restaurants",
+          JSON.stringify(SAMPLE_RESTAURANTS),
+        );
+        await AsyncStorage.setItem("restaurants_initialized", "true");
+        console.log("Mock restaurants initialized successfully");
+      } catch (error) {
+        console.error("Error initializing restaurants:", error);
       }
     };
 
-    initializeTacoMama();
+    initializeRestaurants();
   }, []);
-
-  // This component doesn't render anything visible
   return null;
 };
 

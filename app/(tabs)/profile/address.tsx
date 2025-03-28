@@ -145,8 +145,6 @@ const AddressScreen = () => {
         <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={() => {
-            // Would normally request location permissions and get current location
-            // For now, just add a sample address
             const demoAddress = "2401 West End Ave, Nashville, TN 37203";
             if (!addresses.includes(demoAddress)) {
               handleSelectAddress(demoAddress);

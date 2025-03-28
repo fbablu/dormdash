@@ -11,14 +11,14 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  Auth,
+  User as FirebaseUser,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
-  User as FirebaseUser,
-  Auth,
 } from "firebase/auth";
 import {
   doc,
@@ -36,6 +36,7 @@ import {
   isRestaurantOwner,
   getOwnedRestaurantId,
 } from "../utils/adminAuth";
+import { router } from "expo-router";
 
 // Define user type
 export interface User {
@@ -82,6 +83,8 @@ const defaultAuthContext: AuthContextType = {
   verifyDorm: async () => false,
   checkUserRole: () => {},
 };
+
+const isExpoGo = true;
 
 const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
@@ -252,44 +255,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     firebaseUser: FirebaseUser,
   ): Promise<User> => {
     try {
-      const userRef = doc(db as Firestore, "users", firebaseUser.uid);
-      const userSnap = await getDoc(userRef);
+      const userJson = await AsyncStorage.getItem("user_data");
 
-      if (userSnap.exists()) {
-        // Return existing user data
-        const userData = userSnap.data() as User;
-        // Check admin status
-        const userIsAdmin = isAdmin({
-          ...userData,
-          email: firebaseUser.email || "",
-        });
-        const userIsRestaurantOwner = isRestaurantOwner({
-          ...userData,
-          email: firebaseUser.email || "",
-        });
+      if (firebaseUser && !firebaseUser.getIdToken) {
+        firebaseUser.getIdToken = async () => `mock-token${Date.now()}`;
+      }
 
-        // Only add ownedRestaurantId if the user is a restaurant owner
-        let updatedUserData: User = {
-          ...userData,
-          isAdmin: userIsAdmin,
-          isRestaurantOwner: userIsRestaurantOwner,
-        };
-
-        // Only add ownedRestaurantId if user is a restaurant owner and we have a valid ID
-        if (userIsRestaurantOwner) {
-          const ownedId = getOwnedRestaurantId({
-            ...userData,
-            email: firebaseUser.email || "",
-          });
-          if (ownedId) {
-            // Only add the field if it's not null
-            updatedUserData.ownedRestaurantId = ownedId;
-          }
-        }
-
-        return updatedUserData;
+      if (userJson) {
+        const userData = JSON.parse(userJson) as User;
+        return userData;
       } else {
-        // Create new user
         const newUser: User = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || "Vanderbilt Student",
@@ -299,36 +274,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           createdAt: new Date().toISOString(),
         };
 
-        // Check admin status for new user
-        const userIsAdmin = isAdmin(newUser);
-        const userIsRestaurantOwner = isRestaurantOwner(newUser);
-
-        // Add role fields
-        if (userIsAdmin) {
-          newUser.isAdmin = true;
-        }
-
-        if (userIsRestaurantOwner) {
-          newUser.isRestaurantOwner = true;
-          // Only add ownedRestaurantId if we have a valid ID
-          const ownedId = getOwnedRestaurantId(newUser);
-          if (ownedId) {
-            // Only add the field if it's not null
-            newUser.ownedRestaurantId = ownedId;
-          }
-        }
-
-        // Remove undefined fields before saving to Firestore
-        const userDataToSave = Object.fromEntries(
-          Object.entries(newUser).filter(([_, v]) => v !== undefined),
-        );
-
-        // Save to Firestore
-        await setDoc(userRef, {
-          ...userDataToSave,
-          createdAt: serverTimestamp(),
-        });
-
+        // Save to AsyncStorage
+        await AsyncStorage.setItem("user_data", JSON.stringify(newUser));
         return newUser;
       }
     } catch (error) {
@@ -344,35 +291,90 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // Check admin status
-      const userIsAdmin = isAdmin(fallbackUser);
-      const userIsRestaurantOwner = isRestaurantOwner(fallbackUser);
-
-      if (userIsAdmin) {
-        fallbackUser.isAdmin = userIsAdmin;
-      }
-
-      if (userIsRestaurantOwner) {
-        fallbackUser.isRestaurantOwner = userIsRestaurantOwner;
-        // Only add ownedRestaurantId if we have a valid ID
-        const ownedId = getOwnedRestaurantId(fallbackUser);
-        if (ownedId) {
-          // Only add the field if it's not null
-          fallbackUser.ownedRestaurantId = ownedId;
-        }
-      }
-
       return fallbackUser;
     }
   };
 
+  // Also fix the onAuthStateChanged listener to handle mocks properly
+  // Find this part and update it:
+
+  // Listen for auth state changes
+  const unsubscribe = onAuthStateChanged(auth as Auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      try {
+        // For Expo Go, manually add getIdToken if missing
+        if (!firebaseUser.getIdToken) {
+          firebaseUser.getIdToken = async () => "mock-token-123";
+        }
+
+        const user = await getOrCreateUserProfile(firebaseUser);
+
+        // Store user data for offline access
+        await AsyncStorage.setItem("user_data", JSON.stringify(user));
+
+        // Save user token for API requests
+        await AsyncStorage.setItem(
+          "userToken",
+          "mock-token-123", // Use fixed token for Expo Go
+        );
+        await AsyncStorage.setItem("userId", user.id);
+
+        setState({
+          isLoading: false,
+          isSignedIn: true,
+          user,
+        });
+
+        // Check admin/restaurant owner status
+        setTimeout(() => {
+          checkUserRole();
+        }, 100);
+      } catch (error) {
+        console.error("Error processing authenticated user:", error);
+        setState({
+          isLoading: false,
+          isSignedIn: false,
+          user: null,
+        });
+      }
+    } else {
+      // No user signed in via Firebase, check AsyncStorage
+      try {
+        const userData = await AsyncStorage.getItem("user_data");
+
+        if (userData) {
+          // Force a mock user for Expo Go testing
+          const user = JSON.parse(userData) as User;
+          setState({
+            isLoading: false,
+            isSignedIn: true,
+            user,
+          });
+          return;
+        }
+
+        // If no stored user, clear any data
+        await AsyncStorage.removeItem("user_data");
+        await AsyncStorage.removeItem("userToken");
+        await AsyncStorage.removeItem("userId");
+      } catch (error) {
+        console.error("Error removing stored user:", error);
+      }
+
+      setState({
+        isLoading: false,
+        isSignedIn: false,
+        user: null,
+      });
+    }
+  });
   const signIn = async (email: string, password: string) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
       // Use Firebase for email/password sign in
       const userCredential = await signInWithEmailAndPassword(
-        auth as Auth,
+        auth,
         email,
         password,
       );
@@ -400,17 +402,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      // Create new user with Firebase
+      if (isExpoGo) {
+        console.log("Using Expo Go mock signup");
+
+        const mockUser = {
+          uid: `mock-${Date.now()}`,
+          email,
+          displayName: name,
+          photoURL: null,
+          getIdToken: async () => `mock-token-${Date.now()}`,
+        };
+
+        // Store in AsyncStorage
+        await AsyncStorage.setItem(
+          "mock_current_user",
+          JSON.stringify(mockUser),
+        );
+        await AsyncStorage.setItem(
+          "user_data",
+          JSON.stringify({
+            id: mockUser.uid,
+            name: mockUser.displayName,
+            email: mockUser.email,
+            createdAt: new Date().toISOString(),
+            isVerified: false,
+          }),
+        );
+
+        // Update state manually
+        setState({
+          isLoading: false,
+          isSignedIn: true,
+          user: {
+            id: mockUser.uid,
+            name: mockUser.displayName,
+            email: mockUser.email,
+            createdAt: new Date().toISOString(),
+            isVerified: false,
+          },
+        });
+
+        return;
+      }
+
+      // Original implementation for non-Expo Go
       const userCredential = await createUserWithEmailAndPassword(
         auth as Auth,
         email,
         password,
       );
 
-      // Update display name
       await updateProfile(userCredential.user, { displayName: name });
-
-      // The rest is handled by the onAuthStateChanged listener
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -444,48 +486,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOutHandler = async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
+      await AsyncStorage.removeItem("api_disabled");
 
-      // Sign out from Firebase
-      await firebaseSignOut(auth as Auth);
+      // Remove user data from AsyncStorage
+      const keysToRemove = [
+        "user_data",
+        "userToken",
+        "userId",
+        "mock_current_user",
+      ];
+      await Promise.all(
+        keysToRemove.map((key) => AsyncStorage.removeItem(key)),
+      );
 
-      // Clear local storage
-      await AsyncStorage.removeItem("user_data");
-      await AsyncStorage.removeItem("userToken");
-      await AsyncStorage.removeItem("userId");
-
-      // Also sign out from Google if signed in
-      try {
-        const currentUser = await GoogleSignin.getCurrentUser();
-        if (currentUser) {
-          await GoogleSignin.signOut();
-        }
-      } catch (error) {
-        console.log("Google Sign-In error:", error);
-      }
-
-      // Set state first before navigation
-      setAuthState({
+      // Update state
+      setState({
         isLoading: false,
         isSignedIn: false,
         user: null,
       });
 
-      // Don't use router.replace here as it causes issues
-      // The navigation will be handled by the useEffect in _layout.tsx
-      // which watches for the isSignedIn state
+      // Navigate to onboarding screen
+      setTimeout(() => {
+        router.replace("/onboarding");
+      }, 100);
     } catch (error) {
       console.error("Sign out error:", error);
-      setState((prev) => ({ ...prev, isLoading: false }));
-      throw error;
+      setState({
+        isLoading: false,
+        isSignedIn: false,
+        user: null,
+      });
     }
   };
-
   const refreshUser = async () => {
     try {
       const authObj = auth as Auth;
       if (!authObj.currentUser || !state.user) return;
 
-      const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
+      const userRef = doc(db, "users", authObj.currentUser.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
@@ -523,7 +562,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!authObj.currentUser || !state.user)
         throw new Error("User not authenticated");
 
-      const userRef = doc(db as Firestore, "users", authObj.currentUser.uid);
+      const userRef = doc(db, "users", authObj.currentUser.uid);
       await setDoc(userRef, userData, { merge: true });
 
       // Update display name if provided

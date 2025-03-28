@@ -1,8 +1,8 @@
 // app/(tabs)/deliver.tsx
-// Contributors: @Albert Castrejon, @Fardeen Bablu
+// Contributors: @Fardeen Bablu, @Albert Castrejon
 // Time spent: 8 hours
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -14,14 +14,16 @@ import {
   RefreshControl,
   Image,
   Dimensions,
+  AppState,
+  AppStateStatus,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
-import MapView, { Marker, Polyline } from "react-native-maps";
 import OrderTrackingView from "@/components/OrderTrackingView";
+import { initializeLocalData } from "@/lib/data/dataLoader";
 
 interface OrderItem {
   id: string;
@@ -46,19 +48,7 @@ interface Order {
   deliveryAddress?: string;
 }
 
-// Mock coordinates - in a real app these would come from location services
-const MOCK_LOCATIONS: Record<string, { latitude: number; longitude: number }> =
-  {
-    default: { latitude: 36.1447, longitude: -86.8027 }, // Vanderbilt
-    "taco-mama": { latitude: 36.1375, longitude: -86.8033 }, // Taco Mama
-    "banh-mi-roll": { latitude: 36.1358, longitude: -86.8047 }, // Banh Mi & Roll
-    chilis: { latitude: 36.1426, longitude: -86.8079 }, // Chili's
-  };
-
-// Get default location for an address
-const getLocationForPlace = (restaurantId: string) => {
-  return MOCK_LOCATIONS[restaurantId] || MOCK_LOCATIONS.default;
-};
+const REFRESH_INTERVAL = 10000; // 10 seconds
 
 export default function Deliver() {
   const { user } = useAuth();
@@ -70,19 +60,67 @@ export default function Deliver() {
   const [selectedDelivery, setSelectedDelivery] = useState<Order | null>(null);
   const [showMap, setShowMap] = useState<boolean>(false);
 
-  // Auto-refresh interval (5 minutes)
+  // Refs for tracking interval and app state
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  // Initialize location data
+  useEffect(() => {
+    initializeLocalData();
+  }, []);
+
+  // Set up auto-refresh and app state listeners
   useEffect(() => {
     fetchDeliveryData();
 
-    const refreshInterval = setInterval(
-      () => {
-        fetchDeliveryData(false);
-      },
-      5 * 60 * 1000,
-    ); // refresh every 5 minutes
+    // Start refresh interval
+    startRefreshInterval();
 
-    return () => clearInterval(refreshInterval);
+    // Set up app state listener
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+    // Clean up on unmount
+    return () => {
+      stopRefreshInterval();
+      subscription.remove();
+    };
   }, []);
+
+  // Handle app state changes
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (
+      appStateRef.current.match(/inactive|background/) &&
+      nextAppState === "active"
+    ) {
+      fetchDeliveryData();
+      startRefreshInterval();
+    } else if (nextAppState.match(/inactive|background/)) {
+      stopRefreshInterval();
+    }
+
+    appStateRef.current = nextAppState;
+  };
+
+  // Start refresh interval
+  const startRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+
+    refreshIntervalRef.current = setInterval(() => {
+      fetchDeliveryData(false);
+    }, REFRESH_INTERVAL);
+  };
+
+  // Stop refresh interval
+  const stopRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  };
 
   // Format the last refreshed time
   const getRefreshTimeString = () => {
@@ -95,7 +133,6 @@ export default function Deliver() {
     return `${diffMins} minutes ago`;
   };
 
-  // Fetch delivery requests and active deliveries
   const fetchDeliveryData = async (showLoadingIndicator = true) => {
     if (!user) return;
 
@@ -105,8 +142,8 @@ export default function Deliver() {
     }
 
     try {
-      // Get all orders from AsyncStorage
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+
       if (!ordersJson) {
         setAvailableRequests([]);
         setActiveDeliveries([]);
@@ -114,11 +151,8 @@ export default function Deliver() {
       }
 
       const orders = JSON.parse(ordersJson) as Order[];
-
-      // Filter for pending orders (available for delivery)
-      // Filter out user's own orders from available requests
       const pendingOrders = orders.filter(
-        (order) => order.status === "pending" && order.customerId !== user.id,
+        (order) => order.status === "pending",
       );
 
       // Filter for orders the user is delivering
@@ -143,7 +177,6 @@ export default function Deliver() {
 
   const handleAcceptDelivery = async (orderId: string) => {
     try {
-      // Check if user is already delivering an order
       if (activeDeliveries.length > 0) {
         Alert.alert(
           "Delivery in Progress",
@@ -152,9 +185,11 @@ export default function Deliver() {
         return false;
       }
 
+
       // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson || !user) return false;
+
 
       const allOrders = JSON.parse(ordersJson) as Order[];
       const order = allOrders.find((o) => o.id === orderId);
@@ -236,6 +271,9 @@ export default function Deliver() {
         }
       }
 
+      // Trigger a refresh to ensure all state is updated
+      setTimeout(() => fetchDeliveryData(false), 500);
+
       return true;
     } catch (error) {
       console.error("Error updating delivery status:", error);
@@ -269,7 +307,6 @@ export default function Deliver() {
         </View>
 
         <View style={styles.mapContent}>
-          {/* Replace the MapPlaceholder with the OrderTrackingView */}
           <OrderTrackingView
             status={selectedDelivery.status}
             orderId={selectedDelivery.id}
@@ -304,15 +341,6 @@ export default function Deliver() {
               <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
             </View>
           )}
-
-          <View style={styles.deliveryInfo}>
-            <Text style={styles.infoLabel}>Estimated arrival:</Text>
-            <Text style={styles.infoValue}>
-              {selectedDelivery.status === "picked_up"
-                ? "10-15 minutes"
-                : "25-30 minutes"}
-            </Text>
-          </View>
         </View>
 
         <View style={styles.mapActions}>
@@ -376,7 +404,7 @@ export default function Deliver() {
 
           <View style={styles.itemPreview}>
             {item.items.slice(0, 2).map((orderItem, index) => (
-              <Text key={index} style={styles.itemText}>
+              <Text key={index} style={styles.itemText} numberOfLines={1}>
                 {orderItem.quantity}x {orderItem.name}
               </Text>
             ))}
@@ -532,7 +560,7 @@ export default function Deliver() {
                   refreshControl={
                     <RefreshControl
                       refreshing={refreshing}
-                      onRefresh={() => fetchDeliveryData()}
+                      onRefresh={() => fetchDeliveryData(true)}
                       colors={["#cfae70"]}
                       tintColor="#cfae70"
                     />
@@ -815,66 +843,6 @@ const styles = StyleSheet.create({
     position: "relative",
     padding: 16,
   },
-  mapPlaceholder: {
-    width: Dimensions.get("window").width,
-    height: "100%",
-  },
-  mapOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    padding: 16,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  deliveryProgress: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-    paddingHorizontal: 20,
-  },
-  progressStep: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  completedStep: {
-    backgroundColor: "#4CAF50",
-  },
-  pendingStep: {
-    backgroundColor: "#ddd",
-  },
-  progressLine: {
-    flex: 1,
-    height: 3,
-  },
-  completedLine: {
-    backgroundColor: "#4CAF50",
-  },
-  pendingLine: {
-    backgroundColor: "#ddd",
-  },
-  stepNumber: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  deliverySteps: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-    marginBottom: 16,
-  },
-  stepText: {
-    fontSize: 12,
-    color: "#666",
-    textAlign: "center",
-    width: "33%",
-  },
   deliveryInfo: {
     flexDirection: "row",
     marginBottom: 8,
@@ -886,6 +854,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
+    flex: 1,
   },
   mapActions: {
     padding: 16,
@@ -909,5 +878,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     marginLeft: 8,
-  },
+  }
 });
