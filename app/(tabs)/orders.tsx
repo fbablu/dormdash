@@ -23,7 +23,6 @@ import { useCart } from "../context/CartContext"; // Add this import
 import { Color } from "@/GlobalStyles";
 import OrderTrackingView from "@/components/OrderTrackingView";
 
-
 interface OrderItem {
   id: string;
   name: string;
@@ -78,22 +77,20 @@ export default function OrdersScreen() {
     setReceiptModalVisible(true);
   };
 
-  
+  const handleOrderAgain = (order: Order) => {
+    const cartItems = order.items.map((item) => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
 
-const handleOrderAgain = (order: Order) => {
-  const cartItems = order.items.map(item => ({
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity
-  }));
-
-  addItemsToCart(cartItems);
-  setReceiptModalVisible(false);
-  router.push({
-    pathname: "../restaurant/[id]",
-    params: { id: order.restaurantId }
-  } as const);
-};
+    addItemsToCart(cartItems);
+    setReceiptModalVisible(false);
+    router.push({
+      pathname: "../restaurant/[id]",
+      params: { id: order.restaurantId },
+    } as const);
+  };
 
   const handleCancelOrder = async (orderId: string) => {
     try {
@@ -107,13 +104,13 @@ const handleOrderAgain = (order: Order) => {
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "cancelled" as const }
-          : order
+          : order,
       );
 
       // Save updated orders back to storage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders)
+        JSON.stringify(updatedOrders),
       );
 
       // Update local state
@@ -288,8 +285,8 @@ const handleOrderAgain = (order: Order) => {
             {/* Order Again button */}
             {selectedOrder && selectedOrder.status === "delivered" && (
               <View style={styles.modalButtonsContainer}>
-                <TouchableOpacity 
-                  style={styles.orderAgainButton} 
+                <TouchableOpacity
+                  style={styles.orderAgainButton}
                   onPress={() => handleOrderAgain(selectedOrder)}
                 >
                   <Text style={styles.orderAgainText}>Order Again</Text>

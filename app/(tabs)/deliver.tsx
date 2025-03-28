@@ -78,7 +78,7 @@ export default function Deliver() {
       () => {
         fetchDeliveryData(false);
       },
-      5 * 60 * 1000
+      5 * 60 * 1000,
     ); // refresh every 5 minutes
 
     return () => clearInterval(refreshInterval);
@@ -118,14 +118,14 @@ export default function Deliver() {
       // Filter for pending orders (available for delivery)
       // Filter out user's own orders from available requests
       const pendingOrders = orders.filter(
-        (order) => order.status === "pending" && order.customerId !== user.id
+        (order) => order.status === "pending" && order.customerId !== user.id,
       );
 
       // Filter for orders the user is delivering
       const userDeliveries = orders.filter(
         (order) =>
           (order.status === "accepted" || order.status === "picked_up") &&
-          order.delivererId === user.id
+          order.delivererId === user.id,
       );
 
       // Update state
@@ -141,49 +141,46 @@ export default function Deliver() {
     }
   };
 
-
-
-
   const handleAcceptDelivery = async (orderId: string) => {
     try {
       // Check if user is already delivering an order
       if (activeDeliveries.length > 0) {
         Alert.alert(
           "Delivery in Progress",
-          "You already have an active delivery. Please complete it before accepting a new one."
+          "You already have an active delivery. Please complete it before accepting a new one.",
         );
         return false;
       }
-  
+
       // Get all orders
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
       if (!ordersJson || !user) return false;
-  
+
       const allOrders = JSON.parse(ordersJson) as Order[];
       const order = allOrders.find((o) => o.id === orderId);
-  
+
       // Double check this isn't the user's own order
       if (order && order.customerId === user.id) {
         Alert.alert("Error", "You cannot deliver your own order");
         return false;
       }
-  
+
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
         order.id === orderId
           ? { ...order, status: "accepted" as const, delivererId: user.id }
-          : order
+          : order,
       );
-  
+
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders)
+        JSON.stringify(updatedOrders),
       );
-  
+
       // Refresh the lists
       await fetchDeliveryData();
-  
+
       return true;
     } catch (error) {
       console.error("Error accepting delivery:", error);
@@ -194,7 +191,7 @@ export default function Deliver() {
   // Update delivery status
   const handleUpdateStatus = async (
     orderId: string,
-    newStatus: Order["status"]
+    newStatus: Order["status"],
   ) => {
     try {
       // Get all orders
@@ -205,19 +202,19 @@ export default function Deliver() {
 
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, status: newStatus } : order,
       );
 
       // Save back to AsyncStorage
       await AsyncStorage.setItem(
         "dormdash_orders",
-        JSON.stringify(updatedOrders)
+        JSON.stringify(updatedOrders),
       );
 
       // If delivered, remove from active deliveries
       if (newStatus === "delivered") {
         setActiveDeliveries((prev) =>
-          prev.filter((delivery) => delivery.id !== orderId)
+          prev.filter((delivery) => delivery.id !== orderId),
         );
         setSelectedDelivery(null);
         setShowMap(false);
@@ -227,14 +224,14 @@ export default function Deliver() {
           prev.map((delivery) =>
             delivery.id === orderId
               ? { ...delivery, status: newStatus }
-              : delivery
-          )
+              : delivery,
+          ),
         );
 
         // Update selected delivery if it's the one being updated
         if (selectedDelivery && selectedDelivery.id === orderId) {
           setSelectedDelivery((prev) =>
-            prev ? { ...prev, status: newStatus } : null
+            prev ? { ...prev, status: newStatus } : null,
           );
         }
       }
@@ -257,11 +254,9 @@ export default function Deliver() {
     setShowMap(false);
   };
 
-
-
   const renderDeliveryMap = () => {
     if (!selectedDelivery) return null;
-  
+
     return (
       <View style={styles.mapContainer}>
         <View style={styles.mapHeader}>
@@ -272,48 +267,54 @@ export default function Deliver() {
             <Feather name="x" size={24} color="#000" />
           </TouchableOpacity>
         </View>
-  
+
         <View style={styles.mapContent}>
           {/* Replace the MapPlaceholder with the OrderTrackingView */}
-          <OrderTrackingView 
-            status={selectedDelivery.status} 
+          <OrderTrackingView
+            status={selectedDelivery.status}
             orderId={selectedDelivery.id}
           />
-  
+
           <View style={styles.deliveryInfo}>
             <Text style={styles.infoLabel}>Order #:</Text>
             <Text style={styles.infoValue}>
               {selectedDelivery.id.substring(6, 12)}
             </Text>
           </View>
-  
+
           <View style={styles.deliveryInfo}>
             <Text style={styles.infoLabel}>Restaurant:</Text>
-            <Text style={styles.infoValue}>{selectedDelivery.restaurantName}</Text>
+            <Text style={styles.infoValue}>
+              {selectedDelivery.restaurantName}
+            </Text>
           </View>
-  
+
           {selectedDelivery.deliveryAddress && (
             <View style={styles.deliveryInfo}>
               <Text style={styles.infoLabel}>Delivery to:</Text>
-              <Text style={styles.infoValue}>{selectedDelivery.deliveryAddress}</Text>
+              <Text style={styles.infoValue}>
+                {selectedDelivery.deliveryAddress}
+              </Text>
             </View>
           )}
-  
+
           {selectedDelivery.notes && (
             <View style={styles.deliveryInfo}>
               <Text style={styles.infoLabel}>Notes:</Text>
               <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
             </View>
           )}
-  
+
           <View style={styles.deliveryInfo}>
             <Text style={styles.infoLabel}>Estimated arrival:</Text>
             <Text style={styles.infoValue}>
-              {selectedDelivery.status === "picked_up" ? "10-15 minutes" : "25-30 minutes"}
+              {selectedDelivery.status === "picked_up"
+                ? "10-15 minutes"
+                : "25-30 minutes"}
             </Text>
           </View>
         </View>
-  
+
         <View style={styles.mapActions}>
           {selectedDelivery.status === "accepted" ? (
             <TouchableOpacity
@@ -323,7 +324,9 @@ export default function Deliver() {
               }
             >
               <Feather name="package" size={20} color="#fff" />
-              <Text style={styles.statusUpdateButtonText}>Mark as Picked Up</Text>
+              <Text style={styles.statusUpdateButtonText}>
+                Mark as Picked Up
+              </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -342,10 +345,6 @@ export default function Deliver() {
       </View>
     );
   };
-  
-
-
-
 
   // Render an available delivery request item
   const renderAvailableRequest = ({ item }: { item: Order }) => {
@@ -413,7 +412,7 @@ export default function Deliver() {
                   } else {
                     Alert.alert(
                       "Error",
-                      "Failed to accept delivery. Please try again."
+                      "Failed to accept delivery. Please try again.",
                     );
                   }
                 });
@@ -814,7 +813,7 @@ const styles = StyleSheet.create({
   mapContent: {
     flex: 1,
     position: "relative",
-    padding: 16
+    padding: 16,
   },
   mapPlaceholder: {
     width: Dimensions.get("window").width,
@@ -910,5 +909,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
     marginLeft: 8,
-  }
+  },
 });

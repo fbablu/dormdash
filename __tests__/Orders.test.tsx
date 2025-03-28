@@ -7,7 +7,7 @@ describe("<OrdersScreen /> basic UI", () => {
     const { getByText } = render(
       <CartProvider>
         <OrdersScreen />
-      </CartProvider>
+      </CartProvider>,
     );
 
     getByText("My Orders");
@@ -17,7 +17,7 @@ describe("<OrdersScreen /> basic UI", () => {
     const tree = render(
       <CartProvider>
         <OrdersScreen />
-      </CartProvider>
+      </CartProvider>,
     ).toJSON();
 
     expect(tree).toMatchSnapshot();

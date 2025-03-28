@@ -2,10 +2,10 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import OrdersScreen from "../app/(tabs)/orders";
 import { CartProvider } from "../app/context/CartContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
+jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
   removeItem: jest.fn(),
@@ -20,26 +20,26 @@ jest.mock("expo-router", () => ({
 // Mock data for orders
 const mockOrders = [
   {
-    id: '1234',
-    restaurantName: 'Test Restaurant',
-    items: [{ name: 'Burger', quantity: 1 }],
+    id: "1234",
+    restaurantName: "Test Restaurant",
+    items: [{ name: "Burger", quantity: 1 }],
     total: 10.99,
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
   },
   {
-    id: '1235',
-    restaurantName: 'Another Restaurant',
-    items: [{ name: 'Pizza', quantity: 1 }],
+    id: "1235",
+    restaurantName: "Another Restaurant",
+    items: [{ name: "Pizza", quantity: 1 }],
     total: 12.99,
-    date: new Date().toISOString()
-  }
+    date: new Date().toISOString(),
+  },
 ];
 
 // Mock the orders retrieval
-jest.mock('../app/context/OrderContext', () => ({
+jest.mock("../app/context/OrderContext", () => ({
   useOrder: () => ({
-    orders: mockOrders
-  })
+    orders: mockOrders,
+  }),
 }));
 
 describe("<OrdersScreen />", () => {
@@ -51,9 +51,9 @@ describe("<OrdersScreen />", () => {
     const { getByText } = render(
       <CartProvider>
         <OrdersScreen />
-      </CartProvider>
+      </CartProvider>,
     );
-    
+
     expect(getByText("Order #1234")).toBeTruthy();
     expect(getByText("Order #1235")).toBeTruthy();
   });
@@ -62,7 +62,7 @@ describe("<OrdersScreen />", () => {
     const { getByText } = render(
       <CartProvider>
         <OrdersScreen />
-      </CartProvider>
+      </CartProvider>,
     );
 
     fireEvent.press(getByText("Order #1234"));
@@ -74,17 +74,19 @@ describe("<OrdersScreen />", () => {
 
   test("pressing 'Order Again' routes to cart", async () => {
     const mockPush = jest.fn();
-    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue({ push: mockPush });
+    jest
+      .spyOn(require("expo-router"), "useRouter")
+      .mockReturnValue({ push: mockPush });
 
     const { getByText } = render(
       <CartProvider>
         <OrdersScreen />
-      </CartProvider>
+      </CartProvider>,
     );
 
     fireEvent.press(getByText("Order #1234"));
     await waitFor(() => expect(getByText("Order Again")).toBeTruthy());
-    
+
     fireEvent.press(getByText("Order Again"));
     expect(mockPush).toHaveBeenCalledWith("/tabs");
   });

@@ -25,7 +25,6 @@ import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
-
 const { width } = Dimensions.get("window");
 
 // Use a smaller resolution version of the image to prevent memory issues
@@ -308,7 +307,6 @@ export default function Page() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { cartItems } = useCart();
 
-
   useEffect(() => {
     filterRestaurants();
   }, [searchQuery, selectedCategory]);
@@ -386,20 +384,19 @@ export default function Page() {
         </View>
 
         <View style={{ padding: 16 }}>
-  <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
-    Cart Preview
-  </Text>
-  {cartItems.length === 0 ? (
-    <Text style={{ color: "gray" }}>Your cart is empty.</Text>
-  ) : (
-    cartItems.map((item, index) => (
-      <Text key={index}>
-        {item.quantity}x {item.name} - ${item.price.toFixed(2)}
-      </Text>
-    ))
-  )}
-</View>
-
+          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
+            Cart Preview
+          </Text>
+          {cartItems.length === 0 ? (
+            <Text style={{ color: "gray" }}>Your cart is empty.</Text>
+          ) : (
+            cartItems.map((item, index) => (
+              <Text key={index}>
+                {item.quantity}x {item.name} - ${item.price.toFixed(2)}
+              </Text>
+            ))
+          )}
+        </View>
 
         <View style={styles.restaurantsSection}>
           <Text style={styles.sectionTitle}>
