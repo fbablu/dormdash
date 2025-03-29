@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="./assets/icons/splash-icon-dark.png" alt="DormDash Icon" width="400"/>
+  <img src="./assets/icons/splash-icon-dark.png" alt="DormDash Icon" width="250"/>
   <br>
   <a href="https://github.com/fbablu/dormdash">DormDash</a> - <i>Campus food delivery by students, for students</i>
 </h1>
