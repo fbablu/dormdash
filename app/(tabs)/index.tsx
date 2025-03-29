@@ -24,6 +24,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import AddressSelector from "@/components/AddressSelector";
+import favoritesApi, {
+  favoritesEventEmitter,
+} from "@/app/services/favoritesApi";
+import { loadPartialConfigAsync } from "@babel/core";
 
 const { width } = Dimensions.get("window");
 
@@ -111,6 +115,7 @@ const CategoryIcon: React.FC<CategoryIconProps> = ({
 // RestaurantCard Component
 const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -119,47 +124,9 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
 
   const checkIfFavorite = async () => {
     try {
-      // Use the user from context instead of GoogleSignin
       if (!user) return;
-
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/users/${user.id}/favorites`,
-          {
-            headers: {
-              Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
-            },
-          },
-        );
-
-        if (response.ok) {
-          const responseData = await response.json();
-          const favorites = responseData.data || [];
-          if (Array.isArray(favorites)) {
-            setIsFavorite(favorites.includes(restaurant.name));
-          }
-          return;
-        }
-
-        throw new Error("API request failed");
-      } catch (apiError) {
-        console.log(
-          "API call failed for favorites check, using AsyncStorage fallback",
-          apiError,
-        );
-
-        // Fallback to AsyncStorage
-        const savedFavoritesJson = await AsyncStorage.getItem(
-          FAVORITES_STORAGE_KEY,
-        );
-        if (savedFavoritesJson) {
-          const savedFavorites = JSON.parse(savedFavoritesJson);
-          const isFav = savedFavorites.some(
-            (fav: FavoriteRestaurant) => fav.name === restaurant.name,
-          );
-          setIsFavorite(isFav);
-        }
-      }
+      const status = await favoritesApi.isFavorite(restaurant.name);
+      setIsFavorite(status);
     } catch (error) {
       console.error("Error checking favorite status:", error);
     }
@@ -169,91 +136,44 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
     // Stop event propagation to prevent navigation when tapping heart icon
     event.stopPropagation();
 
+    if (!user) {
+      Alert.alert("Sign In Required", "Please sign in to save favorites");
+      return;
+    }
+
+    if (isProcessing) return; // Prevent duplicate requests
+    setIsProcessing(true);
+
     try {
-      // Use the user from context instead of GoogleSignin
-      // TODO: Fix later, this is incorrect because it maps all restaurants as Taco Mama data
-      if (!user) {
-        Alert.alert("Error", "Please sign in to save favorites");
-        return;
+      // Update UI immediately for responsive feel
+      setIsFavorite(!isFavorite);
+
+      // Add or remove from favorites
+      let success = false;
+      if (isFavorite) {
+        success = await favoritesApi.removeFavorite(restaurant.name);
+      } else {
+        success = await favoritesApi.addFavorite({
+          name: restaurant.name,
+          imageUrl: FOOD_IMAGE_URL,
+        });
       }
 
-      // Try API first
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/users/favorites`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await AsyncStorage.getItem("userToken")}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            restaurantName: restaurant.name,
-            action: isFavorite ? "remove" : "add",
-          }),
-        });
-
-        if (response.ok) {
-          setIsFavorite(!isFavorite);
-          return;
-        }
-
-        throw new Error("API request failed");
-      } catch (apiError) {
-        console.log(
-          "API call failed for toggle favorite, using AsyncStorage fallback",
+      if (!success) {
+        // If operation failed, revert UI state
+        setIsFavorite(isFavorite);
+        Alert.alert(
+          "Error",
+          `Failed to ${isFavorite ? "remove from" : "add to"} favorites`,
         );
-
-        // Fallback to AsyncStorage
-        let savedFavorites = [];
-        try {
-          const savedFavoritesJson = await AsyncStorage.getItem(
-            FAVORITES_STORAGE_KEY,
-          );
-          if (savedFavoritesJson) {
-            savedFavorites = JSON.parse(savedFavoritesJson);
-          }
-        } catch (storageError) {
-          console.error("Error reading favorites from storage:", storageError);
-          savedFavorites = [];
-        }
-
-        if (isFavorite) {
-          // Remove from favorites
-          savedFavorites = savedFavorites.filter(
-            (item: FavoriteRestaurant) => item.name !== restaurant.name,
-          );
-        } else {
-          // Add to favorites with additional info
-          const newFavorite = {
-            name: restaurant.name,
-            rating: "4.5", // Default rating
-            reviewCount: "100+", // Default
-            deliveryTime: "15 min", // Default
-            deliveryFee: "$3", // Default
-            imageUrl: FOOD_IMAGE_URL, // Use the same food image URL
-          };
-
-          // Check if it already exists
-          const existingIndex = savedFavorites.findIndex(
-            (item: FavoriteRestaurant) => item.name === restaurant.name,
-          );
-          if (existingIndex === -1) {
-            savedFavorites.push(newFavorite);
-          }
-        }
-
-        // Save updated favorites
-        await AsyncStorage.setItem(
-          FAVORITES_STORAGE_KEY,
-          JSON.stringify(savedFavorites),
-        );
-
-        // Update state
-        setIsFavorite(!isFavorite);
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
+      // Revert UI state on error
+      setIsFavorite(isFavorite);
       Alert.alert("Error", "Failed to update favorites");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -281,6 +201,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
           <TouchableOpacity
             onPress={toggleFavorite}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={isProcessing}
           >
             <Feather
               name="heart"
@@ -307,6 +228,29 @@ export default function Page() {
   useEffect(() => {
     filterRestaurants();
   }, [searchQuery, selectedCategory]);
+
+  // Add event listener for favorites changes
+  useEffect(() => {
+    const handleFavoritesChange = (data: {
+      action: string;
+      restaurantName: string;
+    }) => {
+      console.log(
+        `Favorites changed: ${data.action} for ${data.restaurantName}`,
+      );
+      setFilteredRestaurants([...filteredRestaurants]);
+      filterRestaurants();
+    };
+
+    favoritesEventEmitter.addListener(
+      "favoritesChanged",
+      handleFavoritesChange,
+    );
+
+    return () => {
+      favoritesEventEmitter.removeAllListeners("favoritesChanged");
+    };
+  }, [filteredRestaurants]);
 
   const filterRestaurants = () => {
     let filtered = restaurants;
@@ -406,48 +350,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 10,
-    marginBottom: 5,
   },
   heading: {
     fontSize: 24,
     fontWeight: "bold",
   },
   locationHeaderContainer: {
-    padding: 16,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   locationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  locationSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#D9D9D9",
-    padding: 8,
-    borderRadius: 24,
-  },
-  locationText: {
-    fontSize: 16,
-    fontWeight: "500",
+    marginBottom: 12,
   },
   cartButton: {
-    backgroundColor: "#D9D9D9",
     padding: 8,
-    borderRadius: 20,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#D9D9D9",
-    padding: 12,
-    borderRadius: 24,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   searchInput: {
     flex: 1,
+    marginLeft: 8,
     color: "#000",
     fontSize: 16,
   },
@@ -455,29 +387,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     paddingVertical: 16,
+    paddingHorizontal: 8,
+    backgroundColor: "#fff",
   },
   categoryContainer: {
     alignItems: "center",
-    gap: 8,
   },
   categoryCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "500",
   },
   restaurantsSection: {
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   restaurantCard: {
     width: "100%",

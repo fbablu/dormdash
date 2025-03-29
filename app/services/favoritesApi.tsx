@@ -2,6 +2,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiRequest } from "@/lib/api/client";
 import authTokenService from "./authTokenService";
+import EventEmitter from "react-native/Libraries/vendor/emitter/EventEmitter";
+
+// Create and export event emitter for favorites changes
+export const favoritesEventEmitter = new EventEmitter();
 
 // Storage key
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
@@ -115,6 +119,12 @@ export const favoritesApi = {
         JSON.stringify(updatedFavorites),
       );
 
+      // Emit event for favorite added
+      favoritesEventEmitter.emit("favoritesChanged", {
+        action: "add",
+        restaurantName: restaurant.name,
+      });
+
       // Try to sync with server
       const userId = await AsyncStorage.getItem("userId");
       if (userId) {
@@ -156,6 +166,12 @@ export const favoritesApi = {
         FAVORITES_STORAGE_KEY,
         JSON.stringify(updatedFavorites),
       );
+
+      // Emit event for favorite removed
+      favoritesEventEmitter.emit("favoritesChanged", {
+        action: "remove",
+        restaurantName,
+      });
 
       // Try to sync with server
       const userId = await AsyncStorage.getItem("userId");

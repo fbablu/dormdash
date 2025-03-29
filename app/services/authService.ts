@@ -3,7 +3,6 @@
 // Time spent: 30 minutes
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { mockAuth } from "../utils/mockAuth";
 
 const authService = {
   isAuthenticated: async (): Promise<boolean> => {

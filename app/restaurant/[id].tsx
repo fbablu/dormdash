@@ -565,17 +565,7 @@ export default function RestaurantMenuScreen() {
       );
       await AsyncStorage.removeItem(`cart_${id}`);
       setCart([]);
-
-      Alert.alert("Order Placed!", "Your order has been successfully placed.", [
-        {
-          text: "View Orders",
-          onPress: () => router.push("/orders"),
-        },
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      router.replace("/(tabs)/deliver");
     } catch (err) {
       console.error("Error placing order:", err);
       Alert.alert("Error", "Failed to place your order. Please try again.");
@@ -592,7 +582,7 @@ export default function RestaurantMenuScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Color.colorBurlywood} />
-          <Text style={styles.loadingText}>Loading restaurant...</Text>
+          <Text style={styles.loadingText}>Loading order...</Text>
         </View>
       </SafeAreaView>
     );

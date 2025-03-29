@@ -33,9 +33,19 @@ export default function FavoritesScreen() {
     loadFavorites();
   }, []);
 
+  const LOADING_TIMEOUT = 5000;
+
   const loadFavorites = async () => {
     setLoading(true);
     setError(null);
+
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError("Loading timed out. Please try again.");
+      }
+    }, LOADING_TIMEOUT);
 
     try {
       // Use the dedicated favorites API
@@ -47,6 +57,7 @@ export default function FavoritesScreen() {
       setError("Failed to load favorites");
       setFavorites([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
       setRefreshing(false);
     }

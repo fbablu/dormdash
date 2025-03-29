@@ -23,6 +23,7 @@ import { usePayment } from "@/app/context/PaymentContext";
 import { isAdmin, isRestaurantOwner } from "@/app/utils/adminAuth";
 import { userApi } from "@/app/services/backendApi";
 import { emergencySignOut } from "@/app/utils/emergencySignOut";
+import RestaurantInitializer from "@/components/RestaurantInitializer";
 
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
 
@@ -42,6 +43,7 @@ const ProfileScreen = () => {
   const [userIsAdmin, setUserIsAdmin] = useState<boolean>(false);
   const [userIsRestaurantOwner, setUserIsRestaurantOwner] =
     useState<boolean>(false);
+  const [isFetchingFavorites, setIsFetchingFavorites] = useState(false);
 
   useEffect(() => {
     const initializeProfile = async () => {
@@ -76,6 +78,17 @@ const ProfileScreen = () => {
   );
 
   const fetchUserProfile = async () => {
+    const startTime = Date.now();
+    const loadingTime = Date.now() - startTime;
+    const minLoadingTime = 500;
+
+    if (loadingTime < minLoadingTime) {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, minLoadingTime - loadingTime);
+    } else {
+      setIsLoading(false);
+    }
     try {
       if (!user) {
         console.log("No user found in AuthContext");
@@ -122,39 +135,47 @@ const ProfileScreen = () => {
   };
 
   const fetchFavoriteCount = async () => {
-    setLoadingFavorites(true);
-    try {
-      // Always try API first, without checking if it's disabled
-      try {
-        const response = await userApi.getFavorites();
-        if (response && response.data) {
-          const favorites = response.data;
-          setFavoriteCount(Array.isArray(favorites) ? favorites.length : 0);
-          console.log("Successfully fetched favorites from API");
-          setLoadingFavorites(false);
-          return;
-        }
-      } catch (apiError) {
-        console.log(
-          "API fetch failed, falling back to AsyncStorage:",
-          apiError,
-        );
-        // Don't set api_disabled flag
-      }
+    if (isFetchingFavorites) return;
 
-      // Fallback to AsyncStorage
+    setIsFetchingFavorites(true);
+    setLoadingFavorites(true);
+
+    try {
+      // Always try API first for immediate UI response
       const savedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
       if (savedFavorites) {
         const favorites = JSON.parse(savedFavorites);
         setFavoriteCount(favorites.length);
-      } else {
-        setFavoriteCount(0);
+      }
+
+      try {
+        const apiDisabled = await AsyncStorage.getItem("api_disbabled)");
+        if (apiDisabled === "true") return;
+
+        const response = await userApi.getFavorites();
+        if (response && response.data) {
+          const favorites = response.data;
+          setFavoriteCount(Array.isArray(favorites) ? favorites.length : 0);
+        }
+      } catch (apiError) {
+        const failCount = parseInt(
+          (await AsyncStorage.getItem("api_fail_count")) || "0",
+        );
+        if (failCount >= 3) {
+          await AsyncStorage.setItem("api_disabled", "true");
+        } else {
+          await AsyncStorage.setItem(
+            "api_fail_count",
+            (failCount + 1).toString(),
+          );
+        }
       }
     } catch (error) {
-      console.error("Error fetching favorite count:", error);
+      console.error("Error: ", error);
       setFavoriteCount(0);
     } finally {
       setLoadingFavorites(false);
+      setIsFetchingFavorites(false);
     }
   };
 
