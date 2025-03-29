@@ -1,21 +1,35 @@
-# DormDash
+<h1 align="center">
+  <img src="./assets/icons/splash-icon-dark.png" alt="DormDash Icon" width="250"/>
+  <br>
+  <a href="https://github.com/fbablu/dormdash">DormDash</a> - <i>Campus food delivery by students, for students</i>
+</h1>
+
+<p align="center">
+  <a href="https://reactnative.dev/" target="_blank"><img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native"></a>
+  <a href="https://www.typescriptlang.org/" target="_blank"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://docs.expo.dev/" target="_blank"><img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo"></a>
+  <a href="https://firebase.google.com/" target="_blank"><img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase"></a>
+  <a href="https://expressjs.com/" target="_blank"><img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express"></a>
+</p>
+
+## 🚀 Overview
 
 DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For students living in Vanderbilt dorms who want to order from restaurants like Taco Mama, DormDash enables peer-to-peer delivery directly to dorm rooms while supporting Commodore Cash payments.
 
-## Project Scope
+## 🎯 Project Scope
 
 DormDash focuses on direct delivery services between Vanderbilt students. Initially targeting Vanderbilt's campus and surrounding Taste of Nashville (ToN) restaurants (40+ restaurants and 31 residential colleges), with future expansion plans to other campuses.
 
-## Key Features
+## ✨ Key Features
 
-- **Restaurant Browsing**: Browse all 40+ Taste of Nashville restaurants
-- **Order Placement**: Place orders with accurate menu information
-- **Commodore Cash Integration**: Pay using Vanderbilt's Commodore Cash system
-- **Peer Delivery**: Student-to-student delivery system
-- **Real-time Tracking**: Track delivery status in real-time
-- **Rating System**: Rate both deliverers and restaurants
+- **🍽️ Restaurant Browsing**: Browse all 40+ Taste of Nashville restaurants
+- **🛒 Order Placement**: Place orders with accurate menu information
+- **💳 Commodore Cash Integration**: Pay using Vanderbilt's Commodore Cash system
+- **🚴 Peer Delivery**: Student-to-student delivery system
+- **🔍 Real-time Tracking**: Track delivery status in real-time
+- **⭐ Rating System**: Rate both deliverers and restaurants
 
-## Tech Stack
+## 🔧 Tech Stack
 
 ### Frontend
 
@@ -31,7 +45,7 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 - **MySQL**: Relational database for structured data
 - **JSON Web Tokens**: Secure authentication
 
-## Development Setup
+## 💻 Development Setup
 
 ### Prerequisites
 
@@ -78,17 +92,32 @@ npx expo prebuild --clean
 npx expo run:android
 ```
 
-## Project Structure
+## 📂 Project Structure
 
-- `/app`: Main application code
-  - `/context`: React Context providers (Auth, Order, Payment)
-  - `/services`: API and backend services
-  - `/(tabs)`: Main app tabs (Home, Deliver, Orders, Profile)
-- `/components`: Reusable UI components
-- `/assets`: Images and static resources
-- `/data`: Local data files
-- `/server`: Backend Express.js server
+```
+dormdash/
+├── app/                  # Main application code
+│   ├── context/          # React Context providers (Auth, Order, Payment)
+│   ├── services/         # API and backend services
+│   └── (tabs)/           # Main app tabs (Home, Deliver, Orders, Profile)
+├── components/           # Reusable UI components
+├── assets/               # Images and static resources
+├── data/                 # Local data files
+└── server/               # Backend Express.js server
+```
 
-## Support
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📞 Support
 
 Contact dormdash.vu@gmail.com for any questions!
+
+## 📜 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
