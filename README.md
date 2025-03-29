@@ -32,7 +32,6 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 ## 🔧 Tech Stack
 
 ### Frontend
-
 - **React Native with Expo**: Cross-platform mobile development
 - **TypeScript**: Type-safe code
 - **AsyncStorage**: Local data persistence
@@ -40,7 +39,6 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 - **Firebase Firestore**: Cloud database (with local fallback)
 
 ### Backend
-
 - **Express.js**: RESTful API backend
 - **MySQL**: Relational database for structured data
 - **JSON Web Tokens**: Secure authentication
@@ -48,7 +46,6 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 ## 💻 Development Setup
 
 ### Prerequisites
-
 - Node.js (v14+)
 - npm or yarn
 - Expo CLI
@@ -121,3 +118,4 @@ Contact dormdash.vu@gmail.com for any questions!
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
