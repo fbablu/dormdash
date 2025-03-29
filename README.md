@@ -16,10 +16,6 @@
 
 DormDash addresses the lack of direct delivery services to student dorms and the inability to pay with Commodore Cash (CC) for food delivery. For students living in Vanderbilt dorms who want to order from restaurants like Taco Mama, DormDash enables peer-to-peer delivery directly to dorm rooms while supporting Commodore Cash payments.
 
-<p align="center">
-  <img src="./assets/docs/app-showcase.png" alt="App Showcase" width="800"/>
-</p>
-
 ## 🎯 Project Scope
 
 DormDash focuses on direct delivery services between Vanderbilt students. Initially targeting Vanderbilt's campus and surrounding Taste of Nashville (ToN) restaurants (40+ restaurants and 31 residential colleges), with future expansion plans to other campuses.
@@ -114,15 +110,6 @@ dormdash/
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## 📱 App Screenshots
-
-<p align="center">
-  <img src="./assets/docs/screenshot1.png" alt="Home Screen" width="200"/>
-  <img src="./assets/docs/screenshot2.png" alt="Restaurant Screen" width="200"/>
-  <img src="./assets/docs/screenshot3.png" alt="Order Screen" width="200"/>
-  <img src="./assets/docs/screenshot4.png" alt="Delivery Screen" width="200"/>
-</p>
 
 ## 📞 Support
 
