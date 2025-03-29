@@ -1,6 +1,6 @@
-// components/RestaurantCard.tsx
+// app/components/RestaurantCard.tsx
 // Contributor: @Fardeen Bablu
-// time spent: 45 minutes
+// Time spent: 1 hour
 
 import React, { useState, useEffect } from "react";
 import {
@@ -68,13 +68,11 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       let success = false;
       if (isFavorite) {
         success = await favoritesApi.removeFavorite(restaurant.name);
-        console.log(`Removed ${restaurant.name} from favorites:`, success);
       } else {
         success = await favoritesApi.addFavorite({
           name: restaurant.name,
           imageUrl: FOOD_IMAGE_URL,
         });
-        console.log(`Added ${restaurant.name} to favorites:`, success);
       }
 
       if (!success) {
@@ -101,6 +99,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
       onPress={() => {
         // Generate ID from restaurant name for routing
         const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+        // Fixed navigation to use proper route path instead of file path
         router.push(`/restaurant/${id}`);
       }}
     >

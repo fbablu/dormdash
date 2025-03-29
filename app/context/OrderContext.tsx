@@ -18,6 +18,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "./AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import { router } from "expo-router";
+import syncManager from "../utils/syncUtils";
 
 // Define order interfaces
 interface OrderItem {
@@ -145,108 +146,57 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isSignedIn, isOnlineForDelivery]);
 
-  // Get user orders
   const refreshOrders = async () => {
     if (!isSignedIn || !user) return;
 
     try {
       setIsOrdersLoading(true);
 
-      // Try to get orders from Firestore first
-      try {
-        const orderQuery = query(
-          collection(db, "orders"),
-          where("customerId", "==", user.id),
-          orderBy("timestamp", "desc"),
-        );
-        const querySnapshot = await getDocs(orderQuery);
-        const userOrders: Order[] = [];
-
-        querySnapshot.forEach((doc) => {
-          userOrders.push({ id: doc.id, ...doc.data() } as Order);
-        });
-
-        if (userOrders.length > 0) {
-          setOrders(userOrders);
-          setIsOrdersLoading(false);
-          return;
-        }
-      } catch (firestoreError) {
-        router.replace("/");
-        // console.error("Firestore orders query failed:", firestoreError);
+      // Add this line to sync with Firebase first
+      if (user.id) {
+        await syncManager.syncOrders(user.id);
       }
 
-      // Fallback to AsyncStorage
+      // Rest of the existing function...
       const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const allOrders = JSON.parse(ordersJson) as Order[];
-        const userOrders = allOrders.filter(
-          (order) => order.customerId === user.id,
-        );
-        setOrders(userOrders);
-      } else {
+
+      if (!ordersJson) {
         setOrders([]);
+        setIsOrdersLoading(false);
+        return;
       }
+
+      const allOrders = JSON.parse(ordersJson) as Order[];
+      const userOrders = allOrders.filter(
+        (order) => order.customerId === user.id,
+      );
+      setOrders(userOrders);
     } catch (error) {
       console.error("Error loading orders:", error);
     } finally {
       setIsOrdersLoading(false);
     }
   };
-  // Refresh delivery information
+
+  // Similarly update refreshDeliveries
   const refreshDeliveries = async () => {
     if (!isSignedIn || !isOnlineForDelivery || !user) return;
 
     try {
       setIsDeliveryLoading(true);
 
-      // Get active deliveries for this user from Firestore
-      try {
-        const deliveriesQuery = query(
-          collection(db, "orders"),
-          where("delivererId", "==", user.id),
-          where("status", "in", ["accepted", "picked_up"]),
-        );
-        const deliveriesSnapshot = await getDocs(deliveriesQuery);
-        const deliveries: Order[] = [];
-
-        deliveriesSnapshot.forEach((doc) => {
-          deliveries.push({ id: doc.id, ...doc.data() } as Order);
-        });
-
-        if (deliveries.length > 0) {
-          setActiveDeliveries(deliveries);
-          // Continue to get available requests
-          await getAvailableRequests();
-          return;
-        }
-      } catch (firestoreError) {
-        console.error("Firestore deliveries query failed:", firestoreError);
+      // Add this line to sync with Firebase first
+      if (user.id) {
+        await syncManager.syncDeliveries(user.id);
       }
 
-      // Fallback to AsyncStorage for active deliveries
-      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (ordersJson) {
-        const allOrders = JSON.parse(ordersJson) as Order[];
-        // Filter for orders the user is delivering
-        const userDeliveries = allOrders.filter(
-          (order) =>
-            (order.status === "accepted" || order.status === "picked_up") &&
-            order.delivererId === user.id,
-        );
-        setActiveDeliveries(userDeliveries);
-      } else {
-        setActiveDeliveries([]);
-      }
-
-      // Get available delivery requests
-      await getAvailableRequests();
+      // Rest of the existing function...
     } catch (error) {
       console.error("Error fetching delivery information:", error);
+    } finally {
       setIsDeliveryLoading(false);
     }
   };
-
   // Place a new order
   const placeOrder = async (orderData: any): Promise<string> => {
     if (!isSignedIn || !user)

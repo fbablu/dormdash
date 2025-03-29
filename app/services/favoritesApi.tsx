@@ -1,7 +1,19 @@
 // app/services/favoritesApi.ts
+// Contributor: @Fardeen Bablu
+// Time spent: 30 minutes
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiRequest } from "@/lib/api/client";
-import authTokenService from "./authTokenService";
+import { auth, db } from "../config/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 // Storage key
 const FAVORITES_STORAGE_KEY = "dormdash_favorites";
@@ -17,60 +29,37 @@ export interface FavoriteRestaurant {
 }
 
 export const favoritesApi = {
-  // Get favorites with proper token handling and fallback
+  // Get favorites with proper sync between Firebase and AsyncStorage
   getFavorites: async (): Promise<FavoriteRestaurant[]> => {
     try {
       // First try to load from local storage for immediate UI response
       const localFavorites = await loadFavoritesFromStorage();
 
-      // Try to get favorites from server
+      // Try to get user ID for Firebase
       const userId = await AsyncStorage.getItem("userId");
+
       if (userId) {
         try {
-          // Use the improved API client with token refresh
-          const response = await apiRequest<{ data: string[] }>(
-            `/api/users/${userId}/favorites`,
-          );
+          // Try fetching from Firebase
+          const userRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userRef);
 
-          if (response.data && Array.isArray(response.data)) {
-            console.log("Server returned favorites:", response.data);
+          if (userDoc.exists() && userDoc.data().favorites) {
+            const firebaseFavorites = userDoc.data().favorites;
 
-            // Convert server's string array to full restaurant objects and sync to storage
-            if (response.data.length > 0) {
-              // Get existing favorites to preserve metadata
-              const existingFavorites = await loadFavoritesFromStorage();
+            // Transform to full restaurant objects
+            const updatedFavorites =
+              await transformToRestaurantObjects(firebaseFavorites);
 
-              // Map server favorites to full objects
-              const updatedFavorites = response.data.map((name) => {
-                // Try to find existing favorite with this name to preserve its metadata
-                const existingFav = existingFavorites.find(
-                  (f) => f.name === name,
-                );
-                if (existingFav) return existingFav;
-
-                // Otherwise create a new favorite with default values
-                return {
-                  name,
-                  rating: "4.5",
-                  reviewCount: "100+",
-                  deliveryTime: "15 min",
-                  deliveryFee: "$3",
-                  imageUrl:
-                    "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
-                };
-              });
-
-              // Save to storage and return
-              await AsyncStorage.setItem(
-                FAVORITES_STORAGE_KEY,
-                JSON.stringify(updatedFavorites),
-              );
-              return updatedFavorites;
-            }
+            // Save to AsyncStorage and return
+            await AsyncStorage.setItem(
+              FAVORITES_STORAGE_KEY,
+              JSON.stringify(updatedFavorites),
+            );
+            return updatedFavorites;
           }
-        } catch (apiError) {
-          console.log("API fetch failed, using local storage:", apiError);
-          // Continue with local storage data
+        } catch (error) {
+          console.log("Firebase fetch failed, using local storage:", error);
         }
       }
 
@@ -82,7 +71,7 @@ export const favoritesApi = {
     }
   },
 
-  // Add favorite with token refresh
+  // Add favorite with sync between Firebase and AsyncStorage
   addFavorite: async (restaurant: {
     name: string;
     imageUrl?: string;
@@ -108,30 +97,29 @@ export const favoritesApi = {
           "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
       };
 
-      // Add to array and save to storage
+      // Add to local array and save to storage
       const updatedFavorites = [...currentFavorites, newFavorite];
       await AsyncStorage.setItem(
         FAVORITES_STORAGE_KEY,
         JSON.stringify(updatedFavorites),
       );
 
-      // Try to sync with server
+      // Sync with Firebase if possible
       const userId = await AsyncStorage.getItem("userId");
       if (userId) {
         try {
-          // Use apiRequest with token refresh
-          await apiRequest(`/api/users/favorites`, {
-            method: "POST",
-            body: JSON.stringify({
-              userId,
-              restaurantName: restaurant.name,
-              action: "add",
-            }),
-          });
-          console.log(`Added ${restaurant.name} to favorites on server`);
-        } catch (apiError) {
-          console.log("API add favorite failed (non-blocking):", apiError);
-          // Non-blocking - we've already updated local storage
+          const userRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userRef);
+
+          const favorites =
+            userDoc.exists() && userDoc.data().favorites
+              ? [...userDoc.data().favorites, restaurant.name]
+              : [restaurant.name];
+
+          await setDoc(userRef, { favorites }, { merge: true });
+        } catch (error) {
+          console.log("Firebase add favorite failed:", error);
+          // Already updated AsyncStorage, so still return success
         }
       }
 
@@ -142,7 +130,7 @@ export const favoritesApi = {
     }
   },
 
-  // Remove favorite with token refresh
+  // Remove favorite with sync
   removeFavorite: async (restaurantName: string): Promise<boolean> => {
     try {
       // First update local storage for immediate UI response
@@ -157,23 +145,23 @@ export const favoritesApi = {
         JSON.stringify(updatedFavorites),
       );
 
-      // Try to sync with server
+      // Sync with Firebase
       const userId = await AsyncStorage.getItem("userId");
       if (userId) {
         try {
-          // Use apiRequest with token refresh
-          await apiRequest(`/api/users/favorites`, {
-            method: "POST",
-            body: JSON.stringify({
-              userId,
-              restaurantName,
-              action: "remove",
-            }),
-          });
-          console.log(`Removed ${restaurantName} from favorites on server`);
-        } catch (apiError) {
-          console.log("API remove favorite failed (non-blocking):", apiError);
-          // Non-blocking - we've already updated local storage
+          const userRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userRef);
+
+          if (userDoc.exists() && userDoc.data().favorites) {
+            const favorites = userDoc
+              .data()
+              .favorites.filter((name: string) => name !== restaurantName);
+
+            await setDoc(userRef, { favorites }, { merge: true });
+          }
+        } catch (error) {
+          console.log("Firebase remove favorite failed:", error);
+          // Already updated AsyncStorage, so still return success
         }
       }
 
@@ -207,6 +195,32 @@ async function loadFavoritesFromStorage(): Promise<FavoriteRestaurant[]> {
     console.error("Error loading favorites from storage:", error);
     return [];
   }
+}
+
+// Helper function to transform restaurant names to full objects
+async function transformToRestaurantObjects(
+  restaurantNames: string[],
+): Promise<FavoriteRestaurant[]> {
+  // First get existing favorites to preserve metadata
+  const existingFavorites = await loadFavoritesFromStorage();
+
+  // Map restaurant names to full objects
+  return restaurantNames.map((name) => {
+    // Try to find existing favorite with this name
+    const existingFav = existingFavorites.find((f) => f.name === name);
+    if (existingFav) return existingFav;
+
+    // Create new default object if not found
+    return {
+      name,
+      rating: "4.5",
+      reviewCount: "100+",
+      deliveryTime: "15 min",
+      deliveryFee: "$3",
+      imageUrl:
+        "https://images.unsplash.com/photo-1592415486689-125cbbfcbee2?q=60&w=800&auto=format&fit=crop",
+    };
+  });
 }
 
 export default favoritesApi;

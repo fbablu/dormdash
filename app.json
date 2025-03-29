@@ -71,6 +71,13 @@
       "router": {
         "origin": false
       },
+      "firebaseApiKey": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseAuthDomain": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseProjectId": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseStorageBucket": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseMessagingSenderId": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseAppId": "PLACE_IN_ENV_FILE_INSTEAD",
+      "firebaseMeasurementId": "PLACE_IN_ENV_FILE_INSTEAD",
       "eas": {
         "projectId": "134fae3a-2dff-4495-81c8-59deb4ff7768"
       }
