@@ -46,7 +46,7 @@ DormDash focuses on direct delivery services between Vanderbilt students. Initia
 ## 💻 Development Setup
 
 ### Prerequisites
-- Node.js (v14+)
+- Local Express.js (v14+)
 - npm or yarn
 - Expo CLI
 - iOS Simulator or Android Emulator (for mobile testing)
@@ -111,7 +111,7 @@ dormdash/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📞 Support
+## ✉️Support
 
 Contact dormdash.vu@gmail.com for any questions!
 
