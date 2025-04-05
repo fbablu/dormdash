@@ -267,7 +267,7 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         console.log(
           `Navigating to restaurant: ${restaurant.name} with ID: ${id}`,
         );
-        router.push(`../app/restaurant/[id].tsx`);
+        router.push(`../restaurant/${id}`);
       }}
     >
       <Image

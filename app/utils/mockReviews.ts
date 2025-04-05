@@ -335,3 +335,5 @@ export const initializeSampleReviews = async (): Promise<void> => {
     console.error("Error initializing sample reviews:", error);
   }
 };
+
+export default function mockReviews() {}

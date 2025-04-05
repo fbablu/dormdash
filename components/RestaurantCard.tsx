@@ -100,7 +100,9 @@ const RestaurantCard = ({ restaurant }: { restaurant: Restaurant }) => {
         // Generate ID from restaurant name for routing
         const id = restaurant.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
         // Fixed navigation to use proper route path instead of file path
-        router.push(`/restaurant/${id}`);
+        // app/restaurant/[id].tsx
+        // components/RestaurantCard.tsx
+        router.push(`./app/restaurant/${id}`);
       }}
     >
       <Image
