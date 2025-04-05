@@ -2,9 +2,10 @@
 // Contributor: @Fardeen Bablu
 // Time spent: 15 minutes
 
-import { initializeApp } from "firebase/auth";
+// import { initalizeApp } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { initializeApp } from "firebase/app";
 
 // Use environment variables or Constants from Expo
 // The actual values should be stored in app.config.js, .env files, or Expo secrets
