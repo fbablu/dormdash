@@ -1,25 +1,23 @@
 // app/utils/ratingsUtils.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 1.5 hours
+// Time spent: 2 hours
 
 import React from "react";
 import { View, Text } from "react-native";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  query,
-  where,
-  deleteDoc,
-  updateDoc,
-  orderBy,
-  limit,
-  serverTimestamp,
-  FieldValue,
-} from "firebase/firestore";
-import { db } from "../config/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FieldValue } from "firebase/firestore";
+
+// Storage key for reviews
+const REVIEWS_STORAGE_KEY = "dormdash_reviews";
+
+// Generate a unique ID for new reviews
+const generateUUID = (): string => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export interface Review {
   id: string;
@@ -42,37 +40,27 @@ export const getRestaurantReviews = async (
   limitCount: number = 10,
 ): Promise<Review[]> => {
   try {
-    const reviewsRef = collection(db, "reviews");
-    const q = query(
-      reviewsRef,
-      where("restaurantId", "==", restaurantId),
-      orderBy("createdAt", "desc"),
-      limit(limitCount),
-    );
+    // Get all reviews from storage
+    const reviewsJson = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const allReviews: Review[] = reviewsJson ? JSON.parse(reviewsJson) : [];
 
-    const reviewsSnapshot = await getDocs(q);
-    const reviews: Review[] = [];
+    // Filter reviews for this restaurant and sort by date (newest first)
+    const restaurantReviews = allReviews
+      .filter((review) => review.restaurantId === restaurantId)
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt as Date);
+        const dateB = new Date(b.createdAt as Date);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, limitCount);
 
-    reviewsSnapshot.forEach((doc) => {
-      const data = doc.data();
-      reviews.push({
-        id: doc.id,
-        userId: data.userId,
-        userName: data.userName,
-        restaurantId: data.restaurantId,
-        rating: data.rating,
-        text: data.text,
-        createdAt: data.createdAt?.toDate() || new Date(),
-      });
-    });
-
-    return reviews;
+    return restaurantReviews;
   } catch (error) {
     console.error(
       `Error fetching reviews for restaurant ${restaurantId}:`,
       error,
     );
-    throw error;
+    return [];
   }
 };
 
@@ -85,17 +73,31 @@ export const addReview = async (
   review: Omit<Review, "id" | "createdAt">,
 ): Promise<string> => {
   try {
-    const reviewData = {
+    // Get existing reviews
+    const reviewsJson = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const allReviews: Review[] = reviewsJson ? JSON.parse(reviewsJson) : [];
+
+    // Generate new review with ID and timestamp
+    const newReviewId = generateUUID();
+    const newReview: Review = {
       ...review,
-      createdAt: serverTimestamp(),
+      id: newReviewId,
+      createdAt: new Date(),
     };
 
-    const docRef = await addDoc(collection(db, "reviews"), reviewData);
+    // Add to reviews array
+    const updatedReviews = [...allReviews, newReview];
 
-    // Update restaurant rating average
-    await updateRestaurantRating(review.restaurantId);
+    // Save updated reviews
+    await AsyncStorage.setItem(
+      REVIEWS_STORAGE_KEY,
+      JSON.stringify(updatedReviews),
+    );
 
-    return docRef.id;
+    // No need to update restaurant rating in Expo Go
+    // await updateRestaurantRating(review.restaurantId);
+
+    return newReviewId;
   } catch (error) {
     console.error("Error adding review:", error);
     throw error;
@@ -115,18 +117,30 @@ export const updateReview = async (
   >,
 ): Promise<void> => {
   try {
-    const reviewRef = doc(db, "reviews", reviewId);
-    const reviewDoc = await getDoc(reviewRef);
+    // Get existing reviews
+    const reviewsJson = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const allReviews: Review[] = reviewsJson ? JSON.parse(reviewsJson) : [];
 
-    if (!reviewDoc.exists()) {
+    // Find review to update
+    const reviewIndex = allReviews.findIndex((r) => r.id === reviewId);
+    if (reviewIndex === -1) {
       throw new Error(`Review with ID ${reviewId} not found`);
     }
 
-    await updateDoc(reviewRef, updates);
+    // Get restaurantId for rating update
+    const restaurantId = allReviews[reviewIndex].restaurantId;
 
-    // Update restaurant rating average
-    const restaurantId = reviewDoc.data().restaurantId;
-    await updateRestaurantRating(restaurantId);
+    // Update the review
+    allReviews[reviewIndex] = {
+      ...allReviews[reviewIndex],
+      ...updates,
+    };
+
+    // Save updated reviews
+    await AsyncStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(allReviews));
+
+    // No need to update restaurant rating in Expo Go
+    // await updateRestaurantRating(restaurantId);
   } catch (error) {
     console.error(`Error updating review ${reviewId}:`, error);
     throw error;
@@ -140,18 +154,30 @@ export const updateReview = async (
  */
 export const deleteReview = async (reviewId: string): Promise<void> => {
   try {
-    const reviewRef = doc(db, "reviews", reviewId);
-    const reviewDoc = await getDoc(reviewRef);
+    // Get existing reviews
+    const reviewsJson = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const allReviews: Review[] = reviewsJson ? JSON.parse(reviewsJson) : [];
 
-    if (!reviewDoc.exists()) {
+    // Find review to delete
+    const reviewIndex = allReviews.findIndex((r) => r.id === reviewId);
+    if (reviewIndex === -1) {
       throw new Error(`Review with ID ${reviewId} not found`);
     }
 
-    const restaurantId = reviewDoc.data().restaurantId;
-    await deleteDoc(reviewRef);
+    // Get restaurantId for rating update
+    const restaurantId = allReviews[reviewIndex].restaurantId;
 
-    // Update restaurant rating average
-    await updateRestaurantRating(restaurantId);
+    // Remove the review
+    const updatedReviews = allReviews.filter((r) => r.id !== reviewId);
+
+    // Save updated reviews
+    await AsyncStorage.setItem(
+      REVIEWS_STORAGE_KEY,
+      JSON.stringify(updatedReviews),
+    );
+
+    // No need to update restaurant rating in Expo Go
+    // await updateRestaurantRating(restaurantId);
   } catch (error) {
     console.error(`Error deleting review ${reviewId}:`, error);
     throw error;
@@ -169,115 +195,87 @@ export const getUserReviewForRestaurant = async (
   restaurantId: string,
 ): Promise<Review | null> => {
   try {
-    const reviewsRef = collection(db, "reviews");
-    const q = query(
-      reviewsRef,
-      where("userId", "==", userId),
-      where("restaurantId", "==", restaurantId),
+    // Get all reviews from storage
+    const reviewsJson = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    const allReviews: Review[] = reviewsJson ? JSON.parse(reviewsJson) : [];
+
+    // Find the user's review for this restaurant
+    const userReview = allReviews.find(
+      (review) =>
+        review.userId === userId && review.restaurantId === restaurantId,
     );
 
-    const reviewsSnapshot = await getDocs(q);
-    if (reviewsSnapshot.empty) {
-      return null;
-    }
-
-    const doc = reviewsSnapshot.docs[0];
-    const data = doc.data();
-    return {
-      id: doc.id,
-      userId: data.userId,
-      userName: data.userName,
-      restaurantId: data.restaurantId,
-      rating: data.rating,
-      text: data.text,
-      createdAt: data.createdAt?.toDate() || new Date(),
-    };
+    return userReview || null;
   } catch (error) {
     console.error(
       `Error fetching user review for restaurant ${restaurantId}:`,
       error,
     );
-    throw error;
+    return null;
   }
 };
 
 /**
- * Update a restaurant's overall rating based on reviews
+ * Update a restaurant's overall rating based on reviews - MOCK VERSION
  * @param restaurantId Restaurant ID
- * @returns Promise that resolves when the rating is updated
  */
 export const updateRestaurantRating = async (
   restaurantId: string,
 ): Promise<void> => {
-  try {
-    const reviewsRef = collection(db, "reviews");
-    const q = query(reviewsRef, where("restaurantId", "==", restaurantId));
-    const reviewsSnapshot = await getDocs(q);
-
-    if (reviewsSnapshot.empty) {
-      // No reviews, use default rating
-      const restaurantRef = doc(db, "restaurants", restaurantId);
-      await updateDoc(restaurantRef, {
-        rating: 5.0,
-        reviewCount: "0",
-      });
-      return;
-    }
-
-    // Calculate average rating
-    let totalRating = 0;
-    reviewsSnapshot.forEach((doc) => {
-      totalRating += doc.data().rating;
-    });
-
-    const averageRating = totalRating / reviewsSnapshot.size;
-    const roundedRating = Math.round(averageRating * 10) / 10; // Round to 1 decimal place
-
-    // Update restaurant document
-    const restaurantRef = doc(db, "restaurants", restaurantId);
-    await updateDoc(restaurantRef, {
-      rating: roundedRating,
-      reviewCount: `${reviewsSnapshot.size}+`,
-    });
-  } catch (error) {
-    console.error(
-      `Error updating rating for restaurant ${restaurantId}:`,
-      error,
-    );
-    throw error;
-  }
+  // In Expo Go, we'll just log this operation rather than try to update Firebase
+  console.log(`Mock: Updated rating for restaurant ${restaurantId}`);
 };
 
 /**
- * Find restaurants with high ratings for a specific cuisine
- * @param cuisine Cuisine type
- * @param minRating Minimum rating (default: 4.0)
- * @param limitCount Maximum number of results
- * @returns Promise with array of restaurant IDs
+ * Initialize with some sample reviews
  */
-export const findTopRatedRestaurantsByCuisine = async (
-  cuisine: string,
-  minRating: number = 4.0,
-  limitCount: number = 5,
-): Promise<string[]> => {
+export const initializeSampleReviews = async (): Promise<void> => {
   try {
-    const restaurantsRef = collection(db, "restaurants");
-    const q = query(
-      restaurantsRef,
-      where("cuisine", "array-contains", cuisine),
-      where("rating", ">=", minRating),
-      orderBy("rating", "desc"),
-      limit(limitCount),
-    );
+    // Check if reviews already exist
+    const existingReviews = await AsyncStorage.getItem(REVIEWS_STORAGE_KEY);
+    if (existingReviews) {
+      return; // Reviews already initialized
+    }
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => doc.id);
-  } catch (error) {
-    console.error(
-      `Error finding top rated restaurants for cuisine ${cuisine}:`,
-      error,
+    // Sample reviews for demo
+    const sampleReviews: Review[] = [
+      {
+        id: generateUUID(),
+        userId: "mock-user-1",
+        userName: "John D.",
+        restaurantId: "taco-mama",
+        rating: 5,
+        text: "Best tacos I've had on campus! Quick delivery too.",
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+      },
+      {
+        id: generateUUID(),
+        userId: "mock-user-2",
+        userName: "Sarah W.",
+        restaurantId: "taco-mama",
+        rating: 4,
+        text: "Great food but a bit pricey for students.",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      },
+      {
+        id: generateUUID(),
+        userId: "mock-user-3",
+        userName: "Mike K.",
+        restaurantId: "banh-mi-roll",
+        rating: 5,
+        text: "Authentic Vietnamese sandwiches! The fresh rolls are amazing too.",
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      },
+    ];
+
+    // Save sample reviews
+    await AsyncStorage.setItem(
+      REVIEWS_STORAGE_KEY,
+      JSON.stringify(sampleReviews),
     );
-    throw error;
+    console.log("Sample reviews initialized");
+  } catch (error) {
+    console.error("Error initializing sample reviews:", error);
   }
 };
 

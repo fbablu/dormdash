@@ -1,6 +1,7 @@
 // app/components/restaurant/ReviewsSection.tsx
 // Contributor: @Fardeen Bablu
 // Time spent: 2 hours
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -11,16 +12,9 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Modal,
-  Pressable,
-  Keyboard,
-  Dimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/app/context/AuthContext";
-import { Color } from "@/GlobalStyles";
 import {
   Review,
   getRestaurantReviews,
@@ -28,10 +22,9 @@ import {
   addReview,
   updateReview,
   deleteReview,
-  initializeSampleReviews,
-} from "@/app/utils/mockReviews";
-
-const windowHeight = Dimensions.get("window").height;
+} from "@/app/utils/ratingsUtils";
+import { Color } from "@/GlobalStyles";
+import { FieldValue } from "@google-cloud/firestore";
 
 interface ReviewsSectionProps {
   restaurantId: string;
@@ -49,38 +42,17 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [showAddReview, setShowAddReview] = useState(false);
   const [showEditReview, setShowEditReview] = useState(false);
+
+  // Form state
   const [reviewText, setReviewText] = useState("");
   const [rating, setRating] = useState(5);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      "keyboardDidShow",
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      },
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      "keyboardDidHide",
-      () => {
-        setKeyboardHeight(0);
-      },
-    );
-
-    return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    initializeSampleReviews();
-  }, []);
-
+  // Load reviews
   useEffect(() => {
     loadReviews();
   }, [restaurantId]);
 
+  // Check if user has already reviewed
   useEffect(() => {
     if (isSignedIn && user) {
       checkUserReview();
@@ -109,6 +81,7 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
         restaurantId,
         10 + currentCount,
       );
+      // Only take new reviews
       setReviews(additionalReviews);
     } catch (error) {
       console.error("Error loading more reviews:", error);
@@ -145,12 +118,14 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
     }
 
     try {
+      // If user already has a review, update it
       if (userReview) {
         await updateReview(userReview.id, {
           rating,
           text: reviewText.trim(),
         });
       } else {
+        // Otherwise add a new review
         await addReview({
           userId: user.id,
           userName: user.name,
@@ -160,17 +135,11 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
         });
       }
 
+      // Reset form and refresh reviews
       setShowAddReview(false);
       setShowEditReview(false);
       await loadReviews();
       await checkUserReview();
-
-      Alert.alert(
-        "Success",
-        userReview
-          ? "Your review has been updated"
-          : "Your review has been added",
-      );
     } catch (error) {
       console.error("Error saving review:", error);
       Alert.alert("Error", "Failed to save your review. Please try again.");
@@ -215,12 +184,29 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
     );
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (date: Date | FieldValue) => {
+    if (!date) return "Unknown date";
+
+    // If it's a Date object
+    if (date instanceof Date) {
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
+
+    // If it's a string representation of a date
+    if (typeof date === "string") {
+      return new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
+
+    // For FieldValue or other non-date objects
+    return "Recent";
   };
 
   const renderRatingStars = (rating: number) => {
@@ -248,7 +234,9 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           {renderRatingStars(item.rating)}
         </View>
 
-        <Text style={styles.reviewDate}>{formatDate(item.createdAt)}</Text>
+        <Text style={styles.reviewDate}>
+          {formatDate(item.createdAt as Date)}
+        </Text>
 
         <Text style={styles.reviewText}>{item.text}</Text>
 
@@ -300,44 +288,6 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
     );
   };
 
-  const renderReviewForm = () => (
-    <View style={[styles.reviewForm]}>
-      <Text style={styles.reviewFormTitle}>
-        {showEditReview ? "Edit Your Review" : "Add Your Review"}
-      </Text>
-
-      {renderRatingSelector()}
-
-      <TextInput
-        style={styles.reviewInput}
-        multiline
-        placeholder={`Share your thoughts about ${restaurantName}...`}
-        value={reviewText}
-        onChangeText={setReviewText}
-        autoFocus={true}
-      />
-
-      <View style={styles.formActions}>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => {
-            setShowAddReview(false);
-            setShowEditReview(false);
-            Keyboard.dismiss();
-          }}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.submitButton} onPress={handleAddReview}>
-          <Text style={styles.submitButtonText}>
-            {showEditReview ? "Update" : "Submit"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
@@ -365,6 +315,46 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Add/Edit Review Form */}
+      {(showAddReview || showEditReview) && (
+        <View style={styles.reviewForm}>
+          <Text style={styles.reviewFormTitle}>
+            {showEditReview ? "Edit Your Review" : "Add Your Review"}
+          </Text>
+
+          {renderRatingSelector()}
+
+          <TextInput
+            style={styles.reviewInput}
+            multiline
+            placeholder={`Share your thoughts about ${restaurantName}...`}
+            value={reviewText}
+            onChangeText={setReviewText}
+          />
+
+          <View style={styles.formActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setShowAddReview(false);
+                setShowEditReview(false);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleAddReview}
+            >
+              <Text style={styles.submitButtonText}>
+                {showEditReview ? "Update" : "Submit"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Reviews List */}
       {loading ? (
@@ -399,32 +389,6 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           </Text>
         </View>
       )}
-
-      <Modal
-        visible={showAddReview || showEditReview}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowAddReview(false);
-          setShowEditReview(false);
-        }}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => {
-            setShowAddReview(false);
-            setShowEditReview(false);
-            Keyboard.dismiss();
-          }}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.keyboardAvoidingView}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
-        >
-          {renderReviewForm()}
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 };
@@ -459,13 +423,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   reviewForm: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 24,
-    paddingBottom: 32,
-    width: "100%",
-    maxHeight: windowHeight * 0.7,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
   },
   reviewFormTitle: {
     fontSize: 18,
@@ -487,7 +448,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   reviewInput: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
@@ -600,18 +561,6 @@ const styles = StyleSheet.create({
   },
   loadMoreIndicator: {
     padding: 16,
-  },
-  keyboardAvoidingView: {
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
   },
 });
 
