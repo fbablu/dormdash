@@ -27,7 +27,7 @@ import {
   serverTimestamp,
   Firestore,
 } from "firebase/firestore";
-import { auth, db } from "../config/firebase";
+import firebase, { auth, db } from "../config/firebase";
 import authService from "../services/authService";
 import { configureGoogleSignIn } from "../utils/googleSignIn";
 import GoogleSignin from "../utils/googleSignIn";
@@ -37,6 +37,7 @@ import {
   getOwnedRestaurantId,
 } from "../utils/adminAuth";
 import { router } from "expo-router";
+import { FirebaseError } from "firebase/app";
 
 // Define user type
 export interface User {
@@ -428,6 +429,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             isVerified: false,
           }),
         );
+
+        try {
+          const userCredential = await createUserWithEmailAndPassword(
+            auth as Auth,
+            email,
+            password,
+          );
+
+          await updateProfile(userCredential.user, { displayName: name });
+          console.log("Created user in Firebase:", userCredential.user.uid);
+        } catch (FirebaseError) {
+          console.log("Could not create user:", FirebaseError);
+        }
 
         // Update state manually
         setState({

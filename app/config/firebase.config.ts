@@ -1,63 +1,44 @@
 // app/config/firebase.config.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 15 minutes
+// Time spent: 30 minutes
 
-// import { initalizeApp } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// Use environment variables or Constants from Expo
-// The actual values should be stored in app.config.js, .env files, or Expo secrets
+// Use the actual values from your Firebase project
 const firebaseConfig = {
-  apiKey:
-    process.env.FIREBASE_API_KEY ||
-    Constants.expoConfig?.extra?.firebaseApiKey ||
-    "YOUR_API_KEY",
-  authDomain:
-    process.env.FIREBASE_AUTH_DOMAIN ||
-    Constants.expoConfig?.extra?.firebaseAuthDomain ||
-    "YOUR_AUTH_DOMAIN",
-  projectId:
-    process.env.FIREBASE_PROJECT_ID ||
-    Constants.expoConfig?.extra?.firebaseProjectId ||
-    "YOUR_PROJECT_ID",
-  storageBucket:
-    process.env.FIREBASE_STORAGE_BUCKET ||
-    Constants.expoConfig?.extra?.firebaseStorageBucket ||
-    "YOUR_STORAGE_BUCKET",
-  messagingSenderId:
-    process.env.FIREBASE_MESSAGING_SENDER_ID ||
-    Constants.expoConfig?.extra?.firebaseMessagingSenderId ||
-    "YOUR_MESSAGING_SENDER_ID",
-  appId:
-    process.env.FIREBASE_APP_ID ||
-    Constants.expoConfig?.extra?.firebaseAppId ||
-    "YOUR_APP_ID",
-  measurementId:
-    process.env.FIREBASE_MEASUREMENT_ID ||
-    Constants.expoConfig?.extra?.firebaseMeasurementId ||
-    "YOUR_MEASUREMENT_ID",
+  apiKey: "AIzaSyDqRdj5Q0CClfW9IT7HVJiIbHAVBucGvE8",
+  authDomain: "dormdash-2bceb.firebaseapp.com",
+  projectId: "dormdash-2bceb",
+  storageBucket: "dormdash-2bceb.firebasestorage.app",
+  messagingSenderId: "462922659749",
+  appId: "1:462922659749:web:d8907b3b55ece28e6eda4c",
+  measurementId: "G-NGF8H7LCFB",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Store Firebase config securely in AsyncStorage for persistence
-const storeFirebaseConfig = async () => {
-  try {
-    await AsyncStorage.setItem(
-      "firebase_config",
-      JSON.stringify({
-        appInitialized: true,
-        lastInitialized: new Date().toISOString(),
-      }),
-    );
-  } catch (error) {
-    console.error("Error storing Firebase config:", error);
-  }
-};
+// Initialize Auth with AsyncStorage persistence
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 
-storeFirebaseConfig();
+// Initialize Firestore
+const db = getFirestore(app);
 
+// Log successful initialization
+console.log(
+  "Firebase initialized successfully with project:",
+  firebaseConfig.projectId,
+);
+
+export { auth, db };
 export default app;

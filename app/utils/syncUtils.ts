@@ -1,6 +1,6 @@
 // app/utils/syncUtils.ts
 // Contributor: @Fardeen Bablu
-// Time spent: 45 minutes
+// Time spent: 1 hour
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -10,6 +10,7 @@ import {
   getDocs,
   query,
   where,
+  getFirestore,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -27,8 +28,11 @@ export const syncManager = {
 
       // Try to fetch from Firebase
       try {
+        // Make sure we're using a valid Firestore instance
+        const firestore = getFirestore();
+        const ordersCollection = collection(firestore, "orders");
         const ordersQuery = query(
-          collection(db, "orders"),
+          ordersCollection,
           where("customerId", "==", userId),
         );
 
@@ -61,10 +65,11 @@ export const syncManager = {
       // Try to push local orders to Firebase
       if (localOrders.length > 0) {
         try {
+          const firestore = getFirestore();
           for (const order of localOrders) {
             // Only push if it doesn't have a pendingSync flag
             if (!order.pendingSync) {
-              await setDoc(doc(db, "orders", order.id), {
+              await setDoc(doc(firestore, "orders", order.id), {
                 ...order,
                 pendingSync: true,
               });
@@ -107,8 +112,10 @@ export const syncManager = {
 
       // Try to fetch from Firebase
       try {
+        const firestore = getFirestore();
+        const ordersCollection = collection(firestore, "orders");
         const deliveriesQuery = query(
-          collection(db, "orders"),
+          ordersCollection,
           where("delivererId", "==", userId),
         );
 
