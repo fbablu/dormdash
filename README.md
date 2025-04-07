@@ -18,7 +18,7 @@ DormDash addresses the lack of direct delivery services to student dorms and the
 
 ## 🎯 Project Scope
 
-DormDash focuses on direct delivery services between Vanderbilt students. Initially targeting Vanderbilt's campus and surrounding Taste of Nashville (ToN) restaurants (40+ restaurants and 31 residential colleges), with future expansion plans to other campuses.
+DormDash focuses on direct delivery services between Vanderbilt students. Initially targeting Vanderbilt's campus and surrounding Taste of Nashville (ToN) restaurants (40+ restaurants and 31 residential colleges), with future expansion plans to other campuses. The main goal is to foster a community of Peer2Peer deliveries, where students on campus can get convenient deliveries at their favorite campus card restaurants.
 
 ## ✨ Key Features
 
@@ -105,14 +105,6 @@ dormdash/
 ├── data/                 # Local data files
 └── server/               # Backend Express.js server
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## ✉️Support
 
