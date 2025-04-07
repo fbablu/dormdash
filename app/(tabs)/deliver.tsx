@@ -24,6 +24,15 @@ import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import OrderTrackingView from "@/components/OrderTrackingView";
 import { initializeLocalData } from "@/lib/data/dataLoader";
+import deliveryTrackingService, {
+  DeliveryTracking,
+} from "../services/deliveryTrackingService";
+import {
+  getRestaurantCoordinates,
+  getDormCoordinates,
+  formatETA,
+  getETAWithTime,
+} from "../utils/routingUtils";
 
 interface OrderItem {
   id: string;
@@ -48,7 +57,7 @@ interface Order {
   deliveryAddress?: string;
 }
 
-const REFRESH_INTERVAL = 10000; // 10 seconds
+const REFRESH_INTERVAL = 10000;
 
 export default function Deliver() {
   const { user } = useAuth();
@@ -64,16 +73,23 @@ export default function Deliver() {
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
+  const [trackingData, setTrackingData] = useState<DeliveryTracking | null>(
+    null,
+  );
+  const [etaInfo, setEtaInfo] = useState<{
+    etaString: string;
+    timeString: string;
+  } | null>(null);
+
   // Initialize location data
   useEffect(() => {
     initializeLocalData();
+    deliveryTrackingService.initializeTrackingService();
   }, []);
 
   // Set up auto-refresh and app state listeners
   useEffect(() => {
     fetchDeliveryData();
-
-    // Start refresh interval
     startRefreshInterval();
 
     // Set up app state listener
@@ -85,8 +101,59 @@ export default function Deliver() {
     return () => {
       stopRefreshInterval();
       subscription.remove();
+      deliveryTrackingService.stopTracking();
     };
   }, []);
+
+  useEffect(() => {
+    const checkActiveTracking = async () => {
+      const currentTracking =
+        await deliveryTrackingService.getCurrentDeliveryTracking();
+      if (currentTracking) {
+        setTrackingData(currentTracking);
+        // Find the corresponding order
+        const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+        if (ordersJson) {
+          const orders = JSON.parse(ordersJson) as Order[];
+          const trackedOrder = orders.find(
+            (order) => order.id === currentTracking.orderId,
+          );
+          if (trackedOrder) {
+            setSelectedDelivery(trackedOrder);
+            setShowMap(true);
+            updateETA(currentTracking);
+          }
+        }
+      }
+    };
+
+    checkActiveTracking();
+  }, []);
+
+  const updateETA = (tracking: DeliveryTracking) => {
+    if (
+      !tracking.currentLocation ||
+      (!tracking.restaurantLocation && !tracking.customerLocation)
+    ) {
+      return;
+    }
+
+    const destLocation =
+      tracking.routeStage === "to_restaurant"
+        ? tracking.restaurantLocation
+        : tracking.customerLocation;
+
+    if (destLocation) {
+      const { etaString, timeString } = getETAWithTime(
+        tracking.currentLocation.latitude,
+        tracking.currentLocation.longitude,
+        destLocation.latitude,
+        destLocation.longitude,
+      );
+
+      setEtaInfo({ etaString, timeString });
+    }
+  };
 
   // Handle app state changes
   const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -211,6 +278,40 @@ export default function Deliver() {
         JSON.stringify(updatedOrders),
       );
 
+      // Start tracking the delivery
+      if (order) {
+        const restaurantCoords = await getRestaurantCoordinates(
+          order.restaurantId,
+        );
+        const dormCoords = order.deliveryAddress
+          ? await getDormCoordinates(order.deliveryAddress)
+          : null;
+
+        // Initialize tracking with coordinates if available
+        await deliveryTrackingService.startTracking(orderId, user.id);
+
+        const tracking =
+          await deliveryTrackingService.getCurrentDeliveryTracking();
+        if (tracking) {
+          if (restaurantCoords) {
+            tracking.restaurantLocation = {
+              ...restaurantCoords,
+              address: order.restaurantName,
+            };
+          }
+
+          if (dormCoords && order.deliveryAddress) {
+            tracking.customerLocation = {
+              ...dormCoords,
+              address: order.deliveryAddress,
+            };
+          }
+
+          setTrackingData(tracking);
+          updateETA(tracking);
+        }
+      }
+
       // Refresh the lists
       await fetchDeliveryData();
 
@@ -244,8 +345,21 @@ export default function Deliver() {
         JSON.stringify(updatedOrders),
       );
 
-      // If delivered, remove from active deliveries
-      if (newStatus === "delivered") {
+      // Update tracking status and route stage
+      if (newStatus === "picked_up") {
+        await deliveryTrackingService.updateRouteStage(orderId, "to_customer");
+        const tracking =
+          await deliveryTrackingService.getCurrentDeliveryTracking();
+        if (tracking) {
+          setTrackingData(tracking);
+          updateETA(tracking);
+        }
+      } else if (newStatus === "delivered") {
+        await deliveryTrackingService.stopTracking();
+        setTrackingData(null);
+        setEtaInfo(null);
+
+        // Remove from active deliveries
         setActiveDeliveries((prev) =>
           prev.filter((delivery) => delivery.id !== orderId),
         );
@@ -280,9 +394,64 @@ export default function Deliver() {
   };
 
   // Handle order selection for map view
-  const handleSelectDelivery = (order: Order) => {
+  const handleSelectDelivery = async (order: Order) => {
     setSelectedDelivery(order);
     setShowMap(true);
+
+    // Get tracking data if available for this order
+    const tracking = await deliveryTrackingService.getDeliveryTracking(
+      order.id,
+    );
+    if (tracking) {
+      setTrackingData(tracking);
+      updateETA(tracking);
+    } else if (order.status === "accepted" || order.status === "picked_up") {
+      // If tracking doesn't exist but this is an active delivery, start tracking
+      if (user && order.delivererId === user.id) {
+        await deliveryTrackingService.startTracking(order.id, user.id);
+        const newTracking =
+          await deliveryTrackingService.getCurrentDeliveryTracking();
+
+        if (newTracking) {
+          // Get coordinates
+          const restaurantCoords = await getRestaurantCoordinates(
+            order.restaurantId,
+          );
+          const dormCoords = order.deliveryAddress
+            ? await getDormCoordinates(order.deliveryAddress)
+            : null;
+
+          if (restaurantCoords) {
+            newTracking.restaurantLocation = {
+              ...restaurantCoords,
+              address: order.restaurantName,
+            };
+          }
+
+          if (dormCoords && order.deliveryAddress) {
+            newTracking.customerLocation = {
+              ...dormCoords,
+              address: order.deliveryAddress,
+            };
+          }
+
+          // Set appropriate route stage
+          if (order.status === "picked_up") {
+            await deliveryTrackingService.updateRouteStage(
+              order.id,
+              "to_customer",
+            );
+          }
+
+          const updatedTracking =
+            await deliveryTrackingService.getCurrentDeliveryTracking();
+          if (updatedTracking) {
+            setTrackingData(updatedTracking);
+            updateETA(updatedTracking);
+          }
+        }
+      }
+    }
   };
 
   // Close map view
@@ -290,6 +459,7 @@ export default function Deliver() {
     setShowMap(false);
   };
 
+  // Modified map view to include tracking info
   const renderDeliveryMap = () => {
     if (!selectedDelivery) return null;
 
@@ -308,7 +478,17 @@ export default function Deliver() {
           <OrderTrackingView
             status={selectedDelivery.status}
             orderId={selectedDelivery.id}
+            trackingData={trackingData}
           />
+
+          {etaInfo && (
+            <View style={styles.etaContainer}>
+              <Text style={styles.etaTitle}>Estimated Arrival</Text>
+              <Text style={styles.etaText}>
+                {etaInfo.etaString} (arriving around {etaInfo.timeString})
+              </Text>
+            </View>
+          )}
 
           <View style={styles.deliveryInfo}>
             <Text style={styles.infoLabel}>Order #:</Text>
@@ -337,6 +517,20 @@ export default function Deliver() {
             <View style={styles.deliveryInfo}>
               <Text style={styles.infoLabel}>Notes:</Text>
               <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
+            </View>
+          )}
+
+          {/* Display current stage if tracking is active */}
+          {trackingData && (
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Current Stage:</Text>
+              <Text style={styles.infoValue}>
+                {trackingData.routeStage === "to_restaurant"
+                  ? "Heading to restaurant"
+                  : trackingData.routeStage === "to_customer"
+                    ? "Delivering to customer"
+                    : "Completed"}
+              </Text>
             </View>
           )}
         </View>
@@ -587,6 +781,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  etaContainer: {
+    padding: 12,
+    backgroundColor: "#f0f8ff",
+    borderRadius: 8,
+    marginBottom: 16,
+    marginTop: 10,
+  },
+  etaTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  etaText: {
+    fontSize: 14,
+    color: "#333",
   },
   header: {
     flexDirection: "row",

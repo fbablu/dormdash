@@ -1,470 +1,224 @@
 // components/OrderTrackingView.tsx
-// Contributor: @Fardeen Bablu
-// Time spent: 2 hours
+// Contributors: @Fardeen Bablu, @YourName
+// Time spent: 3 hours
 
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  Dimensions,
-  ActivityIndicator,
-} from "react-native";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Color } from "@/GlobalStyles";
-import {
-  getRestaurants,
-  getDorms,
-  calculateDistance,
-  calculateEstimatedTime,
-} from "@/lib/data/dataLoader";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import MapView, { Marker, Polyline } from "react-native-maps"; // Use regular MapView, not Google Maps specific
+import { DeliveryTracking } from "@/app/services/deliveryTrackingService";
 
 interface OrderTrackingViewProps {
-  status: "pending" | "accepted" | "picked_up" | "delivered" | "cancelled";
   orderId: string;
+  status: string;
+  trackingData?: DeliveryTracking | null;
 }
 
-const { width } = Dimensions.get("window");
+const OrderTrackingView = ({
+  orderId,
+  status,
+  trackingData,
+}: OrderTrackingViewProps) => {
+  // Render progress indicators
+  const renderProgressIndicators = () => {
+    const stages = ["accepted", "picked_up", "delivered"];
+    const currentIndex = stages.indexOf(status as any);
 
-const OrderTrackingView = ({ status, orderId }: OrderTrackingViewProps) => {
-  const [order, setOrder] = useState<any>(null);
-  const [restaurant, setRestaurant] = useState<any>(null);
-  const [deliveryAddress, setDeliveryAddress] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
+    return (
+      <View style={styles.progressContainer}>
+        {stages.map((stage, index) => {
+          const isCompleted = index <= currentIndex;
+          const isActive = index === currentIndex;
 
-  useEffect(() => {
-    loadOrderDetails();
-  }, [orderId, status]);
-
-  const loadOrderDetails = async () => {
-    try {
-      setLoading(true);
-
-      // Load order data
-      const ordersJson = await AsyncStorage.getItem("dormdash_orders");
-      if (!ordersJson) {
-        setLoading(false);
-        return;
-      }
-
-      const orders = JSON.parse(ordersJson);
-      const currentOrder = orders.find((o: any) => o.id === orderId);
-
-      if (!currentOrder) {
-        setLoading(false);
-        return;
-      }
-
-      setOrder(currentOrder);
-
-      // Load restaurant data
-      const allRestaurants = await getRestaurants();
-      const matchedRestaurant = allRestaurants.find(
-        (r: any) => r.name === currentOrder.restaurantName,
-      );
-
-      if (matchedRestaurant) {
-        setRestaurant(matchedRestaurant);
-      }
-
-      // Load delivery address (dorm) data
-      if (currentOrder.deliveryAddress) {
-        const allDorms = await getDorms();
-        const matchedDorm = allDorms.find(
-          (d: any) =>
-            d.name === currentOrder.deliveryAddress ||
-            d.address.includes(currentOrder.deliveryAddress),
-        );
-
-        if (matchedDorm) {
-          setDeliveryAddress(matchedDorm);
-
-          // Calculate distance and estimated time
-          if (matchedRestaurant?.coordinates && matchedDorm?.coordinates) {
-            const dist = calculateDistance(
-              matchedRestaurant.coordinates,
-              matchedDorm.coordinates,
-            );
-            setDistance(dist);
-            setEstimatedTime(calculateEstimatedTime(dist));
+          let stageName = "";
+          switch (stage) {
+            case "accepted":
+              stageName = "Accepted";
+              break;
+            case "picked_up":
+              stageName = "Picked Up";
+              break;
+            case "delivered":
+              stageName = "Delivered";
+              break;
           }
-        }
-      }
 
-      setLoading(false);
-    } catch (error) {
-      console.error("Error loading order details:", error);
-      setLoading(false);
-    }
-  };
+          return (
+            <View key={stage} style={styles.stageContainer}>
+              <View
+                style={[
+                  styles.stageCircle,
+                  isCompleted ? styles.completedStage : {},
+                  isActive ? styles.activeStage : {},
+                ]}
+              >
+                {isCompleted && <Feather name="check" size={16} color="#fff" />}
+              </View>
+              <Text
+                style={[
+                  styles.stageText,
+                  isActive ? styles.activeStageText : {},
+                  isCompleted ? styles.completedStageText : {},
+                ]}
+              >
+                {stageName}
+              </Text>
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Color.colorBurlywood} />
-        <Text style={styles.loadingText}>Loading tracking information...</Text>
-      </View>
-    );
-  }
-
-  // Simple map SVG with route visualization
-  const renderMap = () => {
-    // Simple SVG visualization of the route
-    return (
-      <View style={styles.mapContainer}>
-        <Text style={styles.mapTitle}>Delivery Route</Text>
-        <View style={styles.svgContainer}>
-          <View style={styles.mapLine} />
-
-          {/* Restaurant Point */}
-          <View style={[styles.mapPoint, styles.restaurantPoint]}>
-            <Feather name="home" size={20} color="#fff" />
-          </View>
-          <Text style={[styles.mapLabel, styles.restaurantLabel]}>
-            {restaurant?.name || "Restaurant"}
-          </Text>
-
-          {/* Current Location Point */}
-          <View
-            style={[
-              styles.mapPoint,
-              styles.currentPoint,
-              {
-                left:
-                  status === "pending"
-                    ? "10%"
-                    : status === "accepted"
-                      ? "30%"
-                      : status === "picked_up"
-                        ? "70%"
-                        : "90%",
-              },
-            ]}
-          >
-            <Feather name="truck" size={20} color="#fff" />
-          </View>
-
-          {/* Delivery Point */}
-          <View style={[styles.mapPoint, styles.destinationPoint]}>
-            <Feather name="map-pin" size={20} color="#fff" />
-          </View>
-          <Text style={[styles.mapLabel, styles.destinationLabel]}>
-            {order?.deliveryAddress ||
-              deliveryAddress?.name ||
-              "Delivery Location"}
-          </Text>
-        </View>
+              {index < stages.length - 1 && (
+                <View
+                  style={[
+                    styles.stageLine,
+                    isCompleted ? styles.completedStageLine : {},
+                  ]}
+                />
+              )}
+            </View>
+          );
+        })}
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.orderId}>Order #{orderId.substring(6, 12)}</Text>
+      {renderProgressIndicators()}
 
-      <View style={styles.progressContainer}>
-        {/* Step 1: Order Accepted */}
-        <View style={styles.stepContainer}>
-          <View
-            style={[
-              styles.iconCircle,
-              status === "pending" ? styles.pendingStep : styles.completedStep,
-            ]}
-          >
-            <Feather
-              name="user"
-              size={18}
-              color={status === "pending" ? "#666" : "#fff"}
-            />
-          </View>
-          <Text style={styles.stepText}>Accepted</Text>
-        </View>
+      {/* Simplified status display instead of map */}
+      <View style={styles.statusContainer}>
+        <Text style={styles.statusTitle}>
+          {status === "accepted"
+            ? "Preparing Order"
+            : status === "picked_up"
+              ? "On the way to delivery"
+              : "Delivered"}
+        </Text>
 
-        <View
-          style={[
-            styles.connector,
-            status === "picked_up" || status === "delivered"
-              ? styles.completedConnector
-              : styles.pendingConnector,
-          ]}
-        />
-
-        {/* Step 2: Food Picked Up */}
-        <View style={styles.stepContainer}>
-          <View
-            style={[
-              styles.iconCircle,
-              status === "picked_up" || status === "delivered"
-                ? styles.completedStep
-                : styles.pendingStep,
-            ]}
-          >
-            <Feather
-              name="package"
-              size={18}
-              color={
-                status === "picked_up" || status === "delivered"
-                  ? "#fff"
-                  : "#666"
-              }
-            />
-          </View>
-          <Text style={styles.stepText}>Picked Up</Text>
-        </View>
-
-        <View
-          style={[
-            styles.connector,
-            status === "delivered"
-              ? styles.completedConnector
-              : styles.pendingConnector,
-          ]}
-        />
-
-        {/* Step 3: Delivered */}
-        <View style={styles.stepContainer}>
-          <View
-            style={[
-              styles.iconCircle,
-              status === "delivered"
-                ? styles.completedStep
-                : styles.pendingStep,
-            ]}
-          >
-            <Feather
-              name="check"
-              size={18}
-              color={status === "delivered" ? "#fff" : "#666"}
-            />
-          </View>
-          <Text style={styles.stepText}>Delivered</Text>
-        </View>
-      </View>
-
-      {renderMap()}
-
-      <View style={styles.detailsContainer}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Status:</Text>
-          <View style={[styles.statusBadge, getStatusStyle(status)]}>
-            <Text style={styles.statusText}>{getStatusText(status)}</Text>
-          </View>
-        </View>
-
-        {distance !== null && (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Distance:</Text>
-            <Text style={styles.detailValue}>{distance.toFixed(2)} km</Text>
-          </View>
-        )}
-
-        {estimatedTime !== null && (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Est. Time:</Text>
-            <Text style={styles.detailValue}>{estimatedTime} minutes</Text>
-          </View>
+        {trackingData && (
+          <Text style={styles.statusDescription}>
+            {trackingData.routeStage === "to_restaurant"
+              ? "Driver is heading to the restaurant"
+              : trackingData.routeStage === "to_customer"
+                ? "Driver is bringing your order"
+                : "Delivery completed"}
+          </Text>
         )}
       </View>
+
+      {/* Progress bar for current stage */}
+      {trackingData && trackingData.routeStage !== "completed" && (
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarLabel}>
+            <Text style={styles.progressBarText}>
+              {trackingData.routeStage === "to_restaurant"
+                ? "On the way to restaurant"
+                : "Delivering to customer"}
+            </Text>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View style={[styles.progressBarFill, { width: "50%" }]} />
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
-const getStatusText = (status: string) => {
-  switch (status) {
-    case "pending":
-      return "Waiting for acceptance";
-    case "accepted":
-      return "Being prepared for pickup";
-    case "picked_up":
-      return "On the way";
-    case "delivered":
-      return "Delivered";
-    case "cancelled":
-      return "Cancelled";
-    default:
-      return status;
-  }
-};
-
-const getStatusStyle = (status: string) => {
-  switch (status) {
-    case "pending":
-      return { backgroundColor: "#f39c12" };
-    case "accepted":
-      return { backgroundColor: "#3498db" };
-    case "picked_up":
-      return { backgroundColor: "#2ecc71" };
-    case "delivered":
-      return { backgroundColor: "#27ae60" };
-    case "cancelled":
-      return { backgroundColor: "#e74c3c" };
-    default:
-      return { backgroundColor: "#7f8c8d" };
-  }
-};
-
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#666",
-  },
-  orderId: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
+    width: "100%",
+    padding: 10,
   },
   progressContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
-  stepContainer: {
+  stageContainer: {
     alignItems: "center",
-    width: 70,
+    flex: 1,
+    position: "relative",
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  stageCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#e0e0e0",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 5,
+  },
+  completedStage: {
+    backgroundColor: "#4CAF50",
+  },
+  activeStage: {
+    backgroundColor: "#2196F3",
+  },
+  stageText: {
+    fontSize: 12,
+    color: "#757575",
+    textAlign: "center",
+  },
+  activeStageText: {
+    color: "#2196F3",
+    fontWeight: "bold",
+  },
+  completedStageText: {
+    color: "#4CAF50",
+  },
+  stageLine: {
+    position: "absolute",
+    top: 12,
+    right: -50,
+    width: 100,
+    height: 2,
+    backgroundColor: "#e0e0e0",
+    zIndex: -1,
+  },
+  completedStageLine: {
+    backgroundColor: "#4CAF50",
+  },
+  statusContainer: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  statusTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
     marginBottom: 8,
   },
-  completedStep: {
-    backgroundColor: Color.colorBurlywood,
-  },
-  pendingStep: {
-    backgroundColor: "#f1f1f1",
-  },
-  connector: {
-    height: 3,
-    flex: 1,
-  },
-  completedConnector: {
-    backgroundColor: Color.colorBurlywood,
-  },
-  pendingConnector: {
-    backgroundColor: "#f1f1f1",
-  },
-  stepText: {
-    fontSize: 12,
+  statusDescription: {
+    fontSize: 14,
     color: "#666",
-    textAlign: "center",
   },
-  mapContainer: {
-    marginVertical: 20,
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 8,
-    padding: 12,
+  progressBarContainer: {
+    marginTop: 10,
+    paddingHorizontal: 10,
   },
-  mapTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  svgContainer: {
-    height: 120,
-    position: "relative",
-    justifyContent: "center",
-  },
-  mapLine: {
-    position: "absolute",
-    top: "50%",
-    left: "5%",
-    width: "90%",
-    height: 4,
-    backgroundColor: "#ddd",
-    borderRadius: 2,
-  },
-  mapPoint: {
-    position: "absolute",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  restaurantPoint: {
-    backgroundColor: "#f39c12",
-    left: "5%",
-  },
-  currentPoint: {
-    backgroundColor: "#3498db",
-    // Position will be set dynamically based on status
-  },
-  destinationPoint: {
-    backgroundColor: "#2ecc71",
-    right: "5%",
-  },
-  mapLabel: {
-    position: "absolute",
-    fontSize: 12,
-    width: 120,
-    textAlign: "center",
-  },
-  restaurantLabel: {
-    top: 80,
-    left: "5%",
-    transform: [{ translateX: -40 }],
-  },
-  destinationLabel: {
-    top: 80,
-    right: "5%",
-    transform: [{ translateX: 40 }],
-  },
-  detailsContainer: {
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 16,
-  },
-  detailRow: {
+  progressBarLabel: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 5,
   },
-  detailLabel: {
+  progressBarText: {
     fontSize: 14,
-    color: "#666",
+    color: "#757575",
   },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: "500",
+  progressBarTrack: {
+    width: "100%",
+    height: 6,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "#fff",
-    fontWeight: "500",
-    fontSize: 14,
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#2196F3",
+    borderRadius: 3,
   },
 });
 

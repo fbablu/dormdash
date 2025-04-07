@@ -62,6 +62,12 @@
             "useFrameworks": "static"
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow DormDash to use your location."
+        }
       ]
     ],
     "experiments": {
