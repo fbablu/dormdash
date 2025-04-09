@@ -8,19 +8,23 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import * as Location from "expo-location";
-import { Feather } from "@expo/vector-icons";
+
+import Svg, {
+  Rect,
+  Circle,
+  Text as SvgText,
+  G,
+  Polyline,
+} from "react-native-svg";
 
 import { Color } from "@/GlobalStyles";
 import {
   DeliveryTracking,
   RouteStage,
 } from "@/app/services/deliveryTrackingService";
-
 import {
   calculateDistance,
   calculateTravelTime,
@@ -28,48 +32,33 @@ import {
   formatETA,
 } from "@/app/utils/routingUtils";
 
-// Dummy SVG map view since we can't use MapView in our current setup
 const MapSVGView: React.FC<{
   tracking: DeliveryTracking | null;
   restaurantCoords?: Coordinates;
   customerCoords?: Coordinates;
   currentCoords?: Coordinates;
 }> = ({ tracking, restaurantCoords, customerCoords, currentCoords }) => {
-  const { width, height } = Dimensions.get("window");
+  const { width } = Dimensions.get("window");
   const mapWidth = width - 40;
   const mapHeight = 300;
 
-  // Calculate bounds to fit all points
   const calcBounds = () => {
     let minLat = 90,
       maxLat = -90,
       minLon = 180,
       maxLon = -180;
 
-    if (currentCoords) {
-      minLat = Math.min(minLat, currentCoords.latitude);
-      maxLat = Math.max(maxLat, currentCoords.latitude);
-      minLon = Math.min(minLon, currentCoords.longitude);
-      maxLon = Math.max(maxLon, currentCoords.longitude);
-    }
+    [currentCoords, restaurantCoords, customerCoords].forEach((coord) => {
+      if (coord) {
+        minLat = Math.min(minLat, coord.latitude);
+        maxLat = Math.max(maxLat, coord.latitude);
+        minLon = Math.min(minLon, coord.longitude);
+        maxLon = Math.max(maxLon, coord.longitude);
+      }
+    });
 
-    if (restaurantCoords) {
-      minLat = Math.min(minLat, restaurantCoords.latitude);
-      maxLat = Math.max(maxLat, restaurantCoords.latitude);
-      minLon = Math.min(minLon, restaurantCoords.longitude);
-      maxLon = Math.max(maxLon, restaurantCoords.longitude);
-    }
-
-    if (customerCoords) {
-      minLat = Math.min(minLat, customerCoords.latitude);
-      maxLat = Math.max(maxLat, customerCoords.latitude);
-      minLon = Math.min(minLon, customerCoords.longitude);
-      maxLon = Math.max(maxLon, customerCoords.longitude);
-    }
-
-    // Add a buffer
-    const latBuffer = (maxLat - minLat) * 0.1;
-    const lonBuffer = (maxLon - minLon) * 0.1;
+    const latBuffer = (maxLat - minLat) * 0.1 || 0.01;
+    const lonBuffer = (maxLon - minLon) * 0.1 || 0.01;
 
     return {
       minLat: minLat - latBuffer,
@@ -81,7 +70,6 @@ const MapSVGView: React.FC<{
 
   const bounds = calcBounds();
 
-  // Map a coordinate to the SVG viewport
   const mapToViewport = (lat: number, lon: number) => {
     const x =
       ((lon - bounds.minLon) / (bounds.maxLon - bounds.minLon)) * mapWidth;
@@ -90,71 +78,56 @@ const MapSVGView: React.FC<{
     return { x, y };
   };
 
-  // Draw route points
-  const renderRoute = () => {
-    if (!tracking || !tracking.route || !tracking.route.waypoints) return null;
-
-    const pathPoints = tracking.route.waypoints
-      .map((wp: { latitude: number; longitude: number }) => {
-        const { x, y } = mapToViewport(wp.latitude, wp.longitude);
-        return `${x},${y}`;
-      })
-      .join(" ");
-
-    return (
-      <>
-        <polyline
-          points={pathPoints}
-          stroke="#4a6fa5"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray="5,5"
-        />
-
-        {tracking.route.waypoints.map(
-          (
-            wp: { latitude: number; longitude: number },
-            index: React.Key | null | undefined,
-          ) => {
-            const { x, y } = mapToViewport(wp.latitude, wp.longitude);
-            return (
-              <circle
-                key={index}
-                cx={x}
-                cy={y}
-                r="3"
-                fill="#4a6fa5"
-                opacity="0.7"
-              />
-            );
-          },
-        )}
-      </>
-    );
-  };
-
   return (
     <View style={styles.mapContainer}>
-      <svg
+      <Svg
         width={mapWidth}
         height={mapHeight}
         viewBox={`0 0 ${mapWidth} ${mapHeight}`}
       >
         {/* Background */}
-        <rect
+        <Rect
           width={mapWidth}
           height={mapHeight}
           fill="#f5f5f5"
-          rx="10"
-          ry="10"
+          rx={10}
+          ry={10}
         />
 
         {/* Route */}
-        {renderRoute()}
+        {tracking?.route?.waypoints && (
+          <>
+            <Polyline
+              points={tracking.route.waypoints
+                .map((wp) => {
+                  const { x, y } = mapToViewport(wp.latitude, wp.longitude);
+                  return `${x},${y}`;
+                })
+                .join(" ")}
+              stroke="#4a6fa5"
+              strokeWidth={3}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="5,5"
+            />
+            {tracking.route.waypoints.map((wp, index) => {
+              const { x, y } = mapToViewport(wp.latitude, wp.longitude);
+              return (
+                <Circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r={3}
+                  fill="#4a6fa5"
+                  opacity={0.7}
+                />
+              );
+            })}
+          </>
+        )}
 
-        {/* Restaurant marker */}
+        {/* Restaurant Marker */}
         {restaurantCoords &&
           (() => {
             const { x, y } = mapToViewport(
@@ -162,9 +135,9 @@ const MapSVGView: React.FC<{
               restaurantCoords.longitude,
             );
             return (
-              <g>
-                <circle cx={x} cy={y} r="10" fill="#f39c12" />
-                <text
+              <G>
+                <Circle cx={x} cy={y} r={10} fill="#f39c12" />
+                <SvgText
                   x={x}
                   y={y + 5}
                   fontSize="10"
@@ -172,12 +145,12 @@ const MapSVGView: React.FC<{
                   fill="white"
                 >
                   R
-                </text>
-              </g>
+                </SvgText>
+              </G>
             );
           })()}
 
-        {/* Customer marker */}
+        {/* Customer Marker */}
         {customerCoords &&
           (() => {
             const { x, y } = mapToViewport(
@@ -185,9 +158,9 @@ const MapSVGView: React.FC<{
               customerCoords.longitude,
             );
             return (
-              <g>
-                <circle cx={x} cy={y} r="10" fill="#2ecc71" />
-                <text
+              <G>
+                <Circle cx={x} cy={y} r={10} fill="#2ecc71" />
+                <SvgText
                   x={x}
                   y={y + 5}
                   fontSize="10"
@@ -195,12 +168,12 @@ const MapSVGView: React.FC<{
                   fill="white"
                 >
                   C
-                </text>
-              </g>
+                </SvgText>
+              </G>
             );
           })()}
 
-        {/* Current location marker */}
+        {/* Current Location Marker */}
         {currentCoords &&
           (() => {
             const { x, y } = mapToViewport(
@@ -208,14 +181,15 @@ const MapSVGView: React.FC<{
               currentCoords.longitude,
             );
             return (
-              <g>
-                <circle cx={x} cy={y} r="8" fill="#3498db" />
-                <circle cx={x} cy={y} r="12" fill="#3498db" fillOpacity="0.3" />
-              </g>
+              <G>
+                <Circle cx={x} cy={y} r={8} fill="#3498db" />
+                <Circle cx={x} cy={y} r={12} fill="#3498db" fillOpacity={0.3} />
+              </G>
             );
           })()}
-      </svg>
+      </Svg>
 
+      {/* Legend */}
       <View style={styles.mapLegend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendMarker, { backgroundColor: "#3498db" }]} />
@@ -252,12 +226,10 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
-  // Location watcher subscription
   const locationSubscription = useRef<Location.LocationSubscription | null>(
     null,
   );
 
-  // On component mount, get location permissions and start watching position
   useEffect(() => {
     const setupLocation = async () => {
       setIsLocating(true);
@@ -268,7 +240,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
           return;
         }
 
-        // Get initial location
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Highest,
         });
@@ -278,32 +249,27 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
           longitude: location.coords.longitude,
         });
 
-        // Start watching position if delivering
         if (isDeliverer) {
           locationSubscription.current = await Location.watchPositionAsync(
             {
               accuracy: Location.Accuracy.Highest,
-              distanceInterval: 10, // Update every 10 meters
-              timeInterval: 5000, // Or every 5 seconds
+              distanceInterval: 10,
+              timeInterval: 5000,
             },
             (location) => {
-              setCurrentLocation({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              });
+              const { latitude, longitude } = location.coords;
+              setCurrentLocation({ latitude, longitude });
 
-              // Recalculate ETA and distance
               updateEtaAndDistance(
-                location.coords.latitude,
-                location.coords.longitude,
+                latitude,
+                longitude,
                 destination?.latitude,
                 destination?.longitude,
               );
             },
           );
         }
-      } catch (error) {
-        console.error("Error setting up location:", error);
+      } catch (err) {
         setLocationError("Could not get your location");
       } finally {
         setIsLocating(false);
@@ -312,19 +278,14 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
 
     setupLocation();
 
-    // Cleanup
     return () => {
-      if (locationSubscription.current) {
-        locationSubscription.current.remove();
-      }
+      locationSubscription.current?.remove();
     };
   }, [isDeliverer]);
 
-  // Update destination when tracking changes
   useEffect(() => {
     if (!tracking) return;
 
-    // Determine destination based on route stage
     let dest: Coordinates | null = null;
 
     if (
@@ -347,7 +308,6 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
 
     setDestination(dest);
 
-    // Update ETA and distance
     if (currentLocation && dest) {
       updateEtaAndDistance(
         currentLocation.latitude,
@@ -358,159 +318,49 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({
     }
   }, [tracking, currentLocation]);
 
-  // Calculate and update ETA and distance
   const updateEtaAndDistance = (
     startLat?: number,
     startLon?: number,
     endLat?: number,
     endLon?: number,
   ) => {
-    if (!startLat || !startLon || !endLat || !endLon) return;
+    if (
+      startLat == null ||
+      startLon == null ||
+      endLat == null ||
+      endLon == null
+    )
+      return;
 
-    // Calculate distance
     const dist = calculateDistance(startLat, startLon, endLat, endLon);
     setDistance(dist);
 
-    // Calculate ETA
     const travelTime = calculateTravelTime(dist, "driving");
     const etaDate = new Date(Date.now() + travelTime * 60 * 1000);
     setEta(formatETA(etaDate));
   };
 
-  // Determine restaurant and customer coordinates
-  const getRestaurantCoords = (): Coordinates | undefined => {
-    if (tracking?.restaurantLocation) {
-      return {
-        latitude: tracking.restaurantLocation.latitude,
-        longitude: tracking.restaurantLocation.longitude,
-      };
-    }
-    return undefined;
-  };
-
-  const getCustomerCoords = (): Coordinates | undefined => {
-    if (tracking?.customerLocation) {
-      return {
-        latitude: tracking.customerLocation.latitude,
-        longitude: tracking.customerLocation.longitude,
-      };
-    }
-    return undefined;
-  };
-
-  // Render loading state
-  if (isLocating) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Color.colorBurlywood} />
-        <Text style={styles.loadingText}>Getting location...</Text>
-      </View>
-    );
-  }
-
-  // Render error state
-  if (locationError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Feather name="alert-circle" size={48} color="#e74c3c" />
-        <Text style={styles.errorText}>{locationError}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => {
-            setLocationError(null);
-            setIsLocating(true);
-          }}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Get stage description
-  const getStageDescription = (): string => {
-    if (!tracking) return "Loading route...";
-
-    switch (tracking.routeStage) {
-      case "to_restaurant":
-        return "Heading to restaurant for pickup";
-      case "to_customer":
-        return "Delivering to customer";
-      case "completed":
-        return "Delivery completed";
-      default:
-        return "Tracking delivery";
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>{getStageDescription()}</Text>
-        {tracking?.status === "picked_up" && (
-          <View style={styles.etaBadge}>
-            <Feather name="clock" size={14} color="#fff" />
+      {isLocating ? (
+        <ActivityIndicator size="large" color={Color.primary} />
+      ) : locationError ? (
+        <Text style={styles.errorText}>{locationError}</Text>
+      ) : (
+        <>
+          <MapSVGView
+            tracking={tracking}
+            restaurantCoords={tracking?.restaurantLocation}
+            customerCoords={tracking?.customerLocation}
+            currentCoords={currentLocation ?? undefined}
+          />
+          {eta && (
             <Text style={styles.etaText}>
-              {eta ? `${eta} remaining` : "Calculating..."}
+              ETA: {eta} ({distance?.toFixed(2)} km)
             </Text>
-          </View>
-        )}
-      </View>
-
-      <MapSVGView
-        tracking={tracking}
-        restaurantCoords={getRestaurantCoords()}
-        customerCoords={getCustomerCoords()}
-        currentCoords={currentLocation || undefined}
-      />
-
-      <View style={styles.detailsContainer}>
-        {tracking?.routeStage !== "completed" && (
-          <>
-            <View style={styles.detailRow}>
-              <View style={styles.detailLabelContainer}>
-                <Feather name="map-pin" size={16} color="#666" />
-                <Text style={styles.detailLabel}>
-                  {tracking?.routeStage === "to_restaurant"
-                    ? "Restaurant"
-                    : "Customer"}
-                  :
-                </Text>
-              </View>
-              <Text style={styles.detailValue}>
-                {tracking?.routeStage === "to_restaurant"
-                  ? tracking?.restaurantLocation?.address
-                  : tracking?.customerLocation?.address}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailLabelContainer}>
-                <Feather name="navigation" size={16} color="#666" />
-                <Text style={styles.detailLabel}>Distance:</Text>
-              </View>
-              <Text style={styles.detailValue}>
-                {distance ? `${distance.toFixed(2)} km` : "Calculating..."}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailLabelContainer}>
-                <Feather name="clock" size={16} color="#666" />
-                <Text style={styles.detailLabel}>ETA:</Text>
-              </View>
-              <Text style={styles.detailValue}>{eta || "Calculating..."}</Text>
-            </View>
-          </>
-        )}
-
-        {tracking?.routeStage === "completed" && (
-          <View style={styles.completedContainer}>
-            <Feather name="check-circle" size={48} color="#2ecc71" />
-            <Text style={styles.completedText}>Delivery completed!</Text>
-          </View>
-        )}
-      </View>
+          )}
+        </>
+      )}
     </View>
   );
 };

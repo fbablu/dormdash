@@ -11,6 +11,7 @@ export const Color = {
   colorBlack: "#000",
   colorWhite: "#fff",
   colorBurlywood: "#cfae70",
+  primary: "#ff6347",
 };
 
 export const FontSize = {
