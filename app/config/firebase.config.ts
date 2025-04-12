@@ -26,6 +26,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+// Initialize Storage (for profile images)
 const storage = getStorage(app);
 // Initialize Firestore
 const db = getFirestore(app);

@@ -1,8 +1,7 @@
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../config/firebase.config";
-
 
 async function uploadImage(userId: string) {
     // Request permission to access media library
@@ -40,6 +39,19 @@ async function uploadImage(userId: string) {
       }).catch((error) => {
         console.error("Error uploading file: ", error);
       });
+    }
+  }
+
+  async function getUserProfileImage(userId: string) {
+    const userDocRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userDocRef);
+  
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      return userData.profileImageUrl; // Return the image URL
+    } else {
+      console.log("No such document!");
+      return null;
     }
   }
 
