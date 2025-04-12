@@ -4,6 +4,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, setDoc } from "firebase/firestore";
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -28,8 +29,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
+// Initialize Firestore
+const db = getFirestore(app);
 
-async function uploadImage() {
+
+async function uploadImage(userId: string) {
   // Request permission to access media library
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
@@ -49,6 +53,7 @@ async function uploadImage() {
     const response = await fetch(result.assets[0].uri);
     const blob = await response.blob();
 
+    const userDocRef = doc(db, "users", userId);
     // Create a reference to the file you want to upload
     const storageRef = ref(storage, `profileImages/${Date.now()}-${result.assets[0].uri.split('/').pop()}`);
 
@@ -59,6 +64,7 @@ async function uploadImage() {
       getDownloadURL(snapshot.ref).then((downloadURL) => {
         console.log('File available at', downloadURL);
         // You can now save this URL to your database
+        setDoc(userDocRef, { profileImageUrl: downloadURL }, { merge: true });
       });
     }).catch((error) => {
       console.error("Error uploading file: ", error);
@@ -70,9 +76,6 @@ async function uploadImage() {
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
-
-// Initialize Firestore
-const db = getFirestore(app);
 
 // Log successful initialization
 console.log(
