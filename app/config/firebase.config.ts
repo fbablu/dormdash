@@ -3,6 +3,8 @@
 // Time spent: 30 minutes
 
 import { initializeApp } from "firebase/app";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import {
@@ -25,6 +27,44 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+
+async function uploadImage() {
+  // Request permission to access media library
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    alert('Sorry, we need camera roll permissions to make this work!');
+    return;
+  }
+
+  // Pick an image
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: 'images',
+    allowsEditing: true,
+    aspect: [4, 3],
+    quality: 1,
+  });
+
+  if (!result.canceled) {
+    const response = await fetch(result.assets[0].uri);
+    const blob = await response.blob();
+
+    // Create a reference to the file you want to upload
+    const storageRef = ref(storage, `profileImages/${Date.now()}-${result.assets[0].uri.split('/').pop()}`);
+
+    // Upload the file
+    uploadBytes(storageRef, blob).then((snapshot) => {
+      console.log('Uploaded a blob or file!');
+      // Get the download URL
+      getDownloadURL(snapshot.ref).then((downloadURL) => {
+        console.log('File available at', downloadURL);
+        // You can now save this URL to your database
+      });
+    }).catch((error) => {
+      console.error("Error uploading file: ", error);
+    });
+  }
+}
 
 // Initialize Auth with AsyncStorage persistence
 const auth = initializeAuth(app, {
