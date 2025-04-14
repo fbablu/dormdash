@@ -207,7 +207,6 @@ const ProfileScreen = () => {
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={async () => {
-              // Add a Reset API Connection button when in development
               await AsyncStorage.removeItem("api_disabled");
               Alert.alert(
                 "API Connection Reset",
@@ -338,7 +337,7 @@ const ProfileScreen = () => {
             <Feather name="log-out" size={24} color="#000" />
             <Text style={styles.menuItemText}>Sign Out</Text>
             <Feather name="chevron-right" size={24} color="#666" />
-          </TouchableOpacity>{" "}
+          </TouchableOpacity>
         </View>
 
         {/* Developer options (only visible in development) */}

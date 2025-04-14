@@ -1,15 +1,13 @@
 // app/services/authService.ts
-// Contributor: @Fardeen Bablu
-// Time spent: 30 minutes
-
+import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { mockAuth } from "../utils/mockAuth";
 
 const authService = {
   isAuthenticated: async (): Promise<boolean> => {
     try {
-      const user = await AsyncStorage.getItem("mock_current_user");
-      return !!user;
+      const user = await AsyncStorage.getItem("user_data");
+      const token = await AsyncStorage.getItem("userToken");
+      return !!user && !!token;
     } catch (error) {
       console.error("Error checking authentication:", error);
       return false;
@@ -32,6 +30,9 @@ const authService = {
   signOut: async () => {
     try {
       await AsyncStorage.removeItem("mock_current_user");
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userId");
+      await AsyncStorage.removeItem("user_data");
       return true;
     } catch (error) {
       console.error("Error signing out:", error);
@@ -40,4 +41,9 @@ const authService = {
   },
 };
 
-export default authService;
+// Default export to satisfy router requirements
+export default function AuthService() {
+  return null;
+}
+
+export { authService };
