@@ -18,7 +18,6 @@ const mockUser = {
   photoURL: null,
   emailVerified: true,
   getIdToken: async () => "mock-token-123",
-  // Add other required properties for User type
 };
 
 // Mock Auth implementation
