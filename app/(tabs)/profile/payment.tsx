@@ -22,8 +22,7 @@ import StripePaymentSheet from "@/components/payment/StripePaymentSheet";
 import { Color } from "@/GlobalStyles";
 
 const PAYMENT_STORAGE_KEY = "dormdash_payment_method";
-const STRIPE_PUBLISHABLE_KEY =
-  "pk_test_51NXNvIFXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+const STRIPE_PUBLISHABLE_KEY = "pk_test_TYooMQauvdEDq54NiTphI7jx";
 
 const PaymentScreen = () => {
   const { setPaymentMethod } = usePayment();
