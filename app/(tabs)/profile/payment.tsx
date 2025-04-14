@@ -177,6 +177,11 @@ const PaymentScreen = () => {
                 Please add your card details to enable Stripe payments.
               </Text>
 
+              <Text style={styles.tipText}>
+                Use test card: 4242 4242 4242 4242, any future date, any CVC,
+                any ZIP
+              </Text>
+
               <StripePaymentSheet
                 onSuccess={handleStripeSuccess}
                 onCancel={handleStripeCancel}
@@ -341,14 +346,22 @@ const styles = StyleSheet.create({
   },
   modalDescription: {
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 10,
     fontSize: 16,
     color: "#666",
+  },
+  tipText: {
+    textAlign: "center",
+    marginBottom: 20,
+    fontSize: 14,
+    color: "#888",
+    fontStyle: "italic",
   },
   cancelButton: {
     marginTop: 16,
     padding: 10,
   },
+
   cancelButtonText: {
     fontSize: 16,
     color: "#666",

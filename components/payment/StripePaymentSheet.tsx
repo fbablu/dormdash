@@ -1,5 +1,5 @@
 // components/payment/StripePaymentSheet.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { initStripe, useStripe } from "@stripe/stripe-react-native";
-import * as Linking from "expo-linking";
-import Constants from "expo-constants";
+import { CardField, useStripe } from "@stripe/stripe-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Color } from "@/GlobalStyles";
-
-// Use a test publishable key - replace with your actual key
-const STRIPE_PUBLISHABLE_KEY = "pk_test_TYooMQauvdEDq54NiTphI7jx";
 
 interface StripePaymentSheetProps {
   onSuccess: () => void;
@@ -26,118 +21,110 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = ({
   onSuccess,
   onCancel,
 }) => {
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { createPaymentMethod } = useStripe();
   const [loading, setLoading] = useState(false);
+  const [complete, setComplete] = useState(false);
 
-  useEffect(() => {
-    initializeStripe();
-  }, []);
-
-  const initializeStripe = async () => {
-    try {
-      await initStripe({
-        publishableKey: STRIPE_PUBLISHABLE_KEY,
-        merchantIdentifier: "merchant.com.dormdash",
-        urlScheme:
-          Constants.appOwnership === "expo"
-            ? Linking.createURL("/--/")
-            : Linking.createURL(""),
-      });
-    } catch (error) {
-      console.error("Failed to initialize Stripe:", error);
-      Alert.alert("Error", "Failed to initialize payment system");
+  const handleSaveCard = async () => {
+    if (!complete) {
+      Alert.alert("Error", "Please enter valid card details");
+      return;
     }
-  };
 
-  // Since we don't have a real backend, we'll create mock data
-  const createMockPaymentIntent = () => {
-    // In a real app, this would come from your backend
-    return {
-      paymentIntent: "pi_" + Math.random().toString(36).substring(2, 15),
-      ephemeralKey: "ek_" + Math.random().toString(36).substring(2, 15),
-      customer: "cus_" + Math.random().toString(36).substring(2, 15),
-    };
-  };
-
-  const openPaymentSheet = async () => {
     setLoading(true);
     try {
-      // Get mock payment data
-      const mockData = createMockPaymentIntent();
-      console.log("Using mock payment data:", mockData);
-
-      // Initialize the Payment Sheet
-      const initResult = await initPaymentSheet({
-        merchantDisplayName: "DormDash",
-        customerId: mockData.customer,
-        customerEphemeralKeySecret: mockData.ephemeralKey,
-        paymentIntentClientSecret: mockData.paymentIntent,
-        // In demo mode, always return success
-        testEnv: true,
-        defaultBillingDetails: {
-          name: "Vanderbilt Student",
-        },
-        // Appearance to match the app's styling
-        appearance: {
-          colors: {
-            primary: Color.colorBurlywood,
+      // Create a payment method with the card details
+      const { paymentMethod, error } = await createPaymentMethod({
+        paymentMethodType: "Card",
+        paymentMethodData: {
+          billingDetails: {
+            name: "Vanderbilt Student",
           },
         },
       });
 
-      if (initResult.error) {
-        console.error("Error initializing payment sheet:", initResult.error);
-        Alert.alert("Error", "Failed to initialize payment");
-        setLoading(false);
+      if (error) {
+        console.error("Error creating payment method:", error);
+        Alert.alert("Error", error.message || "Failed to process card");
         onCancel();
         return;
       }
 
-      // Present the Payment Sheet
-      const presentResult = await presentPaymentSheet();
+      // Payment method created successfully
+      if (paymentMethod) {
+        console.log("Payment method created:", paymentMethod.id);
 
-      if (presentResult.error) {
-        console.error("Payment sheet error:", presentResult.error);
+        // Store the payment method ID
+        await AsyncStorage.setItem("stripe_customer_id", paymentMethod.id);
+        await AsyncStorage.setItem(
+          "stripe_card_last4",
+          paymentMethod.Card?.last4 || "****",
+        );
 
-        if (presentResult.error.code === "Canceled") {
-          onCancel();
-        } else {
-          Alert.alert("Error", presentResult.error.message || "Payment failed");
-        }
-      } else {
-        // For demo purposes, simulate success
-        console.log("Payment success (mocked)");
         Alert.alert("Success", "Card added successfully!");
-
-        // Save card info for future use
-        await AsyncStorage.setItem("stripe_customer_id", mockData.customer);
-
         onSuccess();
       }
     } catch (error) {
-      console.error("Payment sheet error:", error);
-      Alert.alert("Error", "There was a problem setting up your card");
+      console.error("Card save error:", error);
+      Alert.alert("Error", "There was a problem saving your card");
       onCancel();
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <TouchableOpacity
-      style={styles.button}
-      onPress={openPaymentSheet}
-      disabled={loading}
-    >
-      {loading ? (
-        <ActivityIndicator color="#fff" size="small" />
-      ) : (
-        <Text style={styles.buttonText}>Set Up Card Payment</Text>
-      )}
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <Text style={styles.label}>Card Information</Text>
+
+      <CardField
+        postalCodeEnabled={true}
+        placeholders={{
+          number: "4242 4242 4242 4242",
+        }}
+        style={styles.cardFieldContainer}
+        cardStyle={{
+          backgroundColor: "#FFFFFF",
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: "#E0E0E0",
+        }}
+        onCardChange={(cardDetails) => {
+          setComplete(cardDetails.complete);
+        }}
+      />
+
+      <TouchableOpacity
+        style={[styles.button, !complete && styles.buttonDisabled]}
+        onPress={handleSaveCard}
+        disabled={loading || !complete}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Save Card</Text>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 8,
+    color: "#333",
+  },
+  cardFieldContainer: {
+    height: 50,
+    marginVertical: 16,
+    width: "100%",
+  },
   button: {
     backgroundColor: Color.colorBurlywood,
     paddingVertical: 12,
@@ -146,6 +133,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: "center",
     width: "100%",
+  },
+  buttonDisabled: {
+    backgroundColor: "#CCCCCC",
   },
   buttonText: {
     color: "white",
