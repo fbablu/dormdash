@@ -3,6 +3,7 @@
 // Time spent: 30 minutes
 
 import { initializeApp } from "firebase/app";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import {
@@ -25,14 +26,15 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+// Initialize Storage (for profile images)
+const storage = getStorage(app);
+// Initialize Firestore
+const db = getFirestore(app);
 
 // Initialize Auth with AsyncStorage persistence
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
-
-// Initialize Firestore
-const db = getFirestore(app);
 
 // Log successful initialization
 console.log(
@@ -40,5 +42,5 @@ console.log(
   firebaseConfig.projectId,
 );
 
-export { auth, db };
+export { auth, db, storage };
 export default app;
