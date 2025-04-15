@@ -1,5 +1,4 @@
 // app/utils/RestaurantMenuIntegration.tsx
-// Helper file to access restaurant menus stored by restaurant owners
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

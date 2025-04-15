@@ -40,14 +40,6 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert(
-        "Missing Information",
-        "Please enter your email and password",
-      );
-      return;
-    }
-
     console.log("Login attempt with:", email, password.replace(/./g, "*"));
 
     setIsLoading(true);
