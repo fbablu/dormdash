@@ -1,7 +1,4 @@
 // components/admin/MenuEditor.tsx
-// Contributor: @Fardeen Bablu
-// Time spent: 3 hours
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,29 +6,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   Alert,
   ActivityIndicator,
   Modal,
   FlatList,
-  Dimensions,
   useWindowDimensions,
-  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Color } from "@/GlobalStyles";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  deleteDoc,
-} from "firebase/firestore";
-
-import { db } from "@/app/config/firebase";
 import { generateMenuItemId } from "@/app/utils/menuIntegration";
+import {
+  getMenuCategories,
+  saveCategory,
+  deleteCategory,
+} from "@/app/utils/firebaseAdapter";
 
 interface MenuItem {
   id: string;
@@ -91,25 +79,8 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
     setLoading(true);
     try {
-      const menuRef = collection(db, "restaurants", restaurantId, "menu");
-      const menuSnapshot = await getDocs(menuRef);
-
-      if (menuSnapshot.empty) {
-        // No menu categories exist yet
-        setCategories([]);
-        setLoading(false);
-        return;
-      }
-
-      const loadedCategories: MenuCategory[] = [];
-      menuSnapshot.forEach((doc) => {
-        const data = doc.data();
-        loadedCategories.push({
-          id: doc.id,
-          name: data.name || doc.id,
-          items: Array.isArray(data.items) ? data.items : [],
-        });
-      });
+      // Use our adapter function instead of direct Firebase calls
+      const loadedCategories = await getMenuCategories(restaurantId);
 
       // Sort alphabetically
       loadedCategories.sort((a, b) => a.name.localeCompare(b.name));
@@ -161,18 +132,22 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         items: [],
       };
 
-      // Save to Firestore
-      await setDoc(doc(db, "restaurants", restaurantId, "menu", categoryId), {
+      // Use our adapter function to save to "Firebase"
+      const success = await saveCategory(restaurantId, categoryId, {
         name: newCategoryName,
         items: [],
       });
 
-      // Update local state
-      const updatedCategories = [...categories, newCategory];
-      setCategories(updatedCategories);
-      setSelectedCategory(newCategory);
-      setNewCategoryName("");
-      setShowCategoryModal(false);
+      if (success) {
+        // Update local state
+        const updatedCategories = [...categories, newCategory];
+        setCategories(updatedCategories);
+        setSelectedCategory(newCategory);
+        setNewCategoryName("");
+        setShowCategoryModal(false);
+      } else {
+        Alert.alert("Error", "Failed to add category");
+      }
     } catch (error) {
       console.error("Error adding category:", error);
       Alert.alert("Error", "Failed to add category");
@@ -196,22 +171,24 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           onPress: async () => {
             setLoading(true);
             try {
-              // Delete from Firestore
-              await deleteDoc(
-                doc(db, "restaurants", restaurantId, "menu", category.id),
-              );
+              // Use our adapter function to delete from "Firebase"
+              const success = await deleteCategory(restaurantId, category.id);
 
-              // Update local state
-              const updatedCategories = categories.filter(
-                (cat) => cat.id !== category.id,
-              );
-              setCategories(updatedCategories);
-
-              // Select another category if available
-              if (selectedCategory?.id === category.id) {
-                setSelectedCategory(
-                  updatedCategories.length > 0 ? updatedCategories[0] : null,
+              if (success) {
+                // Update local state
+                const updatedCategories = categories.filter(
+                  (cat) => cat.id !== category.id,
                 );
+                setCategories(updatedCategories);
+
+                // Select another category if available
+                if (selectedCategory?.id === category.id) {
+                  setSelectedCategory(
+                    updatedCategories.length > 0 ? updatedCategories[0] : null,
+                  );
+                }
+              } else {
+                Alert.alert("Error", "Failed to delete category");
               }
             } catch (error) {
               console.error("Error deleting category:", error);
@@ -283,26 +260,27 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         updatedItems = [...selectedCategory.items, item];
       }
 
-      // Update Firestore
-      await setDoc(
-        doc(db, "restaurants", restaurantId, "menu", selectedCategory.id),
-        {
-          name: selectedCategory.name,
-          items: updatedItems,
-        },
-      );
-
-      // Update local state
-      const updatedCategories = categories.map((cat) => {
-        if (cat.id === selectedCategory.id) {
-          return { ...cat, items: updatedItems };
-        }
-        return cat;
+      // Use our adapter function to save to "Firebase"
+      const success = await saveCategory(restaurantId, selectedCategory.id, {
+        name: selectedCategory.name,
+        items: updatedItems,
       });
 
-      setCategories(updatedCategories);
-      setSelectedCategory({ ...selectedCategory, items: updatedItems });
-      setShowItemModal(false);
+      if (success) {
+        // Update local state
+        const updatedCategories = categories.map((cat) => {
+          if (cat.id === selectedCategory.id) {
+            return { ...cat, items: updatedItems };
+          }
+          return cat;
+        });
+
+        setCategories(updatedCategories);
+        setSelectedCategory({ ...selectedCategory, items: updatedItems });
+        setShowItemModal(false);
+      } else {
+        Alert.alert("Error", "Failed to save item");
+      }
     } catch (error) {
       console.error("Error saving item:", error);
       Alert.alert("Error", "Failed to save item");
@@ -331,31 +309,33 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
                 (i) => i.id !== item.id,
               );
 
-              // Update Firestore
-              await setDoc(
-                doc(
-                  db,
-                  "restaurants",
-                  restaurantId,
-                  "menu",
-                  selectedCategory.id,
-                ),
+              // Use our adapter function to save to "Firebase"
+              const success = await saveCategory(
+                restaurantId,
+                selectedCategory.id,
                 {
                   name: selectedCategory.name,
                   items: updatedItems,
                 },
               );
 
-              // Update local state
-              const updatedCategories = categories.map((cat) => {
-                if (cat.id === selectedCategory.id) {
-                  return { ...cat, items: updatedItems };
-                }
-                return cat;
-              });
+              if (success) {
+                // Update local state
+                const updatedCategories = categories.map((cat) => {
+                  if (cat.id === selectedCategory.id) {
+                    return { ...cat, items: updatedItems };
+                  }
+                  return cat;
+                });
 
-              setCategories(updatedCategories);
-              setSelectedCategory({ ...selectedCategory, items: updatedItems });
+                setCategories(updatedCategories);
+                setSelectedCategory({
+                  ...selectedCategory,
+                  items: updatedItems,
+                });
+              } else {
+                Alert.alert("Error", "Failed to delete item");
+              }
             } catch (error) {
               console.error("Error deleting item:", error);
               Alert.alert("Error", "Failed to delete item");
@@ -395,31 +375,8 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     </TouchableOpacity>
   );
 
-  const renderMenuItem = ({ item }: { item: MenuItem }) => (
-    <View style={styles.menuItem}>
-      <View style={styles.menuItemContent}>
-        <Text style={styles.menuItemName}>{item.name}</Text>
-        <Text style={styles.menuItemDescription}>{item.description}</Text>
-        <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
-      </View>
-
-      <View style={styles.menuItemActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openItemModal(item)}
-        >
-          <Feather name="edit-2" size={18} color="#4caf50" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDeleteItem(item)}
-        >
-          <Feather name="trash-2" size={18} color="#ff6b6b" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  // Render the rest of the component (UI code)
+  // ...
 
   return (
     <View style={styles.container}>
@@ -488,7 +445,35 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           {selectedCategory ? (
             <FlatList
               data={selectedCategory.items}
-              renderItem={renderMenuItem}
+              renderItem={({ item }) => (
+                <View style={styles.menuItem}>
+                  <View style={styles.menuItemContent}>
+                    <Text style={styles.menuItemName}>{item.name}</Text>
+                    <Text style={styles.menuItemDescription}>
+                      {item.description}
+                    </Text>
+                    <Text style={styles.menuItemPrice}>
+                      ${item.price.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.menuItemActions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => openItemModal(item)}
+                    >
+                      <Feather name="edit-2" size={18} color="#4caf50" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => handleDeleteItem(item)}
+                    >
+                      <Feather name="trash-2" size={18} color="#ff6b6b" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.menuItemsList}
               ListEmptyComponent={
@@ -616,6 +601,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   );
 };
 
+// Define styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -639,11 +625,21 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
+  mobileContentContainer: {
+    flexDirection: "column",
+  },
   categoriesSidebar: {
     width: "40%",
     borderRightWidth: 1,
     borderRightColor: "#eee",
     backgroundColor: "#f9f9f9",
+  },
+  mobileCategoriesSidebar: {
+    width: "100%",
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    maxHeight: 200,
   },
   categoriesHeader: {
     flexDirection: "row",
@@ -846,16 +842,6 @@ const styles = StyleSheet.create({
   modalSaveButtonText: {
     color: "#fff",
     fontWeight: "500",
-  },
-  mobileContentContainer: {
-    flexDirection: "column",
-  },
-  mobileCategoriesSidebar: {
-    width: "100%",
-    borderRightWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    maxHeight: 200,
   },
 });
 
