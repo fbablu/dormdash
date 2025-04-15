@@ -1,5 +1,5 @@
 // components/admin/MenuEditor.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Modal,
   FlatList,
   useWindowDimensions,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Color } from "@/GlobalStyles";
@@ -53,18 +55,19 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  // New category state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  // New/edit item state
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemName, setItemName] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [itemPrice, setItemPrice] = useState("");
 
-  // Load existing menu data on mount
+  const itemNameInputRef = useRef<TextInput>(null);
+  const itemPriceInputRef = useRef(null);
+  const categoryInputRef = useRef(null);
+
   useEffect(() => {
     if (restaurantId) {
       loadMenu();
@@ -79,14 +82,9 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
     setLoading(true);
     try {
-      // Use our adapter function instead of direct Firebase calls
       const loadedCategories = await getMenuCategories(restaurantId);
-
-      // Sort alphabetically
       loadedCategories.sort((a, b) => a.name.localeCompare(b.name));
       setCategories(loadedCategories);
-
-      // Select first category if available
       if (loadedCategories.length > 0) {
         setSelectedCategory(loadedCategories[0]);
       }
@@ -98,7 +96,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     }
   };
 
-  // Add new category
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       Alert.alert("Error", "Category name is required");
@@ -112,12 +109,9 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
     setLoading(true);
     try {
-      // Generate category ID from name
       const categoryId = newCategoryName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "-");
-
-      // Check if category with this ID already exists
       const existingCategory = categories.find((cat) => cat.id === categoryId);
       if (existingCategory) {
         Alert.alert("Error", `Category "${newCategoryName}" already exists`);
@@ -125,21 +119,18 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
         return;
       }
 
-      // Create new category
       const newCategory: MenuCategory = {
         id: categoryId,
         name: newCategoryName,
         items: [],
       };
 
-      // Use our adapter function to save to "Firebase"
       const success = await saveCategory(restaurantId, categoryId, {
         name: newCategoryName,
         items: [],
       });
 
       if (success) {
-        // Update local state
         const updatedCategories = [...categories, newCategory];
         setCategories(updatedCategories);
         setSelectedCategory(newCategory);
@@ -156,7 +147,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     }
   };
 
-  // Delete category
   const handleDeleteCategory = async (category: MenuCategory) => {
     if (!restaurantId) return;
 
@@ -171,17 +161,12 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           onPress: async () => {
             setLoading(true);
             try {
-              // Use our adapter function to delete from "Firebase"
               const success = await deleteCategory(restaurantId, category.id);
-
               if (success) {
-                // Update local state
                 const updatedCategories = categories.filter(
                   (cat) => cat.id !== category.id,
                 );
                 setCategories(updatedCategories);
-
-                // Select another category if available
                 if (selectedCategory?.id === category.id) {
                   setSelectedCategory(
                     updatedCategories.length > 0 ? updatedCategories[0] : null,
@@ -202,16 +187,13 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     );
   };
 
-  // Open add/edit item modal
   const openItemModal = (item?: MenuItem) => {
     if (item) {
-      // Edit existing item
       setEditingItem(item);
       setItemName(item.name);
       setItemDescription(item.description || "");
       setItemPrice(item.price.toString());
     } else {
-      // Add new item
       setEditingItem(null);
       setItemName("");
       setItemDescription("");
@@ -220,7 +202,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     setShowItemModal(true);
   };
 
-  // Save item (add or update)
   const handleSaveItem = async () => {
     if (!selectedCategory || !restaurantId) {
       Alert.alert("Error", "Please select a category first");
@@ -240,7 +221,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
     setLoading(true);
     try {
-      // Create new item or update existing one
       const item: MenuItem = {
         id: editingItem?.id || generateMenuItemId(itemName),
         name: itemName.trim(),
@@ -251,23 +231,19 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
       let updatedItems: MenuItem[];
 
       if (editingItem) {
-        // Update existing item
         updatedItems = selectedCategory.items.map((i) =>
           i.id === editingItem.id ? item : i,
         );
       } else {
-        // Add new item
         updatedItems = [...selectedCategory.items, item];
       }
 
-      // Use our adapter function to save to "Firebase"
       const success = await saveCategory(restaurantId, selectedCategory.id, {
         name: selectedCategory.name,
         items: updatedItems,
       });
 
       if (success) {
-        // Update local state
         const updatedCategories = categories.map((cat) => {
           if (cat.id === selectedCategory.id) {
             return { ...cat, items: updatedItems };
@@ -289,7 +265,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     }
   };
 
-  // Delete item
   const handleDeleteItem = async (item: MenuItem) => {
     if (!selectedCategory || !restaurantId) return;
 
@@ -304,12 +279,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           onPress: async () => {
             setLoading(true);
             try {
-              // Remove item from category
               const updatedItems = selectedCategory.items.filter(
                 (i) => i.id !== item.id,
               );
 
-              // Use our adapter function to save to "Firebase"
               const success = await saveCategory(
                 restaurantId,
                 selectedCategory.id,
@@ -320,7 +293,6 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               );
 
               if (success) {
-                // Update local state
                 const updatedCategories = categories.map((cat) => {
                   if (cat.id === selectedCategory.id) {
                     return { ...cat, items: updatedItems };
@@ -375,229 +347,233 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     </TouchableOpacity>
   );
 
-  // Render the rest of the component (UI code)
-  // ...
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        {restaurantName ? `${restaurantName} Menu` : "Restaurant Menu Editor"}
-      </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        <Text style={styles.title}>
+          {restaurantName ? `${restaurantName} Menu` : "Restaurant Menu Editor"}
+        </Text>
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Color.colorBurlywood} />
-        </View>
-      )}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={Color.colorBurlywood} />
+          </View>
+        )}
 
-      <View
-        style={[
-          styles.contentContainer,
-          isMobile && styles.mobileContentContainer,
-        ]}
-      >
-        {/* Categories Sidebar */}
         <View
           style={[
-            styles.categoriesSidebar,
-            isMobile && styles.mobileCategoriesSidebar,
+            styles.contentContainer,
+            isMobile && styles.mobileContentContainer,
           ]}
         >
-          <View style={styles.categoriesHeader}>
-            <Text style={styles.sidebarTitle}>Categories</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowCategoryModal(true)}
-            >
-              <Feather name="plus" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.categoriesList}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No categories yet</Text>
-            }
-          />
-        </View>
-
-        {/* Menu Items */}
-        <View style={styles.menuItemsContainer}>
-          <View style={styles.menuHeader}>
-            <Text style={styles.menuTitle}>
-              {selectedCategory ? selectedCategory.name : "Select a category"}
-            </Text>
-
-            {selectedCategory && (
+          {/* Categories Sidebar */}
+          <View
+            style={[
+              styles.categoriesSidebar,
+              isMobile && styles.mobileCategoriesSidebar,
+            ]}
+          >
+            <View style={styles.categoriesHeader}>
+              <Text style={styles.sidebarTitle}>Categories</Text>
               <TouchableOpacity
-                style={styles.addItemButton}
-                onPress={() => openItemModal()}
+                style={styles.addButton}
+                onPress={() => setShowCategoryModal(true)}
               >
-                <Feather name="plus" size={16} color="#fff" />
-                <Text style={styles.addItemButtonText}>Add Item</Text>
+                <Feather name="plus" size={18} color="#fff" />
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
 
-          {selectedCategory ? (
             <FlatList
-              data={selectedCategory.items}
-              renderItem={({ item }) => (
-                <View style={styles.menuItem}>
-                  <View style={styles.menuItemContent}>
-                    <Text style={styles.menuItemName}>{item.name}</Text>
-                    <Text style={styles.menuItemDescription}>
-                      {item.description}
-                    </Text>
-                    <Text style={styles.menuItemPrice}>
-                      ${item.price.toFixed(2)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.menuItemActions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => openItemModal(item)}
-                    >
-                      <Feather name="edit-2" size={18} color="#4caf50" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleDeleteItem(item)}
-                    >
-                      <Feather name="trash-2" size={18} color="#ff6b6b" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
+              data={categories}
+              renderItem={renderCategoryItem}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.menuItemsList}
+              contentContainerStyle={styles.categoriesList}
               ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Feather name="menu" size={40} color="#ddd" />
-                  <Text style={styles.emptyStateText}>
-                    No items in this category
-                  </Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    Tap the "Add Item" button to add your first menu item
-                  </Text>
-                </View>
+                <Text style={styles.emptyText}>No categories yet</Text>
               }
             />
-          ) : (
-            <View style={styles.emptyState}>
-              <Feather name="menu" size={40} color="#ddd" />
-              <Text style={styles.emptyStateText}>
-                Select a category or create one
+          </View>
+
+          {/* Menu Items */}
+          <View style={styles.menuItemsContainer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>
+                {selectedCategory ? selectedCategory.name : "Select a category"}
               </Text>
+
+              {selectedCategory && (
+                <TouchableOpacity
+                  style={styles.addItemButton}
+                  onPress={() => openItemModal()}
+                >
+                  <Feather name="plus" size={16} color="#fff" />
+                  <Text style={styles.addItemButtonText}>Add Item</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          )}
-        </View>
-      </View>
 
-      {/* Add Category Modal */}
-      <Modal
-        visible={showCategoryModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCategoryModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Category</Text>
+            {selectedCategory ? (
+              <FlatList
+                data={selectedCategory.items}
+                renderItem={({ item }) => (
+                  <View style={styles.menuItem}>
+                    <View style={styles.menuItemContent}>
+                      <Text style={styles.menuItemName}>{item.name}</Text>
+                      <Text style={styles.menuItemDescription}>
+                        {item.description}
+                      </Text>
+                      <Text style={styles.menuItemPrice}>
+                        ${item.price.toFixed(2)}
+                      </Text>
+                    </View>
 
-            <Text style={styles.modalLabel}>Category Name</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={newCategoryName}
-              onChangeText={setNewCategoryName}
-              placeholder="e.g. Appetizers, Main Courses, Drinks"
-            />
+                    <View style={styles.menuItemActions}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => openItemModal(item)}
+                      >
+                        <Feather name="edit-2" size={18} color="#4caf50" />
+                      </TouchableOpacity>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setShowCategoryModal(false)}
-              >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={handleAddCategory}
-              >
-                <Text style={styles.modalSaveButtonText}>Add Category</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add/Edit Item Modal */}
-      <Modal
-        visible={showItemModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowItemModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingItem ? "Edit Menu Item" : "Add New Menu Item"}
-            </Text>
-
-            <Text style={styles.modalLabel}>Item Name</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={itemName}
-              onChangeText={setItemName}
-              placeholder="e.g. Caesar Salad"
-            />
-
-            <Text style={styles.modalLabel}>Description</Text>
-            <TextInput
-              style={[styles.modalInput, styles.textArea]}
-              value={itemDescription}
-              onChangeText={setItemDescription}
-              placeholder="Describe the item..."
-              multiline
-              numberOfLines={3}
-            />
-
-            <Text style={styles.modalLabel}>Price ($)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={itemPrice}
-              onChangeText={setItemPrice}
-              placeholder="9.99"
-              keyboardType="decimal-pad"
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => setShowItemModal(false)}
-              >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalSaveButton}
-                onPress={handleSaveItem}
-              >
-                <Text style={styles.modalSaveButtonText}>
-                  {editingItem ? "Update Item" : "Add Item"}
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDeleteItem(item)}
+                      >
+                        <Feather name="trash-2" size={18} color="#ff6b6b" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.menuItemsList}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Feather name="menu" size={40} color="#ddd" />
+                    <Text style={styles.emptyStateText}>
+                      No items in this category
+                    </Text>
+                    <Text style={styles.emptyStateSubtext}>
+                      Tap the "Add Item" button to add your first menu item
+                    </Text>
+                  </View>
+                }
+              />
+            ) : (
+              <View style={styles.emptyState}>
+                <Feather name="menu" size={40} color="#ddd" />
+                <Text style={styles.emptyStateText}>
+                  Select a category or create one
                 </Text>
-              </TouchableOpacity>
-            </View>
+              </View>
+            )}
           </View>
         </View>
-      </Modal>
-    </View>
+
+        {/* Add Category Modal */}
+        <Modal
+          visible={showCategoryModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCategoryModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Category</Text>
+
+              <Text style={styles.modalLabel}>Category Name</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                placeholder="e.g. Appetizers, Main Courses, Drinks"
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowCategoryModal(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={handleAddCategory}
+                >
+                  <Text style={styles.modalSaveButtonText}>Add Category</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Add/Edit Item Modal */}
+        <Modal
+          visible={showItemModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowItemModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingItem ? "Edit Menu Item" : "Add New Menu Item"}
+              </Text>
+
+              <Text style={styles.modalLabel}>Item Name</Text>
+              <TextInput
+                ref={itemNameInputRef}
+                style={styles.modalInput}
+                value={itemName}
+                onChangeText={setItemName}
+                placeholder="e.g. Caesar Salad"
+                returnKeyType="done"
+                onSubmitEditing={() => itemNameInputRef.current?.blur()}
+              />
+
+              <Text style={styles.modalLabel}>Description</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={itemDescription}
+                onChangeText={setItemDescription}
+                placeholder="Describe the item..."
+                returnKeyType="done"
+                onSubmitEditing={(e) =>
+                  e.nativeEvent.text && Keyboard.dismiss()
+                }
+              />
+
+              <Text style={styles.modalLabel}>Price ($)</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={itemPrice}
+                onChangeText={setItemPrice}
+                placeholder="9.99"
+                keyboardType="decimal-pad"
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowItemModal(false)}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={handleSaveItem}
+                >
+                  <Text style={styles.modalSaveButtonText}>
+                    {editingItem ? "Update Item" : "Add Item"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
