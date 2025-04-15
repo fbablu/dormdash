@@ -301,11 +301,11 @@ export const acceptDelivery = async (req: Request, res: Response) => {
     }
 
     // Check that user is not trying to deliver their own order
-    if (orderData.customerId === req.user.uid) {
-      return res
-        .status(400)
-        .json({ error: "You cannot deliver your own order" });
-    }
+    // if (orderData.customerId === req.user.uid) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "You cannot deliver your own order" });
+    // }
 
     // Update order with deliverer info
     await ordersCollection.doc(id).update({

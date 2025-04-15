@@ -133,10 +133,10 @@ export default function Deliver() {
       const order = allOrders.find((o) => o.id === orderId);
 
       // Double check this isn't the user's own order
-      if (order && order.customerId === user.id) {
-        Alert.alert("Error", "You cannot deliver your own order");
-        return false;
-      }
+      // if (order && order.customerId === user.id) {
+      //   Alert.alert("Error", "You cannot deliver your own order");
+      //   return false;
+      // }
 
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
