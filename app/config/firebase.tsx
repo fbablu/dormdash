@@ -1,8 +1,14 @@
 // app/config/firebase.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
+import {
+  Firestore,
+  DocumentReference,
+  DocumentData,
+  DocumentSnapshot,
+  CollectionReference,
+} from "firebase/firestore";
 
-// Mock Firebase implementations for Expo Go
 const mockUser = {
   uid: "mock-user-id",
   email: "test@vanderbilt.edu",
@@ -33,19 +39,54 @@ export const auth = {
   signOut: async () => Promise.resolve(),
 };
 
-// Mock Firestore
+// Create mock implementations that conform to the Firestore types
+const mockDocumentSnapshot: DocumentSnapshot = {
+  exists: () => true,
+  data: () => ({}),
+  id: "mock-doc-id",
+  ref: {} as DocumentReference,
+  metadata: { hasPendingWrites: false, isEqual: () => false, fromCache: false },
+  get: () => null,
+  isEqual: () => false,
+} as unknown as DocumentSnapshot;
+
+const mockDocumentReference = {
+  get: async () => mockDocumentSnapshot,
+  set: async () => Promise.resolve(),
+  id: "mock-doc-id",
+  path: "mock-path",
+  // Add other required properties
+  onSnapshot: () => () => {},
+  update: async () => Promise.resolve(),
+  delete: async () => Promise.resolve(),
+  parent: {} as CollectionReference<DocumentData>,
+  firestore: {} as Firestore,
+  withConverter: () => ({}),
+  type: "document",
+  converter: null,
+} as unknown as DocumentReference<DocumentData>;
+
+const mockCollectionReference = {
+  doc: () => mockDocumentReference,
+  // Add other required properties
+  add: async () => mockDocumentReference,
+  id: "mock-collection-id",
+  path: "mock-collection-path",
+  parent: null,
+  firestore: {} as Firestore,
+  withConverter: () => ({}),
+  type: "collection",
+  converter: null,
+} as unknown as CollectionReference<DocumentData>;
+
+// Mock Firestore with proper typing
 export const db = {
-  collection: () => ({
-    doc: () => ({
-      get: async () => ({
-        exists: true,
-        data: () => ({}),
-        id: "mock-doc-id",
-      }),
-      set: async () => Promise.resolve(),
-    }),
-  }),
-};
+  collection: () => mockCollectionReference,
+  type: "firestore" as const,
+  app: {} as any,
+  toJSON: () => ({}),
+  // Add other required properties to match Firestore interface
+} as unknown as Firestore;
 
 // Mock Storage
 export const storage = {

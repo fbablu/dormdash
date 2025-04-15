@@ -114,9 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Initialize and check if user is already logged in
     const initializeAuth = async () => {
       try {
+        console.log("[AuthContext] Initializing auth...");
         // Try to load an existing user session
         const userData = await AsyncStorage.getItem("user_data");
         if (userData) {
+          console.log("[AuthContext] Found existing user session");
           const parsedUser = JSON.parse(userData);
           setState({
             isLoading: false,
@@ -129,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             checkUserRole();
           }, 100);
         } else {
+          console.log("[AuthContext] No existing user session found");
           setState({
             isLoading: false,
             isSignedIn: false,
@@ -136,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         }
       } catch (error) {
-        console.error("Error in auth initialization:", error);
+        console.error("[AuthContext] Error in auth initialization:", error);
         setState({
           isLoading: false,
           isSignedIn: false,
@@ -150,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("[AuthContext] Sign in attempt for:", email);
       setState((prev) => ({ ...prev, isLoading: true }));
 
       // Check if the email and password match our test accounts
@@ -160,8 +164,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       if (!testAccount) {
+        console.error("[AuthContext] Invalid credentials for:", email);
         throw new Error("Invalid email or password");
       }
+
+      console.log("[AuthContext] Credentials valid for:", email);
 
       // Create user data structure
       const userData: User = {
@@ -177,6 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }),
       };
 
+      console.log("[AuthContext] Created user data:", JSON.stringify(userData));
+
       // Store in AsyncStorage for session persistence
       await AsyncStorage.setItem(
         "mock_current_user",
@@ -185,6 +194,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await AsyncStorage.setItem("userToken", `mock-token-${testAccount.id}`);
       await AsyncStorage.setItem("userId", testAccount.id);
       await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+
+      console.log("[AuthContext] User data stored in AsyncStorage");
 
       setState({
         isLoading: false,
@@ -196,8 +207,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setTimeout(() => {
         checkUserRole();
       }, 100);
+
+      // Navigate to main screen
+      console.log("[AuthContext] Navigating to main screen");
+      router.replace("/(tabs)");
     } catch (error: any) {
-      console.error("Sign in error:", error);
+      console.error("[AuthContext] Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
     }

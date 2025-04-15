@@ -48,9 +48,13 @@ export default function LoginScreen() {
       return;
     }
 
+    console.log("Login attempt with:", email, password.replace(/./g, "*"));
+
     setIsLoading(true);
     try {
+      console.log("Calling signIn function");
       await signIn(email, password);
+      console.log("SignIn function completed successfully");
       // On success, the AuthContext will handle navigation
     } catch (error: any) {
       console.error("Login error:", error);
@@ -200,13 +204,21 @@ export default function LoginScreen() {
             <View style={styles.demoButtons}>
               <TouchableOpacity
                 style={[styles.demoButton, styles.ownerButton]}
-                onPress={loginAsOwner}
+                onPress={() => {
+                  loginAsOwner();
+                  // Automatically log in when pressing the demo button
+                  setTimeout(() => handleLogin(), 500);
+                }}
               >
                 <Text style={styles.demoButtonText}>Sign in as Owner</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.demoButton, styles.userButton]}
-                onPress={loginAsUser}
+                onPress={() => {
+                  loginAsUser();
+                  // Automatically log in when pressing the demo button
+                  setTimeout(() => handleLogin(), 500);
+                }}
               >
                 <Text style={styles.demoButtonText}>Sign in as User</Text>
               </TouchableOpacity>

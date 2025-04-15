@@ -174,6 +174,12 @@ const ProfileScreen = () => {
     }
   };
 
+  // Navigate to Admin Panel - Fixed with explicit navigation
+  const navigateToAdminPanel = () => {
+    console.log("Navigating to admin panel");
+    router.push("/admin");
+  };
+
   interface MenuItemProps {
     icon: keyof typeof Feather.glyphMap;
     title: string;
@@ -271,11 +277,14 @@ const ProfileScreen = () => {
 
           {/* Admin Panel - Only show for admins and restaurant owners */}
           {(userIsAdmin || userIsRestaurantOwner) && (
-            <MenuItem
-              icon="shield"
-              title="Admin Panel"
-              onPress={() => router.push("/admin")}
-            />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={navigateToAdminPanel}
+            >
+              <Feather name="shield" size={24} color="#000" />
+              <Text style={styles.menuItemText}>Admin Panel</Text>
+              <Feather name="chevron-right" size={24} color="#666" />
+            </TouchableOpacity>
           )}
         </View>
 
@@ -333,7 +342,7 @@ const ProfileScreen = () => {
             title="Support"
             onPress={() => router.replace("https://dormdash.github.io/support")}
           />
-          <TouchableOpacity style={styles.menuItem} onPress={emergencySignOut}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleSignOut}>
             <Feather name="log-out" size={24} color="#000" />
             <Text style={styles.menuItemText}>Sign Out</Text>
             <Feather name="chevron-right" size={24} color="#666" />
@@ -355,6 +364,15 @@ const ProfileScreen = () => {
           >
             <Feather name="refresh-cw" size={24} color="#000" />
             <Text style={styles.menuItemText}>Reset API Connection</Text>
+            <Feather name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("/api-status")}
+          >
+            <Feather name="activity" size={24} color="#000" />
+            <Text style={styles.menuItemText}>API Status Dashboard</Text>
             <Feather name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
         </View>

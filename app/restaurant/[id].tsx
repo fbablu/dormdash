@@ -33,6 +33,8 @@ import { db } from "@/app/config/firebase";
 import restaurants from "@/data/ton_restaurants.json";
 import { useOrders } from "../context/OrderContext";
 import { useAuth } from "../context/AuthContext";
+import { createDemoMenu, hasMenu } from "../utils/RestaurantMenuIntegration";
+import RestaurantMenuDisplay from "@/components/RestaurantMenuDisplay";
 
 const { width } = Dimensions.get("window");
 
@@ -302,6 +304,8 @@ export default function RestaurantMenuScreen() {
 
   const { activeDeliveries } = useOrders();
 
+  const [menuAvailable, setMenuAvailable] = useState(false);
+
   // Calculate total price
   const cartTotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -311,154 +315,20 @@ export default function RestaurantMenuScreen() {
   const orderTotal = cartTotal + deliveryFee;
 
   useEffect(() => {
-    const fetchRestaurant = async () => {
-      try {
-        setLoading(true);
+    const checkForMenu = async () => {
+      if (id) {
+        const restaurantId = typeof id === "string" ? id : String(id);
+        const hasExistingMenu = await hasMenu(restaurantId);
+        setMenuAvailable(hasExistingMenu);
 
-        // Log the ID for debugging
-        console.log(`Attempting to fetch restaurant with ID: "${id}"`);
-
-        // Try Firebase first (may fail if collections don't exist)
-        try {
-          const restaurantRef = doc(db, "restaurants", id as string);
-          const restaurantSnap = await getDoc(restaurantRef);
-
-          if (restaurantSnap.exists()) {
-            const data = restaurantSnap.data();
-            setRestaurant({
-              id: restaurantSnap.id,
-              name: data.name || "",
-              image: data.image || FOOD_IMAGE_URL,
-              location: data.location || "",
-              address: data.address || "",
-              cuisines: data.cuisines || [],
-              rating: data.rating || 4.5,
-              reviewCount: data.reviewCount || "200+",
-              deliveryTime: data.deliveryTime || "15-25 min",
-              deliveryFee: data.deliveryFee || 3.99,
-            });
-
-            // Fetch menu categories from Firebase if available
-            try {
-              const menuRef = collection(
-                db,
-                "restaurants",
-                id as string,
-                "menu",
-              );
-              const menuSnap = await getDocs(menuRef);
-
-              const categories: MenuCategory[] = [];
-              menuSnap.forEach((doc) => {
-                categories.push({
-                  id: doc.id,
-                  ...(doc.data() as Omit<MenuCategory, "id">),
-                });
-              });
-
-              if (categories.length > 0) {
-                // Sort categories
-                const sortedCategories = categories.sort((a, b) =>
-                  a.name.localeCompare(b.name),
-                );
-                setMenuCategories(sortedCategories);
-
-                // Set initial active category
-                setActiveCategory(sortedCategories[0].id);
-                setLoading(false);
-                return;
-              }
-            } catch (menuError) {
-              console.log("Firebase menu query failed:", menuError);
-            }
-          }
-        } catch (firebaseError) {
-          console.log("Firebase restaurant query failed:", firebaseError);
+        if (!hasExistingMenu && restaurantId === "blenz-bowls") {
+          await createDemoMenu(restaurantId);
+          setMenuAvailable(true);
         }
-
-        // If Firebase fails, try local restaurant data
-        console.log("Searching local restaurant data");
-
-        // Get raw ID value for debugging
-        const rawId = typeof id === "string" ? id : String(id);
-        console.log("Raw ID value:", rawId);
-
-        // Try to find restaurant in local data
-        const foundRestaurant = restaurants.find((r) => {
-          const normalizedName = r.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, "-");
-          console.log(`Comparing: "${normalizedName}" with "${rawId}"`);
-          return normalizedName === rawId;
-        });
-
-        if (foundRestaurant) {
-          console.log("Found restaurant in local data:", foundRestaurant.name);
-
-          // Create restaurant object with additional properties
-          setRestaurant({
-            id: rawId,
-            name: foundRestaurant.name,
-            image: FOOD_IMAGE_URL,
-            location: foundRestaurant.location,
-            address: foundRestaurant.address,
-            cuisines: foundRestaurant.cuisine,
-            rating: 4.5,
-            reviewCount: "200+",
-            deliveryTime: "15-25 min",
-            deliveryFee: 3.99,
-          });
-
-          // Use restaurant-specific menu categories based on ID
-          const menuCats = getMenuCategoriesForRestaurant(rawId);
-          setMenuCategories(menuCats);
-          setActiveCategory(menuCats[0].id);
-        } else {
-          // Log all available restaurant names for comparison
-          const allNames = restaurants.map((r) => {
-            const formattedId = r.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-            return { name: r.name, formattedId };
-          });
-          console.log(
-            "Available restaurants:",
-            JSON.stringify(allNames.slice(0, 5)) + "...",
-          );
-
-          console.error("Restaurant not found in any source");
-          Alert.alert(
-            "Restaurant Not Found",
-            `Could not find restaurant with ID: ${id}`,
-          );
-          router.back();
-        }
-      } catch (error) {
-        console.error("Error fetching restaurant:", error);
-        Alert.alert(
-          "Error",
-          `Failed to load restaurant data: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchRestaurant();
-
-    // Load cart from AsyncStorage
-    const loadCart = async () => {
-      try {
-        const savedCart = await AsyncStorage.getItem(`cart_${id}`);
-        if (savedCart) {
-          setCart(JSON.parse(savedCart));
-        }
-      } catch (error) {
-        console.error("Error loading cart:", error);
-      }
-    };
-
-    loadCart();
+    checkForMenu();
   }, [id]);
 
   const addToCart = (item: MenuItem) => {
@@ -654,94 +524,53 @@ export default function RestaurantMenuScreen() {
       </View>
 
       {activeTab === "menu" ? (
-        <>
-          {/* Category Selector */}
-          <View style={styles.categorySelectorContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContent}
-            >
-              {menuCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    activeCategory === category.id &&
-                      styles.activeCategoryButton,
-                  ]}
-                  onPress={() => setActiveCategory(category.id)}
-                >
-                  <Text
+        menuAvailable && restaurant ? (
+          <>
+            {/* Category Selector */}
+            <View style={styles.categorySelectorContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryScrollContent}
+              >
+                {menuCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
                     style={[
-                      styles.categoryText,
+                      styles.categoryButton,
                       activeCategory === category.id &&
-                        styles.activeCategoryText,
+                        styles.activeCategoryButton,
                     ]}
+                    onPress={() => setActiveCategory(category.id)}
                   >
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        activeCategory === category.id &&
+                          styles.activeCategoryText,
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-          {/* Menu Items */}
-          <ScrollView style={styles.menuContainer}>
-            <Text style={styles.sectionTitle}>
-              {menuCategories.find((c) => c.id === activeCategory)?.name ||
-                "Menu"}
+            {/* Menu Display */}
+            <RestaurantMenuDisplay
+              restaurantId={restaurant.id}
+              restaurantName={restaurant.name}
+            />
+          </>
+        ) : (
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 16, color: "gray" }}>
+              Menu not available.
             </Text>
-            {menuCategories
-              .find((c) => c.id === activeCategory)
-              ?.items.map((item) => (
-                <View key={item.id} style={styles.menuItem}>
-                  <View style={styles.menuItemContent}>
-                    <Text style={styles.menuItemName}>{item.name}</Text>
-                    <Text style={styles.menuItemDescription}>
-                      {item.description}
-                    </Text>
-                    <Text style={styles.menuItemPrice}>
-                      ${item.price.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.quantityControls}>
-                    {(cart.find((cartItem) => cartItem.id === item.id)
-                      ?.quantity ?? 0) > 0 ? (
-                      <View style={styles.quantityControlsContainer}>
-                        <TouchableOpacity
-                          style={styles.quantityButton}
-                          onPress={() => removeFromCart(item.id)}
-                        >
-                          <Feather name="minus" size={18} color="black" />
-                        </TouchableOpacity>
-                        <Text style={styles.quantityText}>
-                          {cart.find((cartItem) => cartItem.id === item.id)
-                            ?.quantity || 0}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.quantityButton}
-                          onPress={() => addToCart(item)}
-                        >
-                          <Feather name="plus" size={18} color="black" />
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => addToCart(item)}
-                      >
-                        <Text style={styles.addButtonText}>Add</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              ))}
-            <View style={styles.bottomPadding} />
-          </ScrollView>
-        </>
+          </View>
+        )
       ) : (
-        // Reviews Tab
         <ReviewsSection
           restaurantId={id as string}
           restaurantName={restaurant?.name || "Restaurant"}
