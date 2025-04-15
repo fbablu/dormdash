@@ -14,6 +14,8 @@ import {
   RefreshControl,
   Image,
   Dimensions,
+  AppState,
+  AppStateStatus,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +24,9 @@ import { useAuth } from "@/app/context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import OrderTrackingView from "@/components/OrderTrackingView";
 import { initializeLocalData } from "@/lib/data/dataLoader";
-import deliveryTrackingService from "../services/deliveryTrackingService";
+import deliveryTrackingService, {
+  DeliveryTracking,
+} from "../services/deliveryTrackingService";
 import {
   getRestaurantCoordinates,
   getDormCoordinates,
@@ -53,15 +57,25 @@ interface Order {
   deliveryAddress?: string;
 }
 
+const REFRESH_INTERVAL = 10000;
+
 export default function Deliver() {
   const { user } = useAuth();
   const [activeDeliveries, setActiveDeliveries] = useState<Order[]>([]);
   const [availableRequests, setAvailableRequests] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [selectedDelivery, setSelectedDelivery] = useState<Order | null>(null);
   const [showMap, setShowMap] = useState<boolean>(false);
-  const [trackingData, setTrackingData] = useState<any | null>(null);
+
+  // Refs for tracking interval and app state
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+
+  const [trackingData, setTrackingData] = useState<DeliveryTracking | null>(
+    null,
+  );
   const [etaInfo, setEtaInfo] = useState<{
     etaString: string;
     timeString: string;
@@ -71,8 +85,120 @@ export default function Deliver() {
   useEffect(() => {
     initializeLocalData();
     deliveryTrackingService.initializeTrackingService();
-    fetchDeliveryData();
   }, []);
+
+  // Set up auto-refresh and app state listeners
+  useEffect(() => {
+    fetchDeliveryData();
+    startRefreshInterval();
+
+    // Set up app state listener
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+    // Clean up on unmount
+    return () => {
+      stopRefreshInterval();
+      subscription.remove();
+      deliveryTrackingService.stopTracking();
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkActiveTracking = async () => {
+      const currentTracking =
+        await deliveryTrackingService.getCurrentDeliveryTracking();
+      if (currentTracking) {
+        setTrackingData(currentTracking);
+        // Find the corresponding order
+        const ordersJson = await AsyncStorage.getItem("dormdash_orders");
+        if (ordersJson) {
+          const orders = JSON.parse(ordersJson) as Order[];
+          const trackedOrder = orders.find(
+            (order) => order.id === currentTracking.orderId,
+          );
+          if (trackedOrder) {
+            setSelectedDelivery(trackedOrder);
+            setShowMap(true);
+            updateETA(currentTracking);
+          }
+        }
+      }
+    };
+
+    checkActiveTracking();
+  }, []);
+
+  const updateETA = (tracking: DeliveryTracking) => {
+    if (
+      !tracking.currentLocation ||
+      (!tracking.restaurantLocation && !tracking.customerLocation)
+    ) {
+      return;
+    }
+
+    const destLocation =
+      tracking.routeStage === "to_restaurant"
+        ? tracking.restaurantLocation
+        : tracking.customerLocation;
+
+    if (destLocation) {
+      const { etaString, timeString } = getETAWithTime(
+        tracking.currentLocation.latitude,
+        tracking.currentLocation.longitude,
+        destLocation.latitude,
+        destLocation.longitude,
+      );
+
+      setEtaInfo({ etaString, timeString });
+    }
+  };
+
+  // Handle app state changes
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (
+      appStateRef.current.match(/inactive|background/) &&
+      nextAppState === "active"
+    ) {
+      fetchDeliveryData();
+      startRefreshInterval();
+    } else if (nextAppState.match(/inactive|background/)) {
+      stopRefreshInterval();
+    }
+
+    appStateRef.current = nextAppState;
+  };
+
+  // Start refresh interval
+  const startRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+
+    refreshIntervalRef.current = setInterval(() => {
+      fetchDeliveryData(false);
+    }, REFRESH_INTERVAL);
+  };
+
+  // Stop refresh interval
+  const stopRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  };
+
+  // Format the last refreshed time
+  const getRefreshTimeString = () => {
+    const now = new Date();
+    const diffMs = now.getTime() - lastRefreshed.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins === 1) return "1 minute ago";
+    return `${diffMins} minutes ago`;
+  };
 
   const fetchDeliveryData = async (showLoadingIndicator = true) => {
     if (!user) return;
@@ -106,6 +232,7 @@ export default function Deliver() {
       // Update state
       setAvailableRequests(pendingOrders);
       setActiveDeliveries(userDeliveries);
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error("Error fetching delivery data:", error);
       Alert.alert("Error", "Failed to fetch delivery requests");
@@ -133,10 +260,10 @@ export default function Deliver() {
       const order = allOrders.find((o) => o.id === orderId);
 
       // Double check this isn't the user's own order
-      if (order && order.customerId === user.id) {
-        Alert.alert("Error", "You cannot deliver your own order");
-        return false;
-      }
+      // if (order && order.customerId === user.id) {
+      //   Alert.alert("Error", "You cannot deliver your own order");
+      //   return false;
+      // }
 
       // Update the specific order
       const updatedOrders = allOrders.map((order) =>
@@ -195,31 +322,6 @@ export default function Deliver() {
     }
   };
 
-  const updateETA = (tracking: any) => {
-    if (
-      !tracking.currentLocation ||
-      (!tracking.restaurantLocation && !tracking.customerLocation)
-    ) {
-      return;
-    }
-
-    const destLocation =
-      tracking.routeStage === "to_restaurant"
-        ? tracking.restaurantLocation
-        : tracking.customerLocation;
-
-    if (destLocation) {
-      const { etaString, timeString } = getETAWithTime(
-        tracking.currentLocation.latitude,
-        tracking.currentLocation.longitude,
-        destLocation.latitude,
-        destLocation.longitude,
-      );
-
-      setEtaInfo({ etaString, timeString });
-    }
-  };
-
   // Update delivery status
   const handleUpdateStatus = async (
     orderId: string,
@@ -256,26 +358,13 @@ export default function Deliver() {
         await deliveryTrackingService.stopTracking();
         setTrackingData(null);
         setEtaInfo(null);
+
+        // Remove from active deliveries
+        setActiveDeliveries((prev) =>
+          prev.filter((delivery) => delivery.id !== orderId),
+        );
         setSelectedDelivery(null);
         setShowMap(false);
-
-        // Show completion message
-        Alert.alert(
-          "Delivery Completed",
-          "Thank you for completing this delivery!",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Remove from active deliveries and refresh
-                setActiveDeliveries((prev) =>
-                  prev.filter((delivery) => delivery.id !== orderId),
-                );
-                fetchDeliveryData(false);
-              },
-            },
-          ],
-        );
       } else {
         // Otherwise update the status
         setActiveDeliveries((prev) =>
@@ -292,10 +381,10 @@ export default function Deliver() {
             prev ? { ...prev, status: newStatus } : null,
           );
         }
-
-        // Refresh data
-        fetchDeliveryData(false);
       }
+
+      // Trigger a refresh to ensure all state is updated
+      setTimeout(() => fetchDeliveryData(false), 500);
 
       return true;
     } catch (error) {
@@ -370,7 +459,7 @@ export default function Deliver() {
     setShowMap(false);
   };
 
-  // Simplified delivery map
+  // Modified map view to include tracking info
   const renderDeliveryMap = () => {
     if (!selectedDelivery) return null;
 
@@ -378,59 +467,69 @@ export default function Deliver() {
       <View style={styles.mapContainer}>
         <View style={styles.mapHeader}>
           <Text style={styles.mapTitle}>
-            Delivery - {selectedDelivery.restaurantName}
+            Delivery Progress - {selectedDelivery.restaurantName}
           </Text>
           <TouchableOpacity style={styles.closeButton} onPress={handleCloseMap}>
             <Feather name="x" size={24} color="#000" />
           </TouchableOpacity>
         </View>
 
-        <OrderTrackingView
-          status={selectedDelivery.status}
-          orderId={selectedDelivery.id}
-          trackingData={trackingData}
-        />
+        <View style={styles.mapContent}>
+          <OrderTrackingView
+            status={selectedDelivery.status}
+            orderId={selectedDelivery.id}
+            trackingData={trackingData}
+          />
 
-        {etaInfo && (
-          <View style={styles.etaContainer}>
-            <Text style={styles.etaTitle}>Estimated Arrival</Text>
-            <Text style={styles.etaText}>
-              {etaInfo.etaString} (arriving around {etaInfo.timeString})
-            </Text>
-          </View>
-        )}
+          {etaInfo && (
+            <View style={styles.etaContainer}>
+              <Text style={styles.etaTitle}>Estimated Arrival</Text>
+              <Text style={styles.etaText}>
+                {etaInfo.etaString} (arriving around {etaInfo.timeString})
+              </Text>
+            </View>
+          )}
 
-        <View style={styles.orderDetailsCard}>
-          <Text style={styles.orderDetailsTitle}>Order Details</Text>
-
-          <View style={styles.orderDetail}>
-            <Text style={styles.orderDetailLabel}>Order #:</Text>
-            <Text style={styles.orderDetailValue}>
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Order #:</Text>
+            <Text style={styles.infoValue}>
               {selectedDelivery.id.substring(6, 12)}
             </Text>
           </View>
 
-          <View style={styles.orderDetail}>
-            <Text style={styles.orderDetailLabel}>Restaurant:</Text>
-            <Text style={styles.orderDetailValue}>
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.infoLabel}>Restaurant:</Text>
+            <Text style={styles.infoValue}>
               {selectedDelivery.restaurantName}
             </Text>
           </View>
 
           {selectedDelivery.deliveryAddress && (
-            <View style={styles.orderDetail}>
-              <Text style={styles.orderDetailLabel}>Delivery to:</Text>
-              <Text style={styles.orderDetailValue}>
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Delivery to:</Text>
+              <Text style={styles.infoValue}>
                 {selectedDelivery.deliveryAddress}
               </Text>
             </View>
           )}
 
           {selectedDelivery.notes && (
-            <View style={styles.orderDetail}>
-              <Text style={styles.orderDetailLabel}>Notes:</Text>
-              <Text style={styles.orderDetailValue}>
-                {selectedDelivery.notes}
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Notes:</Text>
+              <Text style={styles.infoValue}>{selectedDelivery.notes}</Text>
+            </View>
+          )}
+
+          {/* Display current stage if tracking is active */}
+          {trackingData && (
+            <View style={styles.deliveryInfo}>
+              <Text style={styles.infoLabel}>Current Stage:</Text>
+              <Text style={styles.infoValue}>
+                {trackingData.routeStage === "to_restaurant"
+                  ? "Heading to restaurant"
+                  : trackingData.routeStage === "to_customer"
+                    ? "Delivering to customer"
+                    : "Completed"}
               </Text>
             </View>
           )}
@@ -470,62 +569,78 @@ export default function Deliver() {
   // Render an available delivery request item
   const renderAvailableRequest = ({ item }: { item: Order }) => {
     return (
-      <View style={styles.deliveryCard}>
+      <View style={styles.deliveryItem}>
         <View style={styles.deliveryHeader}>
           <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Available</Text>
-          </View>
+          <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
         </View>
 
-        <View style={styles.deliverySummary}>
-          <View style={styles.orderInfo}>
+        <View style={styles.deliveryContent}>
+          <View style={styles.deliveryDetails}>
             <Text style={styles.orderNumber}>
               Order #{item.id.substring(6, 12)}
             </Text>
-            {item.items.length > 0 && (
-              <Text style={styles.itemCount}>{item.items.length} items</Text>
+            {item.deliveryAddress && (
+              <Text style={styles.deliveryAddress} numberOfLines={1}>
+                <Feather name="map-pin" size={14} color="#666" />{" "}
+                {item.deliveryAddress}
+              </Text>
+            )}
+            {item.notes && (
+              <Text style={styles.deliveryNotes} numberOfLines={1}>
+                <Feather name="message-square" size={14} color="#666" />{" "}
+                {item.notes}
+              </Text>
             )}
           </View>
 
-          <Text style={styles.deliveryPrice}>${item.totalAmount}</Text>
+          <View style={styles.itemPreview}>
+            {item.items.slice(0, 2).map((orderItem, index) => (
+              <Text key={index} style={styles.itemText} numberOfLines={1}>
+                {orderItem.quantity}x {orderItem.name}
+              </Text>
+            ))}
+            {item.items.length > 2 && (
+              <Text style={styles.itemText}>+{item.items.length - 2} more</Text>
+            )}
+          </View>
         </View>
 
-        {item.deliveryAddress && (
-          <View style={styles.addressRow}>
-            <Feather name="map-pin" size={14} color="#666" />
-            <Text style={styles.deliveryAddress} numberOfLines={1}>
-              {item.deliveryAddress}
-            </Text>
+        <View style={styles.deliveryFooter}>
+          <Text style={styles.deliveryFee}>
+            Delivery Fee: ${item.deliveryFee}
+          </Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.viewButton}
+              onPress={() => handleSelectDelivery(item)}
+            >
+              <Feather name="map" size={16} color="#666" />
+              <Text style={styles.viewButtonText}>View</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.acceptButton}
+              onPress={() => {
+                handleAcceptDelivery(item.id).then((success) => {
+                  if (success) {
+                    Alert.alert("Success", "Delivery request accepted!");
+                    handleSelectDelivery({
+                      ...item,
+                      status: "accepted",
+                      delivererId: user?.id,
+                    });
+                  } else {
+                    Alert.alert(
+                      "Error",
+                      "Failed to accept delivery. Please try again.",
+                    );
+                  }
+                });
+              }}
+            >
+              <Text style={styles.acceptButtonText}>Accept</Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.viewButton}
-            onPress={() => handleSelectDelivery(item)}
-          >
-            <Feather name="info" size={16} color="#666" />
-            <Text style={styles.viewButtonText}>Details</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.acceptButton}
-            onPress={() => {
-              handleAcceptDelivery(item.id).then((success) => {
-                if (success) {
-                  Alert.alert("Success", "Delivery request accepted!");
-                  handleSelectDelivery({
-                    ...item,
-                    status: "accepted",
-                    delivererId: user?.id,
-                  });
-                }
-              });
-            }}
-          >
-            <Text style={styles.acceptButtonText}>Accept Delivery</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -533,41 +648,40 @@ export default function Deliver() {
 
   // Render an active delivery item
   const renderActiveDelivery = ({ item }: { item: Order }) => (
-    <View style={styles.activeDeliveryCard}>
-      <View style={styles.activeDeliveryHeader}>
-        <Text style={styles.activeDeliveryTitle}>Active Delivery</Text>
-        <View style={styles.activeStatusChip}>
-          <Text style={styles.activeStatusText}>
-            {item.status === "accepted" ? "Pickup Phase" : "Delivering"}
+    <View style={styles.activeDeliveryItem}>
+      <View style={styles.deliveryHeader}>
+        <Text style={styles.restaurantName}>{item.restaurantName}</Text>
+        <View style={styles.statusChip}>
+          <Text style={styles.statusChipText}>
+            {item.status === "accepted" ? "Pickup" : "In Transit"}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.activeRestaurantName}>{item.restaurantName}</Text>
-
-      <View style={styles.activeOrderInfo}>
-        <View style={styles.activeOrderDetail}>
-          <Feather name="hash" size={16} color="#555" />
-          <Text style={styles.activeOrderText}>
+      <View style={styles.deliveryContent}>
+        <View style={styles.deliveryDetails}>
+          <Text style={styles.orderNumber}>
             Order #{item.id.substring(6, 12)}
           </Text>
+          {item.deliveryAddress && (
+            <Text style={styles.deliveryAddress} numberOfLines={1}>
+              <Feather name="map-pin" size={14} color="#666" />{" "}
+              {item.deliveryAddress}
+            </Text>
+          )}
         </View>
-
-        {item.deliveryAddress && (
-          <View style={styles.activeOrderDetail}>
-            <Feather name="map-pin" size={16} color="#555" />
-            <Text style={styles.activeOrderText}>{item.deliveryAddress}</Text>
-          </View>
-        )}
       </View>
 
-      <TouchableOpacity
-        style={styles.trackButton}
-        onPress={() => handleSelectDelivery(item)}
-      >
-        <Feather name="navigation" size={16} color="#fff" />
-        <Text style={styles.trackButtonText}>Track & Update</Text>
-      </TouchableOpacity>
+      <View style={styles.deliveryFooter}>
+        <Text style={styles.deliveryAmount}>${item.totalAmount}</Text>
+        <TouchableOpacity
+          style={styles.trackButton}
+          onPress={() => handleSelectDelivery(item)}
+        >
+          <Feather name="map" size={16} color="#fff" />
+          <Text style={styles.trackButtonText}>Track</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -585,34 +699,46 @@ export default function Deliver() {
       {/* Page header */}
       <View style={styles.header}>
         <Text style={styles.heading}>Deliver</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={() => fetchDeliveryData(true)}
-        >
-          <Feather name="refresh-cw" size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.statusContainer}>
+          <View style={styles.statusIndicator}>
+            <View style={styles.statusDot} />
+          </View>
+          <Text style={styles.refreshText}>
+            Last refreshed: {getRefreshTimeString()}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.contentContainer}>
         {isLoading && !refreshing ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#cfae70" />
-            <Text style={styles.loaderText}>Loading delivery requests...</Text>
-          </View>
+          <ActivityIndicator
+            size="large"
+            color="#cfae70"
+            style={styles.loader}
+          />
         ) : (
           <>
             {/* Active Deliveries Section */}
-            {activeDeliveries.length > 0 && (
-              <View style={styles.activeDeliveriesSection}>
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Active Deliveries</Text>
+              {activeDeliveries.length > 0 ? (
                 <FlatList
                   data={activeDeliveries}
                   keyExtractor={(item) => item.id}
                   renderItem={renderActiveDelivery}
-                  horizontal={false}
+                  contentContainerStyle={styles.listContent}
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                 />
-              </View>
-            )}
+              ) : (
+                <View style={styles.emptyActiveState}>
+                  <Feather name="package" size={32} color="#ddd" />
+                  <Text style={styles.emptyStateText}>
+                    No active deliveries
+                  </Text>
+                </View>
+              )}
+            </View>
 
             {/* Available Requests Section */}
             <View style={styles.availableSection}>
@@ -656,12 +782,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  etaContainer: {
+    padding: 12,
+    backgroundColor: "#f0f8ff",
+    borderRadius: 8,
+    marginBottom: 16,
+    marginTop: 10,
+  },
+  etaTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  etaText: {
+    fontSize: 14,
+    color: "#333",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
@@ -669,52 +812,56 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-  refreshButton: {
-    backgroundColor: Color.colorBurlywood,
-    padding: 8,
-    borderRadius: 20,
-    width: 36,
-    height: 36,
+  statusContainer: {
+    flexDirection: "row",
+
     alignItems: "center",
-    justifyContent: "center",
+  },
+  statusIndicator: {
+    marginRight: 8,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#4CAF50",
+  },
+  refreshText: {
+    fontSize: 12,
+    color: "#666",
   },
   contentContainer: {
     flex: 1,
+    width: "100%",
   },
-  loaderContainer: {
+  sectionContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  availableSection: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  loaderText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
-  },
-  activeDeliveriesSection: {
-    padding: 16,
-    backgroundColor: "#f9f9ff",
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
-    marginTop: 8,
-    marginLeft: 16,
-  },
-  availableSection: {
-    flex: 1,
-  },
-  listContent: {
-    padding: 16,
-    paddingTop: 0,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  emptyActiveState: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 12,
+    height: 120,
   },
   emptyStateText: {
     fontSize: 16,
@@ -727,19 +874,42 @@ const styles = StyleSheet.create({
     color: "#aaa",
     marginTop: 4,
   },
-  // New card-based design for delivery items
-  deliveryCard: {
+  listContent: {
+    paddingBottom: 16,
+  },
+  deliveryItem: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 3.84,
+    elevation: 5,
     borderWidth: 1,
     borderColor: "#f0f0f0",
+  },
+  activeDeliveryItem: {
+    backgroundColor: "#f8f9ff",
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e6e8f0",
+    width: 280,
   },
   deliveryHeader: {
     flexDirection: "row",
@@ -748,69 +918,68 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   restaurantName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     flex: 1,
   },
-  statusBadge: {
-    backgroundColor: "#4caf50",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  deliverySummary: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  orderInfo: {
-    flex: 1,
-  },
-  orderNumber: {
-    fontSize: 14,
-    color: "#555",
-  },
-  itemCount: {
-    fontSize: 12,
-    color: "#777",
-    marginTop: 2,
-  },
-  deliveryPrice: {
-    fontSize: 16,
+  deliveryAmount: {
+    fontSize: 18,
     fontWeight: "bold",
     color: Color.colorBurlywood,
   },
-  addressRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  deliveryContent: {
     marginBottom: 12,
+  },
+  deliveryDetails: {
+    marginBottom: 8,
+  },
+
+  orderNumber: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
   },
   deliveryAddress: {
     fontSize: 14,
     color: "#666",
-    marginLeft: 6,
+    marginBottom: 4,
   },
-  actionButtons: {
+  deliveryNotes: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  itemPreview: {
+    marginTop: 8,
+  },
+  itemText: {
+    fontSize: 13,
+    color: "#666",
+  },
+  deliveryFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
-    paddingTop: 12,
+  },
+  deliveryFee: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  actionButtons: {
+    flexDirection: "row",
   },
   viewButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
+    marginRight: 8,
     backgroundColor: "#f5f5f5",
   },
   viewButtonText: {
@@ -831,75 +1000,39 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-  // Active delivery card
-  activeDeliveryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#e6e6ff",
-    borderLeftWidth: 4,
-    borderLeftColor: "#4a6fa5",
-  },
-  activeDeliveryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  activeDeliveryTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4a6fa5",
-  },
-  activeStatusChip: {
-    backgroundColor: "#e6f0ff",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  activeStatusText: {
-    fontSize: 12,
-    color: "#4a6fa5",
-  },
-  activeRestaurantName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  activeOrderInfo: {
-    marginBottom: 12,
-  },
-  activeOrderDetail: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  activeOrderText: {
-    fontSize: 14,
-    color: "#555",
-    marginLeft: 8,
-  },
   trackButton: {
-    backgroundColor: "#4a6fa5",
     flexDirection: "row",
+
     alignItems: "center",
-    justifyContent: "center",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#4a6fa5",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
   },
   trackButtonText: {
     color: "#fff",
-    fontWeight: "600",
-    marginLeft: 8,
+    fontWeight: "500",
+    fontSize: 14,
+    marginLeft: 4,
   },
-  // Map view styles
+  statusChip: {
+    backgroundColor: "#e3f2fd",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+
+    borderRadius: 12,
+  },
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#1976d2",
+  },
+  loader: {
+    flex: 1,
+
+    justifyContent: "center",
+  },
+
   mapContainer: {
     flex: 1,
     backgroundColor: "#fff",
@@ -919,49 +1052,22 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
   },
-  etaContainer: {
-    margin: 16,
-    marginTop: 0,
-    padding: 12,
-    backgroundColor: "#f0f8ff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#d0e1f9",
-  },
-  etaTitle: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  etaText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  orderDetailsCard: {
-    margin: 16,
-    marginTop: 0,
+  mapContent: {
+    flex: 1,
+    position: "relative",
+
     padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#eee",
   },
-  orderDetailsTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  orderDetail: {
+  deliveryInfo: {
     flexDirection: "row",
     marginBottom: 8,
   },
-  orderDetailLabel: {
+  infoLabel: {
     fontSize: 14,
     fontWeight: "500",
-    width: 100,
-    color: "#666",
+    width: 120,
   },
-  orderDetailValue: {
+  infoValue: {
     fontSize: 14,
     flex: 1,
   },
@@ -975,7 +1081,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#4a6fa5",
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
