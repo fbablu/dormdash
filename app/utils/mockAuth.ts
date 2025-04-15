@@ -24,23 +24,16 @@ const mockUser = {
 export const mockAuth: Partial<Auth> = {
   currentUser: mockUser as User,
 
-  // Mock onAuthStateChanged that will call the observer with the mock user
-  onAuthStateChanged: (callback: any) => {
-    // Immediately call with the mock user
-    setTimeout(() => callback(mockUser), 100);
 
-    // Return a function to unsubscribe
+  onAuthStateChanged: (callback: any) => {
+    setTimeout(() => callback(mockUser), 100);
     return () => {};
   },
 
-  // Other auth methods can be mocked here as needed
   signOut: async () => Promise.resolve(),
 };
 
-// Mock Firestore implementation
-export const mockDb: Partial<Firestore> = {
-  // Add firestore mocks as needed
-};
+export const mockDb: Partial<Firestore> = {};
 
 // Helper to store mock user
 export const storeMockUser = async () => {
@@ -49,7 +42,6 @@ export const storeMockUser = async () => {
   await AsyncStorage.setItem("userId", mockUser.uid);
 };
 
-// Mock GoogleSignin implementation
 export const mockGoogleSignin = {
   configure: () => {},
   hasPlayServices: async () => true,
