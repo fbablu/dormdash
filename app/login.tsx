@@ -28,6 +28,17 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetLoading, setIsResetLoading] = useState(false);
 
+  // Test account buttons for demo purposes
+  const loginAsOwner = () => {
+    setEmail("blenzbowls.vu@gmail.com");
+    setPassword("12345678");
+  };
+
+  const loginAsUser = () => {
+    setEmail("john.doe@vanderbilt.edu");
+    setPassword("123456789");
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(
@@ -49,7 +60,8 @@ export default function LoginScreen() {
       if (
         error.code === "auth/user-not-found" ||
         error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-credential"
+        error.code === "auth/invalid-credential" ||
+        errorMessage.includes("Invalid email or password")
       ) {
         errorMessage =
           "Invalid email or password. Please check your credentials.";
@@ -87,14 +99,6 @@ export default function LoginScreen() {
 
       // Provide more specific error messages
       let errorMessage = error.message || "Failed to send reset email";
-      if (error.code === "auth/user-not-found") {
-        errorMessage = "No account found with this email address";
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Please enter a valid email address";
-      } else if (error.code === "auth/network-request-failed") {
-        errorMessage = "Network error. Please check your internet connection.";
-      }
-
       Alert.alert("Reset Failed", errorMessage);
     } finally {
       setIsResetLoading(false);
@@ -189,6 +193,25 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </TouchableOpacity>
+
+          {/* Demo Account Buttons */}
+          <View style={styles.demoAccountsContainer}>
+            <Text style={styles.demoAccountsTitle}>Demo Accounts:</Text>
+            <View style={styles.demoButtons}>
+              <TouchableOpacity
+                style={[styles.demoButton, styles.ownerButton]}
+                onPress={loginAsOwner}
+              >
+                <Text style={styles.demoButtonText}>Sign in as Owner</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.demoButton, styles.userButton]}
+                onPress={loginAsUser}
+              >
+                <Text style={styles.demoButtonText}>Sign in as User</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
@@ -299,5 +322,38 @@ const styles = StyleSheet.create({
     color: Color.colorBurlywood,
     fontWeight: "bold",
     marginLeft: 5,
+  },
+  demoAccountsContainer: {
+    marginTop: 30,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    paddingTop: 20,
+  },
+  demoAccountsTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  demoButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  demoButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+  ownerButton: {
+    backgroundColor: "#4CAF50",
+  },
+  userButton: {
+    backgroundColor: "#2196F3",
+  },
+  demoButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });

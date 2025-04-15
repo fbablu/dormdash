@@ -24,7 +24,6 @@ const mockUser = {
 export const mockAuth: Partial<Auth> = {
   currentUser: mockUser as User,
 
-
   onAuthStateChanged: (callback: any) => {
     setTimeout(() => callback(mockUser), 100);
     return () => {};

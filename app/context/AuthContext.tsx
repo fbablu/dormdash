@@ -8,6 +8,25 @@ import {
   getOwnedRestaurantId,
 } from "../utils/adminAuth";
 
+// Test accounts
+const TEST_ACCOUNTS = [
+  {
+    email: "blenzbowls.vu@gmail.com",
+    password: "12345678",
+    name: "BlenZ Bowls Owner",
+    role: "owner",
+    id: "owner-123456",
+    restaurantId: "blenz-bowls",
+  },
+  {
+    email: "john.doe@vanderbilt.edu",
+    password: "123456789",
+    name: "John Doe",
+    role: "user",
+    id: "user-123456",
+  },
+];
+
 // Define user type
 export interface User {
   id: string;
@@ -21,6 +40,7 @@ export interface User {
   isAdmin?: boolean;
   isRestaurantOwner?: boolean;
   ownedRestaurantId?: string;
+  role?: string;
 }
 
 interface AuthState {
@@ -91,41 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    // Initialize with mock user for Expo Go testing
+    // Initialize and check if user is already logged in
     const initializeAuth = async () => {
       try {
-        // Store a mock user for testing
-        const mockUser = {
-          uid: `mock-${Date.now()}`,
-          email: "test@vanderbilt.edu",
-          displayName: "Test User",
-          photoURL: null,
-          getIdToken: async () => "mock-token-123",
-        };
-
-        // Store in AsyncStorage
-        await AsyncStorage.setItem(
-          "mock_current_user",
-          JSON.stringify(mockUser),
-        );
-        await AsyncStorage.setItem("userToken", "mock-token-123");
-        await AsyncStorage.setItem("userId", mockUser.uid);
-
-        // Store user data
-        const userData = {
-          id: mockUser.uid,
-          name: mockUser.displayName || "Test User",
-          email: mockUser.email,
-          createdAt: new Date().toISOString(),
-          isVerified: false,
-        };
-
-        await AsyncStorage.setItem("user_data", JSON.stringify(userData));
-
-        // Check if we should be logged in
-        const existingUser = await AsyncStorage.getItem("user_data");
-        if (existingUser) {
-          const parsedUser = JSON.parse(existingUser);
+        // Try to load an existing user session
+        const userData = await AsyncStorage.getItem("user_data");
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
           setState({
             isLoading: false,
             isSignedIn: true,
@@ -160,29 +152,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      // Simulate sign in for Expo Go
-      const mockUser = {
-        uid: `mock-${Date.now()}`,
-        email,
-        displayName: "Vanderbilt Student",
-        photoURL: null,
-        getIdToken: async () => `mock-token-${Date.now()}`,
-      };
+      // Check if the email and password match our test accounts
+      const testAccount = TEST_ACCOUNTS.find(
+        (account) =>
+          account.email.toLowerCase() === email.toLowerCase() &&
+          account.password === password,
+      );
 
-      // Store in AsyncStorage
-      await AsyncStorage.setItem("mock_current_user", JSON.stringify(mockUser));
-      await AsyncStorage.setItem("userToken", "mock-token-123");
-      await AsyncStorage.setItem("userId", mockUser.uid);
+      if (!testAccount) {
+        throw new Error("Invalid email or password");
+      }
 
-      // Store user data
-      const userData = {
-        id: mockUser.uid,
-        name: mockUser.displayName || "Vanderbilt Student",
-        email: mockUser.email,
+      // Create user data structure
+      const userData: User = {
+        id: testAccount.id,
+        name: testAccount.name,
+        email: testAccount.email,
         createdAt: new Date().toISOString(),
-        isVerified: false,
+        isVerified: true,
+        role: testAccount.role,
+        ...(testAccount.role === "owner" && {
+          isRestaurantOwner: true,
+          ownedRestaurantId: testAccount.restaurantId,
+        }),
       };
 
+      // Store in AsyncStorage for session persistence
+      await AsyncStorage.setItem(
+        "mock_current_user",
+        JSON.stringify(testAccount),
+      );
+      await AsyncStorage.setItem("userToken", `mock-token-${testAccount.id}`);
+      await AsyncStorage.setItem("userId", testAccount.id);
       await AsyncStorage.setItem("user_data", JSON.stringify(userData));
 
       setState({
@@ -190,10 +191,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isSignedIn: true,
         user: userData,
       });
+
+      // Ensure roles are properly set
+      setTimeout(() => {
+        checkUserRole();
+      }, 100);
     } catch (error: any) {
       console.error("Sign in error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw new Error("Failed to sign in");
+      throw error;
     }
   };
 
@@ -201,44 +207,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      const mockUser = {
-        uid: `mock-${Date.now()}`,
-        email,
-        displayName: name,
-        photoURL: null,
-        getIdToken: async () => `mock-token-${Date.now()}`,
-      };
+      // Check if an account with this email already exists
+      const existingAccount = TEST_ACCOUNTS.find(
+        (account) => account.email.toLowerCase() === email.toLowerCase(),
+      );
 
-      // Store in AsyncStorage
-      await AsyncStorage.setItem("mock_current_user", JSON.stringify(mockUser));
-      await AsyncStorage.setItem("userToken", "mock-token-123");
-      await AsyncStorage.setItem("userId", mockUser.uid);
+      if (existingAccount) {
+        throw new Error("An account with this email already exists");
+      }
 
-      // Store user data
-      const userData = {
-        id: mockUser.uid,
+      // Create a new user ID
+      const userId = `user-${Date.now()}`;
+
+      // Create user data
+      const userData: User = {
+        id: userId,
         name,
         email,
         createdAt: new Date().toISOString(),
         isVerified: false,
+        role: "user",
       };
 
+      // Store in AsyncStorage
+      const newUser = {
+        ...userData,
+        password,
+      };
+
+      await AsyncStorage.setItem("mock_current_user", JSON.stringify(newUser));
+      await AsyncStorage.setItem("userToken", `mock-token-${userId}`);
+      await AsyncStorage.setItem("userId", userId);
       await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+
+      // Also add to TEST_ACCOUNTS for this session (won't persist between app restarts)
+      TEST_ACCOUNTS.push({
+        email,
+        password,
+        name,
+        role: "user",
+        id: userId,
+      });
 
       setState({
         isLoading: false,
         isSignedIn: true,
         user: userData,
       });
+
+      // Navigate to main screen
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 100);
     } catch (error: any) {
       console.error("Sign up error:", error);
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw new Error("Failed to create account");
+      throw error;
     }
   };
 
   const resetPassword = async (email: string) => {
-    // Mock implementation for Expo Go
+    // Mock implementation
+    const account = TEST_ACCOUNTS.find(
+      (account) => account.email.toLowerCase() === email.toLowerCase(),
+    );
+
+    if (!account) {
+      throw new Error("No account found with this email address");
+    }
+
+    // In a real app, this would send a password reset email
     return Promise.resolve();
   };
 

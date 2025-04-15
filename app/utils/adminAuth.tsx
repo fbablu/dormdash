@@ -5,7 +5,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { User } from "../context/AuthContext";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getFirestore } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 // Admin emails list
@@ -13,26 +13,36 @@ export const ADMIN_EMAILS = [
   "admin@gmail.com",
   "taco-mama@gmail.com",
   "dormdash.vu@gmail.com",
+  "blenzbowls.vu@gmail.com",
 ];
 
 // Restaurant owner emails mapped to their restaurants
 export const RESTAURANT_ADMIN_MAP: Record<string, string> = {
   "taco-mama@gmail.com": "taco-mama",
   "banh-mi-roll@gmail.com": "banh-mi-roll",
+  "blenzbowls.vu@gmail.com": "blenz-bowls", // Added owner mapping
 };
 
 export const isAdmin = (user: User | null): boolean => {
   if (!user || !user.email) return false;
-  return ADMIN_EMAILS.includes(user.email);
+  return ADMIN_EMAILS.includes(user.email) || user.role === "owner";
 };
 
 export const isRestaurantOwner = (user: User | null): boolean => {
   if (!user || !user.email) return false;
-  return Object.keys(RESTAURANT_ADMIN_MAP).includes(user.email);
+  return (
+    Object.keys(RESTAURANT_ADMIN_MAP).includes(user.email) ||
+    user.role === "owner"
+  );
 };
 
 export const getOwnedRestaurantId = (user: User | null): string | null => {
   if (!user || !user.email) return null;
+
+  // Check for specific restaurant ID in user data
+  if (user.ownedRestaurantId) return user.ownedRestaurantId;
+
+  // Fallback to mapping
   return RESTAURANT_ADMIN_MAP[user.email] || null;
 };
 
@@ -42,8 +52,11 @@ export const submitMenuForApproval = async (
   menuData: any,
 ): Promise<boolean> => {
   try {
+    // Use getFirestore() to ensure we have a proper Firestore instance
+    const firestore = getFirestore();
+
     // Store pending menu changes in a separate "pending_approvals" collection
-    const approvalRef = doc(db, "pending_approvals", restaurantId);
+    const approvalRef = doc(firestore, "pending_approvals", restaurantId);
     await setDoc(approvalRef, {
       menuData,
       status: "pending",
@@ -52,8 +65,6 @@ export const submitMenuForApproval = async (
       approvedAt: null,
     });
 
-    // Send email notification (would be implemented via Cloud Functions)
-    // For now, just log
     console.log(
       `Menu changes for ${restaurantId} submitted for approval to dormdash.vu@gmail.com`,
     );

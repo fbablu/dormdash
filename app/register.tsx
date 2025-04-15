@@ -22,7 +22,6 @@ import { router } from "expo-router";
 import { useAuth } from "./context/AuthContext";
 import { Color } from "@/GlobalStyles";
 import { ADMIN_EMAILS } from "./utils/adminAuth";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Register() {
   const { signUp } = useAuth();
@@ -77,7 +76,17 @@ export default function Register() {
     } else {
       // Special case for admin emails - don't require vanderbilt.edu domain
       const isAdminEmail = ADMIN_EMAILS.includes(email.toLowerCase());
-      if (!isAdminEmail && !email.toLowerCase().endsWith("vanderbilt.edu")) {
+
+      // Check if we're in test mode - for demo, we don't enforce the domain
+      const isTestEmail =
+        email.toLowerCase() === "john.doe@vanderbilt.edu" ||
+        email.toLowerCase() === "blenzbowls.vu@gmail.com";
+
+      if (
+        !isAdminEmail &&
+        !isTestEmail &&
+        !email.toLowerCase().endsWith("vanderbilt.edu")
+      ) {
         newErrors.email = "Please use your Vanderbilt email (@vanderbilt.edu)";
         isValid = false;
       }
@@ -109,40 +118,9 @@ export default function Register() {
 
     setIsLoading(true);
     try {
-      const newUser = {
-        uid: `mock-${Date.now()}`,
-        email,
-        password,
-        displayName: name,
-        photoURL: null,
-        getIdToken: async () => "mock-token-123",
-      };
-
-      // Store in AsyncStorage with proper keys
-      await AsyncStorage.setItem("mock_current_user", JSON.stringify(newUser));
-      await AsyncStorage.setItem("userToken", "mock-token-123");
-      await AsyncStorage.setItem("userId", newUser.uid);
-
-      // Also store user data for the app
-      await AsyncStorage.setItem(
-        "user_data",
-        JSON.stringify({
-          id: newUser.uid,
-          name,
-          email,
-          createdAt: new Date().toISOString(),
-          isVerified: false,
-        }),
-      );
-
-      try {
-        await signUp(email, password, name);
-      } catch (error) {
-        console.log("Auth context update failed, using manual redirect");
-        setTimeout(() => {
-          router.replace("/(tabs)");
-        }, 1000);
-      }
+      await signUp(email, password, name);
+      // After successful sign-up, navigate to the main screen
+      router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Registration error:", error);
       Alert.alert(
@@ -280,6 +258,23 @@ export default function Register() {
               )}
             </View>
 
+            {/* Test Account Info */}
+            <View style={styles.testAccountContainer}>
+              <Text style={styles.testAccountTitle}>
+                Demo Accounts Available:
+              </Text>
+              <Text style={styles.testAccountText}>
+                • Owner: blenzbowls.vu@gmail.com / 12345678
+              </Text>
+              <Text style={styles.testAccountText}>
+                • User: john.doe@vanderbilt.edu / 123456789
+              </Text>
+              <Text style={styles.testAccountNote}>
+                You can use these accounts on the login screen instead of
+                registering
+              </Text>
+            </View>
+
             {/* Register Button */}
             <TouchableOpacity
               style={styles.registerButton}
@@ -382,6 +377,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     marginLeft: 4,
+  },
+  testAccountContainer: {
+    backgroundColor: "#f0f9ff",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: "#2196F3",
+  },
+  testAccountTitle: {
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  testAccountText: {
+    fontSize: 14,
+    marginBottom: 3,
+  },
+  testAccountNote: {
+    fontSize: 12,
+    fontStyle: "italic",
+    marginTop: 5,
+    color: "#666",
   },
   registerButton: {
     backgroundColor: Color.colorBurlywood,
