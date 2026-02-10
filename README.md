@@ -92,14 +92,12 @@ npx expo prebuild --clean
 npx expo run:android
 ```
 
-
 ### Any platform Expo Go setup
 
 1. Install the Expo Go app on the App or Google Play Store
 2. After running `npx expo prebuild --clean `, you can run `npx expo start --clear --tunnel` to get a tunneled and secure build running
 3. Press 's' to switch to development mode, and scan the QR code. Then click on 'Open with Expo Go' to get started.
 
-   
 ## 📂 Project Structure
 
 ```
