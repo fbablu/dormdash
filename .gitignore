@@ -48,3 +48,8 @@ android/
 
 # tests
 coverage/**/*
+
+# docker
+docker-compose.yml
+
+
